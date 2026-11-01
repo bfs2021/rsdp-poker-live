@@ -2,7 +2,7 @@ import type { AddressInfo } from 'node:net';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { engine, variants } from '@rsdp/engine/core';
 import { registerAllVariants } from '@rsdp/engine/variants';
-import { addOnsOpen, defaultSettings, levelEndsAt, standings, tableAddress, type StructureRow, type TournamentSettings, type TournamentState } from '@rsdp/tournament';
+import { addOnsOpen, defaultSettings, MAX_PAYOUT_RANGES, levelEndsAt, standings, tableAddress, type StructureRow, type TournamentSettings, type TournamentState } from '@rsdp/tournament';
 import { createApp, memoryStore } from '../src/app';
 import type { TableRuntime } from '../src/runtime/table';
 import type { RuntimeState } from '../src/runtime/types';
@@ -500,6 +500,50 @@ describe('the next event', () => {
     expect(view.nextId).not.toBeNull();
     expect((await after.store.load(view.nextId!))!.state).toMatchObject({ status: 'registering', startAt: startAt + 2 * DAY });
     expect(after.errors).toEqual([]);
+  });
+
+  /** A daily series whose payouts were saved before payout tables were capped (#266), so its next event can't be made. */
+  async function blockedSeries() {
+    const first = setup();
+    const { startAt, settings } = daily(first);
+    const id = await first.manager.create('host', settings);
+    const ranges = Array.from({ length: MAX_PAYOUT_RANGES + 1 }, (_, i) => ({ minEntries: 2 + 2 * i, maxEntries: 3 + 2 * i, percents: [100] }));
+    ranges[ranges.length - 1]!.maxEntries = 10_000;
+    (await first.manager.peek(id))!.settings.payouts = { structure: { name: 'Old', ranges }, money: { buyIn: 0, rebuy: 0, addOn: 0, added: 0 } };
+    await registerAll(first, id, 3);
+    first.clock.advance(startAt - first.clock.now() + 1000);
+    await settled();
+    const view = first.manager.view(id)!;
+    expect(view.state.status).toBe('running');
+    expect(view.nextId).toBeNull();
+    expect(view.nextError).toContain(`At most ${MAX_PAYOUT_RANGES} ranges`);
+    return { first, id, startAt };
+  }
+
+  it('a series whose next event could not be made still says why after a restart (#276)', async () => {
+    const { first, id } = await blockedSeries();
+    await first.manager.flush();
+    const after = await restart(first.store, first.snapshots, first.clock.t);
+    await settled();
+    const view = after.manager.view(id)!;
+    expect(view.nextId).toBeNull();
+    expect(view.nextError).toContain(`At most ${MAX_PAYOUT_RANGES} ranges`);
+    // Only the lobby's own field carries it, not the event's state.
+    expect(view.state).not.toHaveProperty('nextError');
+  });
+
+  it('a series whose next event could not be made tries again once the host fixes the settings (#276)', async () => {
+    const { first, id, startAt } = await blockedSeries();
+    await first.manager.command(id, 'host', 'Host', { type: 'updateSettings', by: 'host', settings: { payouts: defaultSettings().payouts } });
+    await settled();
+    const view = first.manager.view(id)!;
+    expect(view.nextError).toBeNull();
+    expect(view.nextId).not.toBeNull();
+    expect((await first.store.load(view.nextId!))!.state).toMatchObject({ status: 'registering', startAt: startAt + DAY });
+    // The cleared reason is saved too, so a restart does not bring it back.
+    await first.manager.flush();
+    const after = await restart(first.store, first.snapshots, first.clock.t);
+    expect(after.manager.view(id)!.nextError).toBeNull();
   });
 
   it('a series goes on after an event nobody came to', async () => {

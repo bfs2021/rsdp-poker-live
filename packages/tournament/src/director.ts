@@ -32,10 +32,10 @@ import {
   usableCode,
   validateFormats,
 } from './formats';
-import { placePrizes, prizePool, prizesForPlaces, rangeFor, validatePayoutStructure, type PrizeMoney } from './payouts';
+import { MAX_PRIZE_AMOUNT, placePrizes, prizePool, prizesForPlaces, rangeFor, validatePayoutStructure, type PrizeMoney } from './payouts';
 import { nextOccurrence, validateSchedule } from './recurrence';
 import { drawSeats, nextBalanceStep, seatToFill, seatToMove, type TableLoad } from './seating';
-import { clockAt, levelEndMs, MAX_CHIPS, presetStructure, rowStartMs, validateStructure, type LevelRow } from './structure';
+import { clockAt, levelEndMs, MAX_CHIPS, presetStructure, rowStartMs, validateStructure, type LevelRow, type StructureRow } from './structure';
 import { cleanText, hasUnstorableText, isId } from './text';
 import {
   STATE_VERSION,
@@ -136,9 +136,67 @@ const SETTINGS_KEYS: Record<keyof TournamentSettings, true> = {
   tableRules: true,
 };
 
-/** Only the known settings, with the free text cleaned (names are cut by whole characters). */
+/**
+ * An object with only the given keys, in its own order. Anything that is not an object is left for validation
+ * to refuse.
+ */
+function only<T>(value: T, keys: readonly string[]): T {
+  if (!isObject(value)) return value;
+  return Object.fromEntries(Object.entries(value).filter(([k]) => keys.includes(k))) as T;
+}
+
+const onlyEach = <T>(list: T, clean: (item: unknown) => unknown): T => (Array.isArray(list) ? (list.map(clean) as T) : list);
+
+const START_KEYS: Record<string, readonly string[]> = {
+  manual: ['kind'],
+  scheduled: ['kind', 'startAt', 'schedule'],
+  sng: ['kind', 'playersNeeded', 'startDelaySeconds', 'autoSpawn'],
+};
+
+/** A structure row with only the keys a level or a break has. */
+function cleanRow(row: unknown): unknown {
+  if (!isObject(row)) return row;
+  if (row.kind === 'break') return only(row, ['kind', 'minutes', 'addOn']);
+  if (row.kind !== 'level') return row;
+  const out = only(row, ['kind', 'sb', 'bb', 'ante', 'anteType', 'minutes', 'gameId', 'limit', 'rebuy']);
+  if (isObject(out.limit)) out.limit = only(out.limit, ['smallBet', 'bigBet', 'bringIn']);
+  return out;
+}
+
+/** Levels and breaks with nothing but their own fields, so no junk rides along to every table. */
+const cleanStructure = (rows: StructureRow[]): StructureRow[] => onlyEach(rows, cleanRow);
+
+/** Only the known settings, nested ones included, with the free text cleaned (names are cut by whole characters). */
 function cleanSettings(raw: Partial<TournamentSettings>): Partial<TournamentSettings> {
   const out: Partial<TournamentSettings> = Object.fromEntries(Object.entries(raw ?? {}).filter(([k]) => Object.hasOwn(SETTINGS_KEYS, k)));
+  if (isObject(out.start) && typeof out.start.kind === 'string' && Object.hasOwn(START_KEYS, out.start.kind)) {
+    out.start = only(out.start, START_KEYS[out.start.kind]);
+    if (out.start.kind === 'scheduled' && isObject(out.start.schedule)) {
+      const schedule = only(out.start.schedule, ['timeZone', 'startDate', 'time', 'repeat', 'until']);
+      if (isObject(schedule.repeat)) schedule.repeat = only(schedule.repeat, ['freq', 'interval', 'weekdays', 'monthDay', 'nth', 'weekday']);
+      out.start = { ...out.start, schedule };
+    }
+  }
+  if ('structure' in out) out.structure = cleanStructure(out.structure!);
+  if ('lateRegistration' in out) out.lateRegistration = only(out.lateRegistration!, ['enabled', 'throughLevel']);
+  if ('reEntry' in out) out.reEntry = only(out.reEntry!, ['enabled', 'throughLevel', 'max', 'approval']);
+  if ('rebuy' in out) out.rebuy = only(out.rebuy!, ['max', 'chips', 'approval', 'offerSeconds']);
+  if ('addOn' in out) out.addOn = only(out.addOn!, ['max', 'chips', 'approval']);
+  if ('bounty' in out) out.bounty = only(out.bounty, ['amount', 'progressivePercent']);
+  if ('invites' in out) out.invites = only(out.invites, ['required', 'autoApprove']);
+  if (isObject(out.checkIn)) {
+    out.checkIn = only(out.checkIn, ['groups', 'opensMinutesBefore']);
+    out.checkIn.groups = onlyEach(out.checkIn.groups, (g) => only(g, ['firstN', 'waitMinutes']));
+  }
+  if (isObject(out.payouts)) {
+    out.payouts = only(out.payouts, ['structure', 'money']);
+    out.payouts.money = only(out.payouts.money, ['buyIn', 'rebuy', 'addOn', 'feePercent', 'added']);
+    if (isObject(out.payouts.structure)) {
+      const structure = only(out.payouts.structure, ['name', 'ranges', 'roundTo']);
+      structure.ranges = onlyEach(structure.ranges, (r) => only(r, ['minEntries', 'maxEntries', 'percents']));
+      out.payouts.structure = structure;
+    }
+  }
   if (typeof out.name === 'string') out.name = cleanText(out.name);
   if (isObject(out.season)) {
     const { id, name } = out.season;
@@ -204,8 +262,9 @@ export function validateSettings(s: TournamentSettings): string[] {
     errors.push(...validatePayoutStructure(s.payouts.structure, s.maxEntrants));
     // Standings read these on every finish, so they must be usable numbers.
     const m: Partial<PrizeMoney> = isObject(s.payouts.money) ? s.payouts.money : {};
-    if (![m.buyIn, m.rebuy ?? 0, m.addOn ?? 0, m.added ?? 0].every((n) => isWhole(n, 0, Number.MAX_SAFE_INTEGER)))
-      errors.push('Prize money must be whole amounts of 0 or more');
+    const amounts = [m.buyIn, m.rebuy ?? 0, m.addOn ?? 0, m.added ?? 0];
+    if (!amounts.every((n) => isWhole(n, 0, Number.MAX_SAFE_INTEGER))) errors.push('Prize money must be whole amounts of 0 or more');
+    else if (amounts.some((n) => n! > MAX_PRIZE_AMOUNT)) errors.push('Prize money amounts must be at most $100,000 each');
     if (m.feePercent !== undefined && !(typeof m.feePercent === 'number' && m.feePercent >= 0 && m.feePercent <= 100)) errors.push('The fee must be 0-100%');
   }
   if (s.tableRules !== undefined) errors.push(...validateTableRules(s.tableRules));
@@ -1222,19 +1281,21 @@ export function apply(state: TournamentState, cmd: Command, now: number): Result
         break;
       }
       case 'editStructure': {
-        const issues = validateStructure(cmd.structure, { maxRebuys: s.settings.rebuy.max });
+        const structure = cleanStructure(cmd.structure);
+        const issues = validateStructure(structure, { maxRebuys: s.settings.rebuy.max });
         if (issues.errors.length) fail(issues.errors.join('; '));
         if (started(s)) {
           const keep = s.clock.rowIndex + 1;
-          if (JSON.stringify(cmd.structure.slice(0, keep)) !== JSON.stringify(s.settings.structure.slice(0, keep)))
+          // Both sides cleaned: a structure saved before rows were cleaned may still hold extra fields.
+          if (JSON.stringify(structure.slice(0, keep)) !== JSON.stringify(cleanStructure(s.settings.structure).slice(0, keep)))
             fail('Only levels after the current one can change');
           // The last level runs on past its length. Rows added after it would count that extra time as already
           // played and be skipped, so the current level ends now and the next row starts from the edit.
-          if (clockAt(cmd.structure, elapsed(s, now)).rowIndex > s.clock.rowIndex) {
-            s.clock = { ...s.clock, elapsedMs: rowStartMs(cmd.structure, keep), runningSince: s.clock.runningSince === null ? null : now };
+          if (clockAt(structure, elapsed(s, now)).rowIndex > s.clock.rowIndex) {
+            s.clock = { ...s.clock, elapsedMs: rowStartMs(structure, keep), runningSince: s.clock.runningSince === null ? null : now };
           }
         }
-        s.settings.structure = structuredClone(cmd.structure);
+        s.settings.structure = structuredClone(structure);
         emit(c, { type: 'structureEdited' });
         break;
       }
@@ -1244,8 +1305,10 @@ export function apply(state: TournamentState, cmd: Command, now: number): Result
         const locked: (keyof TournamentSettings)[] = s.tables.length
           ? ['start', 'games', 'stopRotationAtLevel', 'startingStack', 'seatsPerTable', 'structure', 'season', 'tableRules']
           : ['structure', 'season'];
+        // Compared cleaned, as settings saved before nested fields were cleaned may still hold extra ones.
+        const was = cleanSettings(s.settings);
         for (const k of locked) {
-          if (k in changes && JSON.stringify(next[k]) !== JSON.stringify(s.settings[k]))
+          if (k in changes && JSON.stringify(changes[k]) !== JSON.stringify(was[k]))
             fail(k === 'structure' ? 'Use editStructure to change levels' : k === 'season' ? 'The season is set when the tournament is created' : `${k} is locked once tables exist`);
         }
         const errors = validateSettings(next);

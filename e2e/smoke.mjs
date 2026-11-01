@@ -269,6 +269,9 @@ try {
       throw new Error(`no tip, the panel said: ${(await tip.innerText().catch(() => 'nothing')).trim()}`);
     });
     await p.screenshot({ path: path.join(OUT, 'practice-tip.png') });
+    // Stopped like the cash tables: closed mid-hand, the hand would only end as Pia's clock ran out, after the
+    // run, and CI's backup drill would find the public record had moved on since it read it.
+    await stopGame(p, [p]);
     await p.close();
   });
 

@@ -12,7 +12,7 @@ import type { Ack, BotLevel, ClientToServer, ServerToClient, TurnKey } from '@rs
 import { isArchived, LOBBY_CHAT_MAX, logEvent, namesIn, type LobbyItem, type TournamentClientToServer, type TournamentServerToClient } from '@rsdp/tournament';
 import { hashSecret, IdentityError } from './identity';
 import { realGameHand, TableRuntime } from './runtime/table';
-import { systemClock, type ChatMessage, type Clock, type HandRecord, type PastHand, type RuntimeState, type TableLine, type TableLogEntry } from './runtime/types';
+import { botIdsOf, systemClock, type ChatMessage, type Clock, type HandRecord, type PastHand, type RuntimeState, type TableLine, type TableLogEntry } from './runtime/types';
 import { splitLines, startingLines } from './storage';
 import { cleanName } from './names';
 import { avatarImage, avatarToken, cleanAvatar, memoryAvatars, type AvatarStore } from './avatars';
@@ -572,10 +572,12 @@ export function createApp(deps: AppDeps = {}) {
       .then(async (state) => {
         if (!state) return void res.status(404).json({ error: 'No table has that id.' });
         const live = tables.get(id);
+        const bots = botIdsOf(state);
+        const isBot = (pid: string) => bots.has(pid);
         const realGame =
-          (state.realGame ?? ((await store.loadHands(id)).some((h) => realGameHand(h.seats)) || state.history.some((h) => realGameHand(h.hand.seats)))) ||
-          (!!state.hand && state.hand.phase !== 'complete' && realGameHand(state.hand.seats));
-        const people = Object.entries(state.handNames ?? {}).filter(([pid]) => !pid.startsWith('bot-'));
+          (state.realGame ?? ((await store.loadHands(id)).some((h) => realGameHand(h.seats, isBot)) || state.history.some((h) => realGameHand(h.hand.seats, isBot)))) ||
+          (!!state.hand && state.hand.phase !== 'complete' && realGameHand(state.hand.seats, isBot));
+        const people = Object.entries(state.handNames ?? {}).filter(([pid]) => !isBot(pid));
         res.json({
           id,
           name: state.settings.table.name,
@@ -1032,7 +1034,9 @@ export function createApp(deps: AppDeps = {}) {
     const ended = handLive ? await store.loadHand(id, saved.handNumber) : null;
     // Tables saved before the runtime kept count: look through their hands once.
     if (saved.realGame === undefined) {
-      saved.realGame = (await store.loadHands(id)).some((h) => realGameHand(h.seats)) || saved.history.some((h) => realGameHand(h.hand.seats));
+      const bots = botIdsOf(saved);
+      const isBot = (pid: string) => bots.has(pid);
+      saved.realGame = (await store.loadHands(id)).some((h) => realGameHand(h.seats, isBot)) || saved.history.some((h) => realGameHand(h.hand.seats, isBot));
     }
     // Another join may have loaded it (or it was deleted) while we waited.
     if (deleted.has(id)) return null;

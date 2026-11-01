@@ -344,8 +344,17 @@ describe('free text', () => {
   });
 
   it('refuses text that cannot be saved anywhere else in the settings', () => {
-    expect(refusal(() => create({ rebuy: { max: 0, chips: 1000, approval: false, offerSeconds: 15, note: '\u0000' } }))).toMatch('cannot be saved');
-    expect(refusal(() => update(create(), { addOn: { max: 0, chips: 1000, approval: false, ['\ud800']: 1 } }))).toMatch('cannot be saved');
+    expect(refusal(() => create({ games: ['nlhe\u0000'] }))).toMatch('cannot be saved');
+    expect(refusal(() => update(create(), { games: ['\ud800'] }))).toMatch('cannot be saved');
+    expect(refusal(() => create({ start: scheduled({ schedule: { ...daily, timeZone: '\u0000' } }) }))).toMatch('cannot be saved');
+  });
+
+  it('drops unsaveable text in fields that are not settings instead of keeping it', () => {
+    const created = create({ rebuy: { max: 0, chips: 1000, approval: false, offerSeconds: 15, note: '\u0000' } });
+    expect(created.settings.rebuy).toEqual({ max: 0, chips: 1000, approval: false, offerSeconds: 15 });
+    const updated = update(created, { addOn: { max: 0, chips: 1000, approval: false, ['\ud800']: 1 } });
+    expect(updated.settings.addOn).toEqual({ max: 0, chips: 1000, approval: false });
+    expect(storable(updated)).toBe(true);
   });
 });
 
@@ -357,6 +366,83 @@ describe('unknown settings', () => {
     expect(next.settings.name).toBe('New');
     expect(next.settings).not.toHaveProperty('alsoJunk');
     expect(storable(next)).toBe(true);
+  });
+});
+
+describe('unknown nested settings (#273)', () => {
+  const junk = { junk: 'x'.repeat(100) };
+  const lv = (extra: Record<string, unknown> = {}) => ({ kind: 'level', sb: 50, bb: 100, ante: 0, anteType: 'none', minutes: 10, ...extra });
+
+  it('drops keys that are not part of a nested setting', () => {
+    const preset = payoutPreset('winner-take-all', 600);
+    const state = create({
+      start: scheduled({ ...junk, schedule: { ...daily, ...junk, repeat: { freq: 'weekly', weekdays: [1], ...junk } } }),
+      structure: [lv({ rebuy: true, limit: { smallBet: 100, bigBet: 200, ...junk }, ...junk }), { kind: 'break', minutes: 5, addOn: true, ...junk }, lv()],
+      lateRegistration: { enabled: true, throughLevel: 4, ...junk },
+      reEntry: { enabled: false, throughLevel: null, max: null, approval: false, ...junk },
+      rebuy: { max: 0, chips: 1000, approval: false, offerSeconds: 15, ...junk },
+      addOn: { max: 0, chips: 1000, approval: false, ...junk },
+      payouts: { ...junk, structure: { ...preset, ...junk, ranges: preset.ranges.map((r) => ({ ...r, ...junk })) }, money: { buyIn: 100, ...junk } },
+      bounty: { amount: 500, progressivePercent: 0, ...junk },
+      invites: { required: false, autoApprove: true, ...junk },
+      checkIn: { groups: [{ firstN: null, waitMinutes: 10, ...junk }], opensMinutesBefore: 60, ...junk },
+    });
+    expect(JSON.stringify(state.settings)).not.toContain('junk');
+    expect(state.settings.start).toEqual({ kind: 'scheduled', startAt: T0 + 60 * MIN, schedule: { ...daily, repeat: { freq: 'weekly', weekdays: [1] } } });
+    expect(state.settings.structure[0]).toEqual(lv({ rebuy: true, limit: { smallBet: 100, bigBet: 200 } }));
+    expect(state.settings.payouts).toEqual({ structure: preset, money: { buyIn: 100 } });
+  });
+
+  it('keeps only the fields of the start rule that was picked', () => {
+    expect(create({ start: { kind: 'manual', startAt: 5 } }).settings.start).toEqual({ kind: 'manual' });
+    const sng = { kind: 'sng', playersNeeded: 2, startDelaySeconds: 0, autoSpawn: false };
+    expect(create({ start: { ...sng, schedule: daily } }).settings.start).toEqual(sng);
+    // A monthly rule is told apart by which of its keys are there, so none are added.
+    const monthly = { ...daily, repeat: { freq: 'monthly', nth: -1, weekday: 5 } };
+    expect(create({ start: scheduled({ schedule: monthly }) }).settings.start).toEqual(scheduled({ schedule: monthly }));
+  });
+
+  it('drops them in updateSettings and editStructure too', () => {
+    const state = create();
+    expect(update(state, { rebuy: { max: 0, chips: 1000, approval: false, offerSeconds: 15, ...junk } }).settings.rebuy).not.toHaveProperty('junk');
+    const edited = apply(state, { type: 'editStructure', by: 'host', structure: [lv(junk) as StructureRow] }, T0).state;
+    expect(edited.settings.structure).toEqual([lv()]);
+  });
+
+  it('still edits an event saved with extra fields before they were dropped', () => {
+    let state = running();
+    // As saved before this change: extra fields in the rows and the start rule.
+    state = { ...state, settings: { ...state.settings, start: { kind: 'manual', ...junk } as TournamentSettings['start'], structure: state.settings.structure.map((r) => ({ ...r, ...junk })) } };
+    const rows = state.settings.structure;
+    const next = act(state, { type: 'editStructure', by: 'host', structure: [...rows, lv()] as StructureRow[] });
+    expect(next.state.settings.structure).toEqual([...levels, lv()]);
+    expect(update(state, { start: state.settings.start }).settings.start).toEqual({ kind: 'manual' });
+  });
+
+  it('refuses game ids longer than any real one', () => {
+    expect(refusal(() => create({ games: ['x'.repeat(41)] }))).toMatch('game id');
+    expect(refusal(() => create({ structure: [lv({ gameId: 'x'.repeat(41) })] }))).toMatch('game');
+    expect(validateStructure([lv({ gameId: 'x'.repeat(40) }) as StructureRow]).errors).toEqual([]);
+  });
+});
+
+describe('payout ranges and prize money (#273)', () => {
+  const winner = (maxEntries: number) => ({ name: 'custom', ranges: [{ minEntries: 2, maxEntries, percents: [100] }] });
+
+  it('lets ranges run past max entrants, as re-entries can, but not past 10,000 entries', () => {
+    expect(refusal(() => create({ maxEntrants: 50, payouts: { structure: winner(600), money: { buyIn: 100 } } }))).toBeNull();
+    expect(refusal(() => create({ payouts: { structure: winner(10_000), money: { buyIn: 100 } } }))).toBeNull();
+    expect(refusal(() => create({ payouts: { structure: winner(5_000_000), money: { buyIn: 100 } } }))).toMatch('Range 2-5000000: must end by 10,000 entries');
+  });
+
+  it('caps each prize amount and the bounty at $100,000, so pools stay exact', () => {
+    const structure = payoutPreset('winner-take-all', 600);
+    for (const money of [{ buyIn: 10_000_001 }, { buyIn: 0, rebuy: 10_000_001 }, { buyIn: 0, addOn: 10_000_001 }, { buyIn: 0, added: Number.MAX_SAFE_INTEGER }])
+      expect(refusal(() => create({ payouts: { structure, money } }))).toMatch('at most $100,000');
+    const top = { buyIn: 10_000_000, rebuy: 10_000_000, addOn: 10_000_000, added: 10_000_000 };
+    expect(refusal(() => create({ payouts: { structure, money: top } }))).toBeNull();
+    expect(refusal(() => create({ bounty: { amount: 10_000_001, progressivePercent: 0 } }))).toMatch('The bounty must be at most $100,000');
+    expect(refusal(() => create({ bounty: { amount: 10_000_000, progressivePercent: 0 } }))).toBeNull();
   });
 });
 

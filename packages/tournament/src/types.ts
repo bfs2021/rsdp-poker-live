@@ -227,6 +227,11 @@ export interface TournamentState {
    * it (states saved before this field existed get it from the event before's saved link when the server loads them).
    */
   spawnedFrom?: string;
+  /**
+   * Why the server could not open the next event of this series or Sit & Go, for the lobby to show. Set and cleared by
+   * the server, never by the director. Missing: nothing went wrong (or the state was saved before this was kept).
+   */
+  nextError?: string;
   settings: TournamentSettings;
   status: TournamentStatus;
   createdAt: number;

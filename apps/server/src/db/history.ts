@@ -90,22 +90,47 @@ export async function tableHistory(db: Db, playerIds: string[], limit = 25, opts
 }
 
 /**
+ * Every practice bot each of these tables has had, by table, read from its
+ * snapshot as botIdsOf does: its bots, and the ledger rows flagged as bots.
+ * Never the 'bot-' prefix: a person's id can start with it too.
+ */
+export async function tableBots(db: Db, tableIds: string[]): Promise<Map<string, Set<string>>> {
+  const out = new Map<string, Set<string>>();
+  if (tableIds.length === 0) return out;
+  const rows = await queryRows<{ table_id: string; player_id: string }>(
+    db,
+    sql`select t.table_id, b.player_id from ${tableSnapshots} t, lateral (
+          select jsonb_object_keys(case when jsonb_typeof(t.state -> 'bots') = 'object' then t.state -> 'bots' else '{}'::jsonb end) as player_id
+          union
+          select key from jsonb_each(case when jsonb_typeof(t.state -> 'ledger') = 'object' then t.state -> 'ledger' else '{}'::jsonb end)
+            where jsonb_typeof(value) = 'object' and value ->> 'bot' = 'true'
+        ) b
+        where ${inArray(sql`t.table_id`, tableIds)}`,
+  );
+  for (const r of rows) {
+    const ids = out.get(r.table_id) ?? new Set<string>();
+    ids.add(r.player_id);
+    out.set(r.table_id, ids);
+  }
+  return out;
+}
+
+/**
  * Of these tables, the real games: some hand had two or more people, and no
- * hand ever had a practice bot. Everything else is practice (play against
- * bots, or someone trying a table alone) and stays out of results.
+ * hand ever had a practice bot (see tableBots). Everything else is practice
+ * (play against bots, or someone trying a table alone) and stays out of results.
  */
 export async function realGameTables(db: Db, tableIds: string[]): Promise<Set<string>> {
   if (tableIds.length === 0) return new Set();
-  const rows = await db
-    .select({ tableId: hands.tableId })
-    .from(hands)
-    .where(inArray(hands.tableId, tableIds))
-    .groupBy(hands.tableId)
-    .having(
-      sql`not bool_or(jsonb_path_exists(${hands.header} -> 'seats', '$[*] ? (@.playerId starts with "bot-")'))
-          and max(jsonb_array_length(${hands.header} -> 'seats')) >= 2`,
-    );
-  return new Set(rows.map((r) => r.tableId));
+  const rows = await queryRows<{ table_id: string; most: number; dealt: string[] }>(
+    db,
+    sql`select h.table_id, max(jsonb_array_length(h.header -> 'seats'))::int as most, jsonb_agg(distinct s -> 'playerId') as dealt
+        from ${hands} h, jsonb_array_elements(h.header -> 'seats') s
+        where ${inArray(sql`h.table_id`, tableIds)}
+        group by h.table_id`,
+  );
+  const bots = await tableBots(db, tableIds);
+  return new Set(rows.filter((r) => Number(r.most) >= 2 && !r.dealt.some((id) => bots.get(r.table_id)?.has(id))).map((r) => r.table_id));
 }
 
 /**
@@ -143,7 +168,8 @@ export async function practiceTableUse(
     sql`select distinct s ->> 'playerId' as player_id from ${hands} h, jsonb_array_elements(h.header -> 'seats') s where h.table_id = ${tableId}`,
   );
   const mine = new Set(playerIds);
-  const people = dealt.map((r) => r.player_id).filter((id) => !id.startsWith('bot-'));
+  const bots = (await tableBots(db, [tableId])).get(tableId);
+  const people = dealt.map((r) => r.player_id).filter((id) => !bots?.has(id));
   const real = await realGameTables(db, [tableId]);
   return {
     practice: !real.has(tableId),

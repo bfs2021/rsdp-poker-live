@@ -107,6 +107,17 @@ export interface LedgerRow {
   look?: number;
 }
 
+/**
+ * Every practice bot a saved table has had, as TableRuntime.botBadge tells them: the bots it has now, and the ledger
+ * rows bots keep for good (flagged since bots came, and the ledger is never cleared). Never the 'bot-' prefix: a
+ * person's id is random and can start with it too.
+ */
+export function botIdsOf(state: { bots?: Record<string, unknown> | null; ledger?: Record<string, { bot?: boolean } | null> | null } | null | undefined): Set<PlayerId> {
+  const ids = new Set<PlayerId>(Object.keys(state?.bots ?? {}));
+  for (const [id, row] of Object.entries(state?.ledger ?? {})) if (row?.bot) ids.add(id);
+  return ids;
+}
+
 export interface ChatMessage {
   at: number;
   playerId: PlayerId | null;
@@ -279,8 +290,9 @@ export interface RuntimeState {
    * A hand here was dealt to two or more people (not bots), so friends' records
    * depend on the table and the host can't delete it, and coach tips are off
    * for good. Set at the deal by who is in state.bots, and when a hand ends by
-   * the 'bot-' prefix (all a saved hand can tell). Missing in older snapshots;
-   * the server works it out from saved hands when it loads one.
+   * the bots and the ledger rows flagged as bots (botIdsOf), never the 'bot-'
+   * prefix. Missing in older snapshots; the server works it out from saved
+   * hands, the same way, when it loads one.
    */
   realGame?: boolean;
 }

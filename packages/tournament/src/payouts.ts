@@ -28,6 +28,18 @@ export const MAX_ROUND_TO = 100_000;
 export const MAX_PAYOUT_RANGES = 150;
 export const MAX_PAID_PLACES = 200;
 
+/**
+ * Highest entry count a range may reach. Re-entries count as entries, so ranges may run past max entrants (and
+ * the last one carries on past its end anyway); this only stops a slip of the keyboard reaching millions.
+ */
+export const MAX_PAYOUT_ENTRIES = 10_000;
+
+/**
+ * Largest buy-in, rebuy, add-on, added money or bounty: $100,000. Pools and prizes stay safe integers well past
+ * any field this site can hold (placePrizes multiplies the pool by up to 10,000).
+ */
+export const MAX_PRIZE_AMOUNT = 10_000_000;
+
 /** Optional display-only money values. All amounts in the smallest unit. */
 export interface PrizeMoney {
   buyIn: number;
@@ -55,7 +67,7 @@ const cents = (n: number) => Math.round(n * 100);
 
 /**
  * Checks a structure. Ranges must be in order with no gaps or overlaps and
- * cover 2 up to `maxEntries`; each range must pay no more places than its
+ * cover 2 up to `maxEntries` (ending by MAX_PAYOUT_ENTRIES); each range must pay no more places than its
  * smallest entry count, percents must not increase, and each range sums to 100.
  * At most MAX_PAYOUT_RANGES ranges, each paying at most MAX_PAID_PLACES places.
  */
@@ -75,6 +87,7 @@ export function validatePayoutStructure(s: PayoutStructure, maxEntries: number):
       errors.push(`${label}: invalid entry counts`);
     if (r.minEntries !== expectedMin)
       errors.push(i === 0 ? 'The first range must start at 2 entries' : `${label}: must start at ${expectedMin} (no gaps or overlaps)`);
+    if (r.maxEntries > MAX_PAYOUT_ENTRIES) errors.push(`${label}: must end by ${MAX_PAYOUT_ENTRIES.toLocaleString('en-US')} entries`);
     expectedMin = r.maxEntries + 1;
     if (!r.percents.length) errors.push(`${label}: pays nobody`);
     if (r.percents.length > r.minEntries) errors.push(`${label}: pays more places than ${r.minEntries} entries`);

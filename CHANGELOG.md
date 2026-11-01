@@ -18,6 +18,15 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
+## [2026.11.01.9] - 2026-11-01
+
+### Fixed and changed
+
+- If the next event in a repeating series or Sit & Go can't be made, its lobby now still says why after a server restart, and the server tries again as soon as the host fixes the settings.
+- Tournament settings now drop stray extra fields instead of saving them, and refuse prize amounts over $100,000 and payout tables that run past 10,000 entries.
+- Fixed a rare mix-up where a player could be taken for a practice bot, leaving their real games off the leaderboard and their profile.
+- Behind the scenes: the automatic browser test now stops its practice table when it finishes. Nothing changes at the tables.
+
 ## [2026.11.01.8] - 2026-11-01
 
 ### Fixed and changed
@@ -528,6 +537,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.01.9]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.01.9
 [2026.11.01.8]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.01.8
 [2026.11.01.7]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.01.7
 [2026.11.01.6]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.01.6

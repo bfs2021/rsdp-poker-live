@@ -17,4 +17,7 @@ export function hasUnstorableText(value: unknown): boolean {
   return Object.entries(value).some(([k, v]) => hasUnstorableText(k) || hasUnstorableText(v));
 }
 
-export const isId = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+/** Longest game id: real ones are a few letters, and a longer one would only be stored and echoed back. */
+const MAX_ID_LENGTH = 40;
+
+export const isId = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= MAX_ID_LENGTH;

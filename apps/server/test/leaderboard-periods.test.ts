@@ -138,6 +138,17 @@ describe('leaderboard periods', () => {
   it('keeps no bot table’s hands, and lets go of the rest once a minute passes with no visit', async () => {
     // A practice table against a bot: it never counts on the boards.
     await createTable(db, { id: 'practice', ownerPlayerId: 'ann', settings: { table: { name: 'practice' } }, mode: 'cash' });
+    // Its snapshot says who the bot is (its ledger row is flagged), as every bot's table does: not the 'bot-' prefix.
+    await saveSnapshot(db, 'practice', {
+      version: 1,
+      state: {
+        id: 'practice',
+        settings: { table: { name: 'practice' }, stakes: { centsMode: true } },
+        seats: [null, null],
+        ledger: { ann: { playerId: 'ann', name: 'Ann', buyIn: 10000, cashOut: 10000 }, 'bot-1': { playerId: 'bot-1', name: 'Robo', buyIn: 10000, cashOut: 10000, bot: true } },
+        handNames: { ann: 'Ann', 'bot-1': 'Robo' },
+      },
+    });
     await saveHand(db, {
       id: 'practice-1',
       tableId: 'practice',

@@ -9,14 +9,24 @@
 import { inArray, sql } from 'drizzle-orm';
 import type { Db } from './client';
 import { queryRows } from './client';
+import { botIdsOf } from '../runtime/types';
+import { tableBots } from './history';
 import { players, tableSnapshots } from './schema';
 
 /** The parts of a runtime snapshot analytics reads. */
 interface SnapState {
   seats?: ({ playerId: string; stack: number } | null)[];
-  ledger?: Record<string, { buyIn: number; cashOut: number }>;
+  ledger?: Record<string, { buyIn: number; cashOut: number; bot?: boolean }>;
+  bots?: Record<string, unknown>;
   handNames?: Record<string, string>;
   settings?: { table?: { name?: string }; stakes?: { centsMode?: boolean } };
+}
+
+/** tableNets without the table's bots (botIdsOf), which never go on the boards. */
+function peopleNets(state: SnapState): Map<string, number> {
+  const nets = tableNets(state);
+  for (const id of botIdsOf(state)) nets.delete(id);
+  return nets;
 }
 
 /** Chips at a table to cents. */
@@ -54,14 +64,16 @@ async function cashHands(db: Db): Promise<HandRow[]> {
   );
 }
 
-const isBot = (playerId: string) => playerId.startsWith('bot-');
-
-/** Tables that count: some hand had two or more people, and no hand had a bot. */
-function realTables(rows: HandRow[]): Set<string> {
+/**
+ * Tables that count: some hand had two or more people, and no hand had a bot.
+ * Who is a bot comes from each table's snapshot (tableBots), never the 'bot-' prefix.
+ */
+async function realTables(db: Db, rows: HandRow[]): Promise<Set<string>> {
+  const botsAt = await tableBots(db, [...new Set(rows.map((r) => r.table_id))]);
   const people = new Set<string>();
   const bots = new Set<string>();
   for (const r of rows) {
-    if (r.seats.some((s) => isBot(s.playerId))) bots.add(r.table_id);
+    if (r.seats.some((s) => botsAt.get(r.table_id)?.has(s.playerId))) bots.add(r.table_id);
     else if (r.seats.length >= 2) people.add(r.table_id);
   }
   return new Set([...people].filter((id) => !bots.has(id)));
@@ -110,7 +122,7 @@ export async function profitSessions(db: Db, playerIds: string[]): Promise<Profi
           null as awards
         from hands h where h.table_id in (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`,
   );
-  const real = realTables(rows);
+  const real = await realTables(db, rows);
   const mineAt = new Map<string, { at: number; hands: number }>();
   for (const r of rows) {
     if (!real.has(r.table_id) || !r.seats.some((s) => mine.has(s.playerId))) continue;
@@ -218,7 +230,7 @@ async function realGameTablesOf(db: Db, tableIds: string[]): Promise<Set<string>
           null as awards
         from hands h where h.table_id in (${sql.join(tableIds.map((id) => sql`${id}`), sql`, `)})`,
   );
-  return realTables(rows);
+  return realTables(db, rows);
 }
 
 // ---------------------------------------------------------------- leaderboards
@@ -240,7 +252,7 @@ export interface LeaderRow {
 
 /** What the leaderboards need from a real game's snapshot. */
 interface LeaderTable {
-  /** Each player's chips won (above 0) or lost there. */
+  /** Each person's chips won (above 0) or lost there; the table's bots are left out. */
   nets: Map<string, number>;
   centsMode: boolean;
   /** The name each player used there. */
@@ -271,7 +283,7 @@ export interface LeaderData {
 export async function leaderData(db: Db): Promise<LeaderData> {
   const all = await cashHands(db);
   // Whether a table is real depends on all its hands, not only the period's.
-  const real = realTables(all);
+  const real = await realTables(db, all);
   const hands = all.filter((r) => real.has(r.table_id));
   const lastHand = new Map<string, number>();
   for (const r of hands) if (real.has(r.table_id)) lastHand.set(r.table_id, Math.max(lastHand.get(r.table_id) ?? 0, new Date(r.started_at).getTime()));
@@ -295,7 +307,7 @@ export async function leaderboard(db: Db, data: LeaderData, since?: Date): Promi
   // Only what the boards use is kept, not the whole snapshot.
   for (const id of unread) {
     const state = read.get(id);
-    data.tables.set(id, state ? { nets: tableNets(state), centsMode: !!state.settings?.stakes?.centsMode, names: { ...state.handNames } } : null);
+    data.tables.set(id, state ? { nets: peopleNets(state), centsMode: !!state.settings?.stakes?.centsMode, names: { ...state.handNames } } : null);
   }
   const snaps = new Map<string, LeaderTable>();
   for (const id of periodTables) {
@@ -312,7 +324,6 @@ export async function leaderboard(db: Db, data: LeaderData, since?: Date): Promi
   };
   for (const tableId of inPeriod) {
     for (const [playerId, net] of snaps.get(tableId)?.nets ?? []) {
-      if (isBot(playerId)) continue;
       const r = row(playerId);
       r.profit += cents(tableId, net);
       r.sessions.add(tableId);

@@ -64,8 +64,12 @@ const CHAT_LIMIT = 200;
 const LOG_LIMIT = 300;
 const HISTORY_LIMIT = 30;
 
-/** True when two or more people (not practice bots) were dealt in. */
-export const realGameHand = (seats: readonly { playerId: PlayerId }[]) => seats.filter((x) => !x.playerId.startsWith('bot-')).length >= 2;
+/**
+ * True when two or more people (not practice bots) were dealt in. Who is a bot comes from the table (its bots, or
+ * botIdsOf a saved one), never the 'bot-' prefix: a person's id can start with it too.
+ */
+export const realGameHand = (seats: readonly { playerId: PlayerId }[], isBot: (playerId: PlayerId) => boolean) =>
+  seats.filter((x) => !isBot(x.playerId)).length >= 2;
 /** Hands become checkable this long after they end, if the host hasn't stopped the game sooner (docs/FAIRNESS.md). */
 export const FAIR_REVEAL_AFTER_MS = 12 * 60 * 60 * 1000;
 /**
@@ -758,7 +762,7 @@ export class TableRuntime {
   checkDeletable(by: PlayerId) {
     if (this.isTournament) throw new ActionError('tournament tables are kept with their tournament');
     if (!this.isHost(by)) throw new ActionError('only the host can delete the table');
-    if (this.state.realGame || (this.handLive() && realGameHand(this.state.hand!.seats))) {
+    if (this.state.realGame || (this.handLive() && realGameHand(this.state.hand!.seats, (id) => !!this.botBadge(id)))) {
       throw new ActionError("people have played real hands here, so the table stays: everyone's records and the ledger depend on it. You can hide it from your profile instead.");
     }
   }
@@ -2035,7 +2039,7 @@ export class TableRuntime {
     const record: HandRecord = { handNumber: s.handNumber, startedAt: s.handStartedAt!, endedAt: now, hand, ...(coach ? { coach } : {}) };
     s.history.push(record);
     if (s.history.length > HISTORY_LIMIT) s.history.splice(0, s.history.length - HISTORY_LIMIT);
-    if (realGameHand(hand.seats)) s.realGame = true;
+    if (realGameHand(hand.seats, (id) => !!this.botBadge(id))) s.realGame = true;
     s.handStartedAt = null;
     s.turn = null;
     s.ritDeadline = null;
@@ -2089,7 +2093,7 @@ export class TableRuntime {
     s.handStartedAt = null;
     s.turn = null;
     s.ritDeadline = null;
-    if (realGameHand(past.seats)) s.realGame = true;
+    if (realGameHand(past.seats, (id) => !!this.botBadge(id))) s.realGame = true;
     this.log(`Hand #${past.handNumber} had already ended when the server stopped, so it was closed with its saved result`);
     this.queuedChipsLand();
     this.feeAndBounty(past);

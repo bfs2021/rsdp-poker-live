@@ -3,6 +3,7 @@
 // pure helpers; the director calls them from its transitions.
 
 import { hasPower } from '@rsdp/engine/roles';
+import { MAX_PRIZE_AMOUNT } from './payouts';
 import { nextRandom } from './seating';
 import type { Entry, InviteCode, PlayerId, TournamentSettings, TournamentState } from './types';
 
@@ -25,6 +26,7 @@ export function validateFormats(s: TournamentSettings): string[] {
   if (s.bounty !== undefined) {
     const b: Partial<NonNullable<TournamentSettings['bounty']>> = isObject(s.bounty) ? s.bounty : {};
     if (!isWhole(b.amount, 1, Number.MAX_SAFE_INTEGER)) errors.push('The bounty must be a whole amount above 0');
+    else if (b.amount! > MAX_PRIZE_AMOUNT) errors.push('The bounty must be at most $100,000');
     if (!isWhole(b.progressivePercent, 0, 100)) errors.push('The progressive share must be 0-100%');
   }
   if (s.invites !== undefined) {
