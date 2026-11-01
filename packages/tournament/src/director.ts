@@ -301,11 +301,13 @@ export interface CreateInput {
   now: number;
   /** Any 32-bit integer; the server should pick it with a CSPRNG. */
   seed: number;
+  /** The event this one follows in a series: rebuy and add-on counts it was allowed to keep carry over. */
+  follows?: TournamentSettings | null;
 }
 
-export function createTournament({ id, hostId, settings: raw, now, seed }: CreateInput): TournamentState {
+export function createTournament({ id, hostId, settings: raw, now, seed, follows }: CreateInput): TournamentState {
   const settings = cleanSettings(raw) as TournamentSettings;
-  const errors = validateSettings(settings);
+  const errors = validateSettings(settings, follows);
   if (settings.start?.kind === 'scheduled' && settings.start.startAt <= now) errors.push('The start time has already passed');
   if (errors.length) fail(errors.join('; '));
   // A new season is named after the event that starts it.

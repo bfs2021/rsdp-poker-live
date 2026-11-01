@@ -26,9 +26,9 @@ describe('PayoutEditor ranges past max entrants', () => {
     expect(screen.getByText(/Ranges from 201 entries up are only used if re-entries take the field past max entrants \(100\)/)).toBeTruthy();
   });
 
-  it('says they cannot be reached when re-entry is off', () => {
+  it('says they are only used if re-entry is turned on', () => {
     show(builtFor600, 100, false);
-    expect(screen.getByText(/Ranges from 201 entries up can't be reached: max entrants is 100 and re-entry is off/)).toBeTruthy();
+    expect(screen.getByText(/Ranges from 201 entries up won't be used unless re-entry is turned on \(max entrants is 100\)/)).toBeTruthy();
   });
 
   it('says nothing when every range starts within max entrants', () => {

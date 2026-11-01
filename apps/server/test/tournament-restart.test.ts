@@ -2,7 +2,7 @@ import type { AddressInfo } from 'node:net';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { engine, variants } from '@rsdp/engine/core';
 import { registerAllVariants } from '@rsdp/engine/variants';
-import { addOnsOpen, defaultSettings, MAX_LEVELS, MAX_PAYOUT_RANGES, levelEndsAt, standings, tableAddress, type StructureRow, type TournamentSettings, type TournamentState } from '@rsdp/tournament';
+import { addOnsOpen, defaultSettings, MAX_BUYS_PER_PLAYER, MAX_LEVELS, MAX_PAYOUT_RANGES, levelEndsAt, standings, tableAddress, type StructureRow, type TournamentSettings, type TournamentState } from '@rsdp/tournament';
 import { createApp, memoryStore } from '../src/app';
 import type { TableRuntime } from '../src/runtime/table';
 import type { RuntimeState } from '../src/runtime/types';
@@ -566,6 +566,23 @@ describe('the next event', () => {
     expect(view.nextError).toBeNull();
     expect(view.nextId).not.toBeNull();
     expect((await first.store.load(view.nextId!))!.state).toMatchObject({ status: 'registering', startAt: startAt + DAY });
+  });
+
+  it('a series saved with more rebuys per player than the cap keeps its count in the next event (#281)', async () => {
+    const env = setup();
+    const { startAt, settings } = daily(env);
+    const id = await env.manager.create('host', settings);
+    // Saved before the cap of MAX_BUYS_PER_PLAYER rebuys per player.
+    const saved = (await env.manager.peek(id))!.settings;
+    saved.rebuy = { ...saved.rebuy, max: MAX_BUYS_PER_PLAYER + 50 };
+    saved.structure = saved.structure.map((r, i) => (i === 0 && r.kind === 'level' ? { ...r, rebuy: true } : r));
+    await registerAll(env, id, 3);
+    env.clock.advance(startAt - env.clock.now() + 1000);
+    await settled();
+    const view = env.manager.view(id)!;
+    expect(view.nextError).toBeNull();
+    expect(view.nextId).not.toBeNull();
+    expect((await env.store.load(view.nextId!))!.state.settings.rebuy.max).toBe(MAX_BUYS_PER_PLAYER + 50);
   });
 
   it('a series goes on after an event nobody came to', async () => {

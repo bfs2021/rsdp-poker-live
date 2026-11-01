@@ -120,7 +120,7 @@ export function PayoutEditor({
         <p className="muted">
           {reEntry
             ? `Ranges from ${pastMax.minEntries} entries up are only used if re-entries take the field past max entrants (${maxEntrants}).`
-            : `Ranges from ${pastMax.minEntries} entries up can't be reached: max entrants is ${maxEntrants} and re-entry is off.`}
+            : `Ranges from ${pastMax.minEntries} entries up won't be used unless re-entry is turned on (max entrants is ${maxEntrants}).`}
         </p>
       )}
       {errors.map((e) => (

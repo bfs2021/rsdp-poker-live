@@ -437,10 +437,10 @@ export class TournamentManager {
     }
   }
 
-  private newState(id: string, hostId: PlayerId, settings: TournamentSettings) {
+  private newState(id: string, hostId: PlayerId, settings: TournamentSettings, follows: TournamentSettings | null = null) {
     // The seed for the seat draw: from the rng the tables use when one is given (tests seed it, so a run repeats).
     const seed = this.deps.rng ? this.deps.rng(0x100000000) : randomBytes(4).readUInt32LE(0);
-    return this.guard(() => createTournament({ id, hostId, settings, now: this.clock.now(), seed }));
+    return this.guard(() => createTournament({ id, hostId, settings, now: this.clock.now(), seed, follows }));
   }
 
   private guard<T>(fn: () => T): T {
@@ -909,7 +909,8 @@ export class TournamentManager {
   private async openNext(live: Live, settings: TournamentSettings) {
     checkGames(settings);
     const id = nextTournamentId(live.state.id);
-    const state = { ...this.newState(id, live.state.hostId, settings), spawnedFrom: live.state.id };
+    // A series keeps a rebuy or add-on count saved before the per-player cap (#281).
+    const state = { ...this.newState(id, live.state.hostId, settings, live.state.settings), spawnedFrom: live.state.id };
     // Already saved: it was made before a restart (this event's own save had not happened yet), so that one is next.
     if (await this.deps.store.create(state)) await this.adopt(state, null);
     else if (!(await this.get(id))) throw new Error(`tournament ${id} is saved but could not be loaded`);
