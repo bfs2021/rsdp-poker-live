@@ -293,17 +293,17 @@ export function handNet(h: HandRecordView, playerId: string): number | null {
   return end[seat.seat] - seat.stack;
 }
 
-/** A TableView for one frame, so the replay is drawn by the same table as live play. */
-/** A practice bot keeps its robot in replays. Hands saved before bots had looks only have the bot- id to go on. */
+/**
+ * A practice bot keeps its robot in replays. Only the hand's own `bot` mark says who is one (the server sends it for
+ * every bot), never the 'bot-' id prefix: a person's id can start with it too.
+ */
 function replayBot(seat: HandRecordView['seats'][number] | undefined): Pick<SeatView, 'bot'> {
-  if (!seat) return {};
-  const b = seat.bot as { ownerName?: unknown; look?: unknown } | undefined;
-  if (b && typeof b === 'object') {
-    return { bot: { ownerId: '', ownerName: typeof b.ownerName === 'string' ? b.ownerName : '', look: Number.isInteger(b.look) ? (b.look as number) : 0 } };
-  }
-  return seat.playerId.startsWith('bot-') ? { bot: { ownerId: '', ownerName: '', look: 0 } } : {};
+  const b = seat?.bot as { ownerName?: unknown; look?: unknown } | undefined;
+  if (!b || typeof b !== 'object') return {};
+  return { bot: { ownerId: '', ownerName: typeof b.ownerName === 'string' ? b.ownerName : '', look: Number.isInteger(b.look) ? (b.look as number) : 0 } };
 }
 
+/** A TableView for one frame, so the replay is drawn by the same table as live play. */
 export function frameView(
   tableName: string,
   seatCount: number,
