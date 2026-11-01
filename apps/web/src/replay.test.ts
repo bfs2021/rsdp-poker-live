@@ -163,6 +163,22 @@ describe('isReplayable', () => {
   });
 });
 
+describe('frameView bots', () => {
+  it('badges a seat as a bot only when the hand says so, never by its id', () => {
+    const s = start({ stacks: [100, 100] });
+    passive(s);
+    const h = record(s, 0);
+    // A person whose id happens to start with 'bot-', and a real bot, with the look the server sent.
+    h.seats = [
+      { ...h.seats[0], playerId: 'bot-person' },
+      { ...h.seats[1], bot: { ownerName: 'Ann', look: 3 } },
+    ];
+    const view = frameView('Practice', 2, h, replayFrames(h, null, fmt).at(-1)!, null);
+    expect(view.seats[0]!.bot).toBeUndefined();
+    expect(view.seats[1]!.bot).toEqual({ ownerId: '', ownerName: 'Ann', look: 3 });
+  });
+});
+
 describe('shared hand links', () => {
   /** A link to `s`, frozen as the server freezes it: as seat 0 saw it, or as an outsider when seat 0 hid their cards. */
   const link = (s: HandState, hideMine: boolean): SharedHandView => ({
