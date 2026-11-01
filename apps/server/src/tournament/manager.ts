@@ -873,7 +873,8 @@ export class TournamentManager {
         this.spawn(live, live.state.settings);
         break;
       case 'settingsUpdated':
-        // The host may have fixed what stopped the next event being made: try again.
+      case 'structureEdited':
+        // The host may have fixed what stopped the next event being made: try again. Levels are fixed with editStructure (#280).
         if (live.state.nextError !== undefined && !live.nextId) {
           const { start } = live.state.settings;
           if (start.kind === 'sng' && start.autoSpawn) this.spawn(live, live.state.settings);
