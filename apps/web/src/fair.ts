@@ -344,7 +344,9 @@ export function seedProblem(commit: string, listed: { playerId: string; seed: st
   const under = mine[0];
   const rejected = sentSeed?.rejected;
   if (under && under !== accepted && under !== sentSeed?.seed && !madeHere(commit, under)) {
-    return `a seed (${under}) was listed under your name that this browser didn't send. Unless you were also playing from another device, the deck may have been steered`;
+    // Expected when one player is on two devices (#209): the table keeps only the newest seed. Still shown, as from
+    // here a dishonest server would look the same; the wording says which case is harmless.
+    return `a seed (${under}) was listed under your name that this browser didn't send. If you're also at this table on another device (a phone and a laptop, say), that's expected and you can ignore it: the table uses only the newest seed from either one. If you aren't, the deck may have been steered`;
   }
   // Another tab's copy of the same seed may have got in first and been accepted.
   if (rejected && under === sentSeed!.seed && under !== accepted) return `the server turned down your browser's seed (${under}) but used it anyway`;

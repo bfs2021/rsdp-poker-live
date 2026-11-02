@@ -9,6 +9,7 @@ import {
   upcomingOccurrences,
   validateSchedule,
   validateSettings,
+  MAX_BUYS_PER_PLAYER,
   type PayoutPresetName,
   type RecurrenceRule,
   type Schedule,
@@ -485,7 +486,7 @@ export function TournamentCreate({
                 <div className="tn-grid3">
                   <label>
                     Max per player
-                    <input type="number" min={1} value={rebuy.max} onChange={(e) => setRebuy({ ...rebuy, max: int(e.target.value, 1) })} />
+                    <input type="number" min={1} max={MAX_BUYS_PER_PLAYER} value={rebuy.max} onChange={(e) => setRebuy({ ...rebuy, max: int(e.target.value, 1) })} />
                   </label>
                   <label>
                     Chips
@@ -528,7 +529,7 @@ export function TournamentCreate({
                 <div className="tn-grid3">
                   <label>
                     Max per player
-                    <input type="number" min={1} value={addOn.max} onChange={(e) => setAddOn({ ...addOn, max: int(e.target.value, 1) })} />
+                    <input type="number" min={1} max={MAX_BUYS_PER_PLAYER} value={addOn.max} onChange={(e) => setAddOn({ ...addOn, max: int(e.target.value, 1) })} />
                   </label>
                   <label>
                     Chips
@@ -625,7 +626,7 @@ export function TournamentCreate({
                     </label>
                   )}
                 </div>
-                <PayoutEditor value={payouts} onChange={setPayouts} maxEntrants={maxEntrants} pool={money.buyIn * Math.min(maxEntrants, 20)} />
+                <PayoutEditor value={payouts} onChange={setPayouts} maxEntrants={maxEntrants} pool={money.buyIn * Math.min(maxEntrants, 20)} reEntry={reEntry.enabled} />
               </>
             )}
           </section>

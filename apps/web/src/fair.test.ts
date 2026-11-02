@@ -37,6 +37,15 @@ describe('the seed under my name', () => {
     expect(seedProblem(C, listed('bb'), 'me', false, 10_000)).toMatch(/didn't send/);
   });
 
+  it('says a seed from your other device is harmless, and still warns (#209)', () => {
+    // The same browser storage can't tell your phone's seed from one a server made up, so it still warns, but says which is which.
+    sent({ seed: 'aa', at: 0 });
+    accepted('aa');
+    const problem = seedProblem(C, listed('bb'), 'me', true, 10_000)!;
+    expect(problem).toMatch(/another device .* that's expected and you can ignore it/);
+    expect(problem).toMatch(/If you aren't, the deck may have been steered/);
+  });
+
   it('warns when an accepted seed, or one sent in good time, is left out', () => {
     sent({ seed: 'aa', at: 0, table: 't1' });
     accepted('aa');
