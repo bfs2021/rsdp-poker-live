@@ -26,6 +26,7 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 - The payout editor now says when a payout range starts above max entrants, and whether re-entries can ever reach it.
 - Rebuys and add-ons are now capped at 100 per player. Events saved with more keep their number until the host changes it.
 - Hand replays no longer show a robot next to a person whose account id happens to start with "bot-". Only real practice bots get one.
+- If you sit at a table from two devices at once, the fair-dealing warning about a seed you didn't send now says that's expected and harmless, and when to take it seriously.
 
 ## [2026.11.01.9] - 2026-11-01
 
