@@ -18,6 +18,16 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
+## [2026.11.02] - 2026-11-02
+
+### Fixed and changed
+
+- If a series' next event couldn't be made, fixing the levels now tries again too, not only fixing the other settings.
+- The payout editor now says when a payout range starts above max entrants, and whether re-entries can ever reach it.
+- Rebuys and add-ons are now capped at 100 per player. Events saved with more keep their number until the host changes it.
+- Hand replays no longer show a robot next to a person whose account id happens to start with "bot-". Only real practice bots get one.
+- If you sit at a table from two devices at once, the fair-dealing warning about a seed you didn't send now says that's expected and harmless, and when to take it seriously.
+
 ## [2026.11.01.9] - 2026-11-01
 
 ### Fixed and changed
@@ -537,6 +547,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.02]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.02
 [2026.11.01.9]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.01.9
 [2026.11.01.8]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.01.8
 [2026.11.01.7]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.01.7

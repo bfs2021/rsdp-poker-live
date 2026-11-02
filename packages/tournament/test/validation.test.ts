@@ -6,6 +6,7 @@ import {
   defaultSettings,
   DirectorError,
   formatterCacheSize,
+  MAX_BUYS_PER_PLAYER,
   MAX_CHIPS,
   MAX_CHIPS_IN_PLAY,
   nextWakeAt,
@@ -165,6 +166,27 @@ describe('rebuy and add-on chips', () => {
     state = update(state, addOn(250, 0));
     state = act(state, { type: 'approve', by: 'host', requestId: state.requests[0].id }).state;
     expect(entryOf(state, 'p1').stack).toBe(1250);
+  });
+
+  it(`caps rebuys and add-ons at ${MAX_BUYS_PER_PLAYER} per player`, () => {
+    expect(refusal(() => create(rebuy(100, MAX_BUYS_PER_PLAYER)))).toBeNull();
+    expect(refusal(() => create(addOn(100, MAX_BUYS_PER_PLAYER)))).toBeNull();
+    expect(refusal(() => create(rebuy(100, MAX_BUYS_PER_PLAYER + 1)))).toMatch(`Rebuys per player must be 0-${MAX_BUYS_PER_PLAYER}`);
+    expect(refusal(() => create(addOn(100, MAX_BUYS_PER_PLAYER + 1)))).toMatch(`Add-ons per player must be 0-${MAX_BUYS_PER_PLAYER}`);
+    const state = create(rebuy(100));
+    expect(refusal(() => update(state, rebuy(100, MAX_BUYS_PER_PLAYER + 1)))).toMatch('Rebuys per player');
+    expect(refusal(() => update(state, addOn(100, MAX_BUYS_PER_PLAYER + 1)))).toMatch('Add-ons per player');
+  });
+
+  it('keeps a larger count saved before the cap while the host edits other settings', () => {
+    const old = create(rebuy(100));
+    // Saved before the cap: the state already holds 5000 rebuys and 300 add-ons per player.
+    const state = { ...old, settings: { ...old.settings, rebuy: { ...old.settings.rebuy, max: 5000 }, addOn: { ...old.settings.addOn, max: 300 } } };
+    const renamed = update(state, { name: 'Renamed' });
+    expect(renamed.settings.rebuy.max).toBe(5000);
+    expect(renamed.settings.addOn.max).toBe(300);
+    expect(update(state, rebuy(100, 10)).settings.rebuy.max).toBe(10);
+    expect(refusal(() => update(state, rebuy(100, 6000)))).toMatch('Rebuys per player');
   });
 
   it('refuses fractional chips through updateSettings too', () => {

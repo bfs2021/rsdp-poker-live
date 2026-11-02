@@ -11,14 +11,32 @@ const PRESETS: Record<PayoutPresetName, string> = {
   'winner-take-all': 'Winner takes all',
 };
 
-/** Payout ranges by entry count, with a tester. Percents are typed as "50, 30, 20". */
-export function PayoutEditor({ value: given, onChange, maxEntrants, pool }: { value: PayoutStructure; onChange: (s: PayoutStructure) => void; maxEntrants: number; pool: number }) {
+/**
+ * Payout ranges by entry count, with a tester. Percents are typed as "50, 30, 20". `reEntry` says whether the
+ * event allows re-entries, which can take the entry count past max entrants.
+ */
+export function PayoutEditor({
+  value: given,
+  onChange,
+  maxEntrants,
+  pool,
+  reEntry,
+}: {
+  value: PayoutStructure;
+  onChange: (s: PayoutStructure) => void;
+  maxEntrants: number;
+  pool: number;
+  reEntry: boolean;
+}) {
   // A named preset is built for this event's size when the event is created (TournamentCreate), so it is checked,
   // tried and edited that way here too: one picked at a smaller max entrants is not out of date.
   const value = given.name in PRESETS ? payoutPreset(given.name as PayoutPresetName, maxEntrants) : given;
   const [entries, setEntries] = useState(Math.min(maxEntrants, 20));
   const [testPool, setTestPool] = useState(pool || 20_000);
   const errors = validatePayoutStructure(value, maxEntrants);
+  // Payouts count every entry, re-entries too, so ranges past max entrants are allowed (a custom table built for a
+  // bigger field keeps them when max entrants is lowered). Say when they can come into play.
+  const pastMax = value.ranges.find((r) => r.minEntries > maxEntrants);
   // Typed text per range, so "50, 3" can be typed without being reformatted mid-edit.
   const [drafts, setDrafts] = useState<Record<number, string>>({});
 
@@ -98,6 +116,13 @@ export function PayoutEditor({ value: given, onChange, maxEntrants, pool }: { va
         </button>
       </details>
       {value.roundTo ? <p className="muted">Prizes below 1st are rounded to the nearest {money(value.roundTo)}; anything left over goes to 1st.</p> : null}
+      {pastMax && (
+        <p className="muted">
+          {reEntry
+            ? `Ranges from ${pastMax.minEntries} entries up are only used if re-entries take the field past max entrants (${maxEntrants}).`
+            : `Ranges from ${pastMax.minEntries} entries up won't be used unless re-entry is turned on (max entrants is ${maxEntrants}).`}
+        </p>
+      )}
       {errors.map((e) => (
         <p className="error" key={e}>
           {e}

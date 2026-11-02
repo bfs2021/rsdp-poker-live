@@ -215,7 +215,14 @@ function cleanSettings(raw: Partial<TournamentSettings>): Partial<TournamentSett
   return out;
 }
 
-export function validateSettings(s: TournamentSettings): string[] {
+/** Most rebuys, and most add-ons, one player may take in one event. */
+export const MAX_BUYS_PER_PLAYER = 100;
+
+/**
+ * Everything wrong with these settings. `before` is what the event has now, when editing one:
+ * a per-player rebuy or add-on count saved before the cap existed is kept while it isn't changed.
+ */
+export function validateSettings(s: TournamentSettings, before?: TournamentSettings | null): string[] {
   if (!isObject(s)) return ['The settings are missing'];
   const missing = (['start', 'lateRegistration', 'reEntry', 'rebuy', 'addOn'] as const).filter((k) => !isObject(s[k]));
   if (missing.length) return [`Missing settings: ${missing.join(', ')}`];
@@ -230,12 +237,13 @@ export function validateSettings(s: TournamentSettings): string[] {
   else if (!s.games.every(isId)) errors.push('Every game must be a game id');
   if (s.stopRotationAtLevel != null && !isLimit(s.stopRotationAtLevel)) errors.push('Rotation must stop at level 1 or later');
   errors.push(...validateStructure(s.structure, { maxRebuys: rebuy.max }).errors);
-  if (!isWhole(rebuy.max, 0, Number.MAX_SAFE_INTEGER)) errors.push('Rebuys per player must be a whole number');
+  const capped = (n: number, was: unknown) => isWhole(n, 0, MAX_BUYS_PER_PLAYER) || (n === was && isWhole(n, 0, Number.MAX_SAFE_INTEGER));
+  if (!capped(rebuy.max, before?.rebuy?.max)) errors.push(`Rebuys per player must be 0-${MAX_BUYS_PER_PLAYER}`);
   // Checked even while off: an open rebuy offer or a pending request still pays these out.
   if (!isWhole(rebuy.chips, 1, MAX_CHIPS)) errors.push(`Rebuy chips must be a whole number from 1 to ${CHIPS_LABEL}`);
   if (!isWhole(addOn.chips, 1, MAX_CHIPS)) errors.push(`Add-on chips must be a whole number from 1 to ${CHIPS_LABEL}`);
   if (!isWhole(rebuy.offerSeconds, 1, 300)) errors.push('Rebuy offer window must be 1-300 seconds');
-  if (!isWhole(addOn.max, 0, Number.MAX_SAFE_INTEGER)) errors.push('Add-ons per player must be a whole number');
+  if (!capped(addOn.max, before?.addOn?.max)) errors.push(`Add-ons per player must be 0-${MAX_BUYS_PER_PLAYER}`);
   if (addOn.max > 0 && (!Array.isArray(s.structure) || !s.structure.some((r) => r?.kind === 'break' && r.addOn)))
     errors.push('Add-ons are on, but no break offers them');
   // All the chips one entry can be given, so stacks stay safe integers in the engine.
@@ -293,11 +301,13 @@ export interface CreateInput {
   now: number;
   /** Any 32-bit integer; the server should pick it with a CSPRNG. */
   seed: number;
+  /** The event this one follows in a series: rebuy and add-on counts it was allowed to keep carry over. */
+  follows?: TournamentSettings | null;
 }
 
-export function createTournament({ id, hostId, settings: raw, now, seed }: CreateInput): TournamentState {
+export function createTournament({ id, hostId, settings: raw, now, seed, follows }: CreateInput): TournamentState {
   const settings = cleanSettings(raw) as TournamentSettings;
-  const errors = validateSettings(settings);
+  const errors = validateSettings(settings, follows);
   if (settings.start?.kind === 'scheduled' && settings.start.startAt <= now) errors.push('The start time has already passed');
   if (errors.length) fail(errors.join('; '));
   // A new season is named after the event that starts it.
@@ -1311,7 +1321,7 @@ export function apply(state: TournamentState, cmd: Command, now: number): Result
           if (k in changes && JSON.stringify(changes[k]) !== JSON.stringify(was[k]))
             fail(k === 'structure' ? 'Use editStructure to change levels' : k === 'season' ? 'The season is set when the tournament is created' : `${k} is locked once tables exist`);
         }
-        const errors = validateSettings(next);
+        const errors = validateSettings(next, s.settings);
         if (next.maxEntrants < (next.checkIn && checkInActive(s) ? readyEntries(s) : rankedEntries(s)).length) errors.push('Max entrants is below the current field');
         if (errors.length) fail(errors.join('; '));
         s.settings = next;
