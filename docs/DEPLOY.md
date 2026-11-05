@@ -64,7 +64,7 @@ A deploy restarts the process:
 - Tournaments keep their clocks, and scheduled ones still start on time.
 - Players' browsers reconnect by themselves.
 
-**Each release's upgrade is rehearsed first.** Every pull request into `main` runs "Upgrade from what is live" (`.github/workflows/upgrade.yml`) on GitHub's machines, never on the live site. It runs `main`'s image and makes data with `main`'s own smoke test, then starts the pull request's image on that same volume. The new image must give the same leaderboard and keep every entry of the public record unchanged. It must also read back every saved table, with the same hands and players, and every saved tournament: a release that can't read them would drop them at deploy, even with the leaderboard unchanged. Then it starts `main`'s image again on the upgraded data, as a rollback would, and checks the same things. The play-test before a release (see CONTRIBUTING.md) can use the scripts in `e2e/playtest/`, which play a cash game and a tournament through real browsers on a local copy (see their README).
+**Each release's upgrade is rehearsed first.** Every pull request into `main` runs "Upgrade from what is live" (`.github/workflows/upgrade.yml`) on GitHub's machines, never on the live site. It runs `main`'s image and makes data with `main`'s own smoke test, then starts the pull request's image on that same volume. The new image must give the same leaderboard and keep every entry of the public record unchanged. It must also read back every saved table, with the same hands and players, and every saved tournament: a release that can't read them would drop them at deploy, even with the leaderboard unchanged. Then it starts `main`'s image again on the upgraded data, as a rollback would, and checks the same things. The play-test before a release with any full change (see CONTRIBUTING.md, "Full or light") can use the scripts in `e2e/playtest/`, which play a cash game and a tournament through real browsers on a local copy (see their README).
 
 ## Backups
 
@@ -111,11 +111,11 @@ If the volume is gone, deploy first so a new one exists. Restoring takes the sit
 
 ## Before a release: testing on a copy
 
-There is no standing staging server (a second Fly machine would roughly double the bill). A release is tested on a **copy**: the production image, run locally by whoever prepares the release. Rules:
+There is no standing staging server (a second Fly machine would roughly double the bill). A release with any full change (see [CONTRIBUTING.md](../CONTRIBUTING.md#full-or-light-how-much-checking-a-change-needs)) is tested on a **copy**: the production image, run locally by whoever prepares the release. A release of only light changes skips this; CI and the upgrade rehearsal still run on its pull request. Rules:
 
 - **Never the live site, and never real player data.** Don't restore a real backup into a copy: it holds every player's hands. Make test data on the copy itself.
 - **Production settings and code.** Run the image as it ships. If a test needs something production doesn't have (for example, a shorter wait before hands are revealed, which takes a code change), say so in the release PR, and test the real behaviour too where you can.
-- **Start from the live version when the release changes the database.** That is what the live site goes through at deploy time, and CI doesn't rehearse it yet (#189):
+- **Start from the live version when the release changes the database.** That is what the live site goes through at deploy time. The upgrade rehearsal on every release pull request does this too (see [Restarts and deploys](#restarts-and-deploys)); doing it on the copy as well lets you try what the release changes on upgraded data:
 
   ```bash
   wait_up() { for i in $(seq 1 60); do curl -sf localhost:3001/api/health > /dev/null && return; sleep 1; done; docker logs copy; return 1; }
@@ -149,8 +149,8 @@ Then try what the release changes, by hand in a browser or with bots placed by h
 Work merges into `develop` as it's ready. A release is a pull request from `develop` into `main`, and merging it deploys.
 
 - **Who decides.** John gave a standing OK on 2026-10-26: finished work may go live without asking him each time. Ask him first about anything that costs money or changes what the product is. Tell him what shipped after each release.
-- **The release PR** says `Closes #n` for every issue it ships, and its changelog entry follows the rules in [CONTRIBUTING.md](../CONTRIBUTING.md#releases) (version, What's new only for features, the roadmap page). It lists the review passes and the copy test.
-- **Timing.** A deploy restarts the server. Hands in progress resume and browsers reconnect by themselves, but players see a short pause, so prefer quiet times.
+- **The release PR** says `Closes #n` for every issue it ships, and its changelog entry follows the rules in [CONTRIBUTING.md](../CONTRIBUTING.md#releases) (version, What's new only for features, the roadmap page). It lists the review passes, and either the copy test or, for a release of only light changes, that every change in it is light. Its head is `develop`, so anything merged there later joins it: check again just before merging a light release.
+- **Timing.** A deploy restarts the server. Hands in progress resume and browsers reconnect by themselves, but players see a short pause. So a release with any full change waits for a quiet time: avoid evenings and scheduled tournaments where possible, but don't hold a release for days. (A security fix or the revert of a bad release doesn't wait: see [RUNBOOK.md](RUNBOOK.md).) A release of only light changes goes out as soon as it's ready (John, 5 November 2026, [D25](DECISIONS.md#d25-full-and-light-changes)). Light changes that are ready at the same time go out together, so players see one pause, not several.
 - **After the merge,** Deploy runs by itself once CI passes on `main`. It checks that the live site reports the new commit, and runs the read-only checks (pages load, closed endpoints stay closed, sign-in setup answers). Watch that run. If it goes red, see [RUNBOOK.md](RUNBOOK.md#a-bad-release).
 - **A fix made straight on `main`** (a hotfix) must be merged back into `develop` right away, or the next release conflicts.
 - **To undo a release,** revert it with a pull request into `main` and keep any database migrations. See [RUNBOOK.md](RUNBOOK.md#a-bad-release).

@@ -1,6 +1,8 @@
 # Play-test harness
 
-Before a release we play it on a copy of the site, never on the live one.
+Before a release that holds any full change (see
+[CONTRIBUTING.md](../../CONTRIBUTING.md#full-or-light-how-much-checking-a-change-needs))
+we play it on a copy of the site, never on the live one.
 These scripts do the tedious part: several real browsers (one sized like a
 phone) play through the site the way a group of friends would, and save a
 screenshot at each step for a person to look over. They are not tests and
