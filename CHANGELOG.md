@@ -18,6 +18,15 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
+## [2026.11.05.6] - 2026-11-05
+
+### Fixed and changed
+
+- On a computer: after you send a chat message, the cursor now leaves the chat box, so the keys you press next go to the game again (F, K, C, R, or a bet amount) instead of into chat. Press Enter to chat again. Clicking a quick reply (gg, nh...) lets go too.
+- On a computer: on your turn, typing a number starts your bet amount in the bet box, then Enter bets it. No need to click the box first.
+- Hosts on a computer: pressing Enter after clicking Start game or Pause no longer presses that button again (Start game turns into Stop game, so it asked whether to stop the game). Enter goes to the chat box, as it does elsewhere.
+- All-in run-outs have more build-up: the last card waits face down on the board for a moment, then turns over, and the result shows a beat later. In a tournament, a player knocked out by a run-out now has their cards face up the whole time (before, they flipped back face down until the result), and they stay in their seat, marked Knocked out, until the next hand, instead of vanishing the moment the result showed.
+
 ## [2026.11.05.5] - 2026-11-05
 
 ### Fixed and changed
@@ -587,6 +596,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.05.6]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.6
 [2026.11.05.5]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.5
 [2026.11.05.4]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.4
 [2026.11.05.3]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.3

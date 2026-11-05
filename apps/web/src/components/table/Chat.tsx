@@ -31,7 +31,7 @@ export function unreadChat(view: TableView, seenAt: number, mutes: string[]) {
 }
 
 /** The table chat: messages, a box to type in and quick replies. Always on screen at a desk; a sheet on a phone. */
-export function ChatBox({ view, autoFocus = false }: { view: TableView; autoFocus?: boolean }) {
+export function ChatBox({ view, autoFocus = false, letGo = false }: { view: TableView; autoFocus?: boolean; letGo?: boolean }) {
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const mutes = useChatMutes();
@@ -45,6 +45,11 @@ export function ChatBox({ view, autoFocus = false }: { view: TableView; autoFocu
     scroller.current?.scrollTo(0, scroller.current.scrollHeight);
   }, [shown.length, view.chat.at(-1)?.at]);
 
+  // At a desk the chat box lets go once a message is sent, so the next keys are shortcuts or a bet again,
+  // not more chat (#320). Enter goes back in. Phones and tablets (no mouse) keep the keyboard up for the next line.
+  const release = () => {
+    if (letGo && document.activeElement instanceof HTMLElement && document.activeElement.closest('.chat-box')) document.activeElement.blur();
+  };
   const send = (say: string) => {
     if (!say.trim()) return;
     call('chat:send', { text: say })
@@ -82,6 +87,7 @@ export function ChatBox({ view, autoFocus = false }: { view: TableView; autoFocu
             className="row chat-form"
             onSubmit={(e) => {
               e.preventDefault();
+              if (text.trim()) release();
               send(text);
               setText('');
             }}
@@ -91,7 +97,11 @@ export function ChatBox({ view, autoFocus = false }: { view: TableView; autoFocu
           </form>
           <div className="quick-replies">
             {QUICK.map((q) => (
-              <button key={q} type="button" onClick={() => send(q)} title={`Send “${q}”`}>
+              <button key={q} type="button" onClick={() => {
+                  send(q);
+                  release();
+                }}
+                title={`Send “${q}”`}>
                 {q}
               </button>
             ))}
