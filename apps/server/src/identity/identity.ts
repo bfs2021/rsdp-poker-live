@@ -9,7 +9,7 @@ import { and, eq, inArray, isNull, lte, ne, or, sql, TransactionRollbackError } 
 import { z } from 'zod';
 import type { Db } from '../db/client';
 import { newId } from '../db/ids';
-import { accounts, hiddenTables, playerAvatars, playerNotes, players, playerTokens, practiceResets, savedSetups, sessions, sharedHands } from '../db/schema';
+import { accounts, feedback, hiddenTables, playerAvatars, playerNotes, players, playerTokens, practiceResets, savedSetups, sessions, sharedHands } from '../db/schema';
 import { dummyPasswordHash, hashPassword, verifyPassword } from './password';
 import { hashSecret, isWellFormedSecret, newSecret } from './secrets';
 
@@ -423,7 +423,7 @@ export async function adoptGuest(db: Db, accountId: string, guestId: string): Pr
 
 /**
  * Deletes an account for good: its password, sessions and reset code, and on
- * every player it owned the name, picture, notes, saved setups, hidden tables, shared hand links and browser secrets. Hands
+ * every player it owned the name, picture, notes, saved setups, hidden tables, shared hand links, feedback and browser secrets. Hands
  * already played stay in other players' history and ledgers under the names
  * used at the time. Returns the player ids it owned.
  */
@@ -442,6 +442,7 @@ export async function deleteAccount(db: Db, accountId: string): Promise<string[]
       await tx.delete(practiceResets).where(inArray(practiceResets.playerId, ids));
       await tx.delete(savedSetups).where(inArray(savedSetups.playerId, ids));
       await tx.delete(sharedHands).where(inArray(sharedHands.createdBy, ids));
+      await tx.delete(feedback).where(inArray(feedback.playerId, ids));
     }
     return ids;
   });

@@ -168,6 +168,15 @@ export interface AdminTable {
 
 export const adminLookUpTable = (adminKey: string, id: string) => request<AdminTable>('GET', `/api/admin/tables/${encodeURIComponent(id)}`, undefined, { 'x-admin-key': adminKey });
 
+/** A table's or tournament's chat, as the admin reads it (#300). Each read goes in the public record. */
+export interface AdminChat {
+  kind: 'table' | 'tournament';
+  name: string;
+  tables: { table: number; name: string; chat: { at: number; name: string; text: string }[] }[];
+}
+
+export const adminReadChat = (adminKey: string, id: string) => request<AdminChat>('GET', `/api/admin/chat/${encodeURIComponent(id)}`, undefined, { 'x-admin-key': adminKey });
+
 export const adminDeleteTable = (adminKey: string, id: string) => request('POST', `/api/admin/tables/${encodeURIComponent(id)}/delete`, undefined, { 'x-admin-key': adminKey });
 
 export async function signUp(username: string, password: string) {

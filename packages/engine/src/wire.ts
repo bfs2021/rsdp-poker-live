@@ -363,6 +363,8 @@ export interface ClientToServer {
   /** Add my browser's randomness to the next hand, answering the commitment I was shown (seated players). */
   'fair:seed': (input: { commit: string; seed: string }, ack: Ack) => void;
   'chat:send': (input: { text: string }, ack?: Ack) => void;
+  /** Private feedback about the site from the table I'm at, for the admin only. `screen` is 'phone' or 'desktop'. */
+  'feedback:send': (input: { kind: 'problem' | 'idea' | 'other'; text: string; screen?: string }, ack: Ack) => void;
   /** Throw a gesture at a player at my table. */
   'table:gesture': (input: { to: PlayerId; kind: GestureKind }, ack: Ack) => void;
   /** My picture everywhere: one from the library, an uploaded image (a small data: URL), or none. */

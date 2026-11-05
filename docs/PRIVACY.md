@@ -33,7 +33,12 @@ public, so don't put anything private in one, just ask him to get in touch).
   your name, picture, notes and sign-in, but the hands you played stay in the
   other players' history under the name you used at the time.
 - **John can read everything in the database**, as whoever runs a server can.
-  That includes table chat and private notes. See [Fair dealing](/fairness) and
+  That includes table chat and private notes. He can also read any table's
+  chat from the site's admin page, even after the table has closed; each time
+  he does that, the [public record](/transparency) shows that a chat was read,
+  with only the table's fingerprint: people with the table's link can tell it
+  was theirs, nobody else can. Reading the database or a backup leaves no
+  such entry. See [Fair dealing](/fairness) and
   [Checking John](/transparency) for what he can and can't do at a table.
 
 ## What the site keeps
@@ -47,7 +52,7 @@ public, so don't put anything private in one, just ask him to get in touch).
 | Google's id for you (a long number) | Google, if you sign in with Google | Only the site. Google also shares your name, used once to make your starting username and table name. No email, no contacts, nothing else. |
 | Signed-in sessions (30 days) and one-time password reset codes | Made when you sign in or John gives you a code | Only the site, stored as fingerprints |
 | Hands: who was dealt in, the cards, every action, the board, who won | The game | Players at that table see what poker rules allow them to see. Shown and mucked cards follow the table's settings. |
-| Table chat and the table log (joins, rebuys, seat moves, host actions) | You and the game | Everyone at that table, and spectators if the host allows them. At a tournament table, also the tournament's host, co-hosts and players, who can download every table's chat and log once the tournament is over. |
+| Table chat and the table log (joins, rebuys, seat moves, host actions) | You and the game | Everyone at that table, and spectators if the host allows them. At a tournament table, also the tournament's host, co-hosts and players, who can download every table's chat and log once the tournament is over. John can read any table's chat from the admin page (with the admin key), open or closed, and each such read is shown publicly on [/transparency](/transparency). |
 | Tournament lobby chat and log | You and the tournament | Everyone who opens that tournament |
 | Each table's ledger: buy-ins, rebuys, cash-outs | The game | Everyone at that table. Totals from real games also feed the public leaderboard and your profit graph. |
 | Private notes and colour tags you keep on other players | You | Only you (and John, who can read the database) |
@@ -55,6 +60,7 @@ public, so don't put anything private in one, just ask him to get in touch).
 | Tables you hid, practice games you deleted, when you reset your practice graph | You | Only you |
 | Shared hand links | You, when you press Share on a hand | Anyone with the link, until you delete it or your account |
 | Roadmap suggestions | You, with the name you type | Everyone, on the [roadmap](/roadmap) |
+| Feedback you send with **Send feedback** at a table, with the name you used there, the table, its name, cash or tournament, the game, the hand number, whether you were seated, phone or desktop, and the site's version | You | Only John (with the admin key), so he can look into it, and Claude when it writes John's game-night recap (without your name, the table or its name; see below) |
 
 ## Why the site keeps it
 
@@ -70,6 +76,9 @@ reason. These are ours:
   you played);
   the public record and backups, so cheating can be spotted and the site
   survives a disaster (the record holds no names, and backups are locked);
+  feedback you send, so problems can be found and fixed;
+  John reading a table's chat, to read feedback left there or look into a
+  complaint;
   and rate limits, to keep the site safe. You can object
   to any of these (see *Your rights*).
 - Nothing is done on the basis of consent, so there is nothing to withdraw,
@@ -85,7 +94,8 @@ no profiling. No money changes hands through the site.
 ## The public record
 
 To make cheating by John easy to spot, the site keeps a public, append-only
-record of fingerprints of every hand, admin actions and server starts, and
+record of fingerprints of every hand, admin actions (including each chat John
+reads from the admin page) and server starts, and
 copies it to GitHub every few hours. It also lists each player's buy-ins and
 cash-outs at each table, as amounts. It holds **no names, no cards and no
 table links**: a table and each player at it appear only as fingerprints that
@@ -120,13 +130,26 @@ for how it works.
   while that tournament is open, so one address can't fill the home page with
   events; it is forgotten within a few minutes of the tournament ending. A
   server restart forgets them all. The server's own logs record errors, not
-  visitors, and they stay in Fly's log service, not in the site's database.
+  visitors. They go to Fly's log service, and the site's database also keeps
+  each error line for 30 days, for John's game-night recap (below).
   When something breaks on a page in your browser, the page sends the server
   a short note for those logs: the error and where in the site's code it
   happened, the kind of page (such as "a table", never its link) and which
   version of the site it was running. The server logs it without your IP
   address or who you are. The error's own text can show which kind of browser
   it came from (for example Chrome or Safari), but nothing more about it.
+- **Claude (Anthropic)**, the AI assistant that builds and runs this site for
+  John, reads a short recap the morning after a night with games, so John
+  hears about problems without going looking. The recap holds: the server's
+  error lines, when the server restarted, how many tables, hands and
+  tournaments there were (with each tournament's name, entry count and start
+  time), and what was sent with Send feedback (its words, kind, game, hand
+  number, cash or tournament, seated or not, phone or desktop, but not your
+  name, the table or its name). Error lines and feedback go with table links
+  and ids removed. It holds no chat, names, IP addresses, accounts, cards or
+  chip counts.
+  Claude writes John a plain-English summary of it in John's private
+  workspace.
 - **GitHub** holds the code, the regular copy of the public record and the
   daily backups (below).
 - **Google**, only if you choose to sign in with Google. Google's own privacy
@@ -139,14 +162,15 @@ for how it works.
   including the Limited Use requirements.
 
 Fly.io and GitHub act as service providers ("processors"): they store and
-serve the data for the site and don't use it for their own purposes. Nobody
-else receives it, unless the law forces John to hand something over.
+serve the data for the site and don't use it for their own purposes.
+Anthropic receives only the recap described above. Nobody else receives
+anything, unless the law forces John to hand something over.
 
 **Data leaves Europe.** If you play from the EU or UK, your data goes to the
-USA, where Fly.io and GitHub keep it. Both companies publish data protection
-terms that cover this (such as the EU's standard contractual clauses or the
-EU-US Data Privacy Framework); you can read them on their websites. The USA's
-privacy laws are weaker than Europe's.
+USA, where Fly.io and GitHub keep it and Claude reads the recap. Fly.io and
+GitHub publish data protection terms that cover this (such as the EU's
+standard contractual clauses or the EU-US Data Privacy Framework); you can
+read them on their websites. The USA's privacy laws are weaker than Europe's.
 
 ## Backups
 
@@ -165,8 +189,10 @@ backup also shows up on [Checking John](/transparency).
   messages and 300 log lines, so lines that had already dropped off before
   this changed are gone.
 - Tournament lobby chat: for as long as the site runs.
+- The server's error lines: 30 days.
 - Practice tables you made and only you and bots played at: until you delete
   them from your profile.
+- Feedback sent from a table: until John deletes it, and at most a year.
 - Signed-in sessions: 30 days. Password reset codes: until used or expired.
   The Google sign-in cookie: 10 minutes.
 - Backups: 90 days each.
@@ -192,7 +218,7 @@ authority (in the UK, the ICO).
 - **With an account:** open [your profile](/profile) and use **Delete account**.
   That removes your username, password, Google link, sessions, browser
   secrets, name, picture, notes, saved setups, hidden tables, practice graph
-  reset and shared hand links straight away. Hands you already
+  reset, shared hand links and feedback you sent while signed in straight away. Hands you already
   played, and your messages in table chat, stay in other players' history,
   ledgers and table logs under the name you used at the time, because they
   are part of their games too. If you want your

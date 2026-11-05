@@ -24,12 +24,13 @@ What to do when something goes wrong is in [RUNBOOK.md](RUNBOOK.md).
 | `PGLITE_DIR` | `/data/pglite` in the image | Where the embedded database lives when `DATABASE_URL` is unset. |
 | `NODE_ENV` | `production` in the image | Turns off development CORS. |
 | `PUBLIC_URL` | unset; `fly.toml` sets the live address | The site's public address. Link previews use it, and Google sends people back to `PUBLIC_URL` + `/auth/google/callback`. Unset, the request's own address is used. |
-| `ADMIN_KEY` | unset (a secret) | Turns on the roadmap admin page and the backup download (`/api/admin/backup`). At least 12 characters, or the server ignores it. |
+| `ADMIN_KEY` | unset (a secret) | Turns on the roadmap admin page (suggestions, table feedback, reset codes, reading a table's chat with `/api/admin/chat/:id`, each read in the public record) and the backup download (`/api/admin/backup`). At least 12 characters, or the server ignores it. |
+| `REPORT_KEY` | unset (a secret) | A read-only key for the game-night recap (`/api/admin/recap`, see [Game-night recap](#game-night-recap)). It opens nothing else. At least 12 characters, or the server ignores it. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | unset (secrets) | Sign in with Google is on only when both are set. |
 | `BUILD_COMMIT` | set when the image is built | The commit the image came from. `deploy.yml` passes it as a build argument, and `/api/version` reports it. |
 | `FLY_IMAGE_REF`, `FLY_MACHINE_ID` | set by Fly | Reported by `/api/version`. `FLY_IMAGE_REF` also goes in the public record each time the server starts, with the commit. |
 
-On the live site, the plain settings live in `fly.toml` under `[env]`. The three secrets are copied to Fly by `deploy.yml` from GitHub's repository secrets, on every deploy.
+On the live site, the plain settings live in `fly.toml` under `[env]`. The secrets are copied to Fly by `deploy.yml` from GitHub's repository secrets, on every deploy.
 
 ### GitHub secrets
 
@@ -37,6 +38,7 @@ On the live site, the plain settings live in `fly.toml` under `[env]`. The three
 | --- | --- | --- |
 | `FLY_API_TOKEN` | `deploy.yml`, `fly-setup.yml`, `transparency.yml` | A Fly API token for the app (see [Fly.io](#flyio-production)). The watcher also uses it as its fingerprint key (`WATCH_KEY`), so a new token changes every published secret fingerprint once. The public record then says the app's secrets changed, which is expected. |
 | `ADMIN_KEY` | `deploy.yml` (copies it to Fly), `backup.yml` (downloads the daily backup) | The admin key above. Removing the secret turns the admin page off at the next deploy, and stops the backups too, because they need it. |
+| `REPORT_KEY` | `deploy.yml` (copies it to Fly) | The read-only recap key above. The same value goes in the Claude project's cloud environment as `RSDP_REPORT_KEY`, where the scheduled recap reads it. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | `deploy.yml` (copies them to Fly) | The Google sign-in client, from the Google Cloud console. |
 
 Only workflows on `main` should use these. GitHub never shows a secret's value again, so replacing one means making a new value at its source. The steps are in [RUNBOOK.md](RUNBOOK.md#a-key-may-have-leaked).
@@ -64,7 +66,7 @@ A deploy restarts the process:
 - Tournaments keep their clocks, and scheduled ones still start on time.
 - Players' browsers reconnect by themselves.
 
-**Each release's upgrade is rehearsed first.** Every pull request into `main` runs "Upgrade from what is live" (`.github/workflows/upgrade.yml`) on GitHub's machines, never on the live site. It runs `main`'s image and makes data with `main`'s own smoke test, then starts the pull request's image on that same volume. The new image must give the same leaderboard and keep every entry of the public record unchanged. It must also read back every saved table, with the same hands and players, and every saved tournament: a release that can't read them would drop them at deploy, even with the leaderboard unchanged. Then it starts `main`'s image again on the upgraded data, as a rollback would, and checks the same things. The play-test before a release (see CONTRIBUTING.md) can use the scripts in `e2e/playtest/`, which play a cash game and a tournament through real browsers on a local copy (see their README).
+**Each release's upgrade is rehearsed first.** Every pull request into `main` runs "Upgrade from what is live" (`.github/workflows/upgrade.yml`) on GitHub's machines, never on the live site. It runs `main`'s image and makes data with `main`'s own smoke test, then starts the pull request's image on that same volume. The new image must give the same leaderboard and keep every entry of the public record unchanged. It must also read back every saved table, with the same hands and players, and every saved tournament: a release that can't read them would drop them at deploy, even with the leaderboard unchanged. Then it starts `main`'s image again on the upgraded data, as a rollback would, and checks the same things. The play-test before a release with any full change (see CONTRIBUTING.md, "Full or light") can use the scripts in `e2e/playtest/`, which play a cash game and a tournament through real browsers on a local copy (see their README).
 
 ## Backups
 
@@ -109,13 +111,25 @@ If the volume is gone, deploy first so a new one exists. Restoring takes the sit
 
 **A quick alert needs an outside monitor** in John's own name (issue #180): a free monitor such as UptimeRobot, type Keyword, URL `https://rsdp-poker-live.fly.dev/api/health`, keyword `"ok":true`, every 5 minutes, alerting John's email and phone. That keyword only tells whether the server answers. `/api/health` always answers `ok: true` with status 200 while the server runs (Fly's own health check relies on that), plus `db`: `"ok"`, `"slow"` (no answer within a second) or `"error"`. Only the GitHub check reads `db`, counting anything but `"ok"` as down; a monitor on the keyword `"db":"ok"` would catch a stuck database too, but could also alert on a single slow moment.
 
+## Game-night recap
+
+The morning after a night with games, a scheduled Claude task in John's project sends him a short recap: anything that could have affected a real game first, then minor things. It reads no chat (since D27 John can read table chat from the admin page, but the report key the recap uses can't), but includes what players sent with Send feedback, without names or tables (John decided this on 2026-11-05). It reads `GET /api/admin/recap` (header `X-Admin-Key` with `REPORT_KEY` or `ADMIN_KEY`; `?hours=24` by default, or `?from=&to=` as ISO times, at most 7 days). The answer is JSON (`apps/server/src/recap.ts`):
+
+- `restarts`: each server start, and whether it followed a clean shutdown. A start with no clean shutdown in the 15 minutes before it was a crash or a machine restart.
+- `errors`: the server's error lines and browser error reports, grouped by text, with counts. The server keeps these in the `ops_log` table for 30 days, at most 2,000 lines an hour.
+- `activity` and `tournaments`: hands and tables by kind; each tournament that was due, started or finished in the window, with its entries and how late a scheduled one dealt.
+- `feedback`: what came in with Send feedback (words, kind, game, hand number, cash or tournament, seated, phone or desktop), without the sender's name or the table, at most 200.
+- `quiet`: no hands were dealt and no feedback came in, so the task sends nothing.
+
+Reading it changes nothing and isn't an admin action in the public record. The scheduled task needs the live site on the cloud environment's network allowlist and `RSDP_REPORT_KEY` in that environment.
+
 ## Before a release: testing on a copy
 
-There is no standing staging server (a second Fly machine would roughly double the bill). A release is tested on a **copy**: the production image, run locally by whoever prepares the release. Rules:
+There is no standing staging server (a second Fly machine would roughly double the bill). A release with any full change (see [CONTRIBUTING.md](../CONTRIBUTING.md#full-or-light-how-much-checking-a-change-needs)) is tested on a **copy**: the production image, run locally by whoever prepares the release. A release of only light changes skips this; CI and the upgrade rehearsal still run on its pull request. Rules:
 
 - **Never the live site, and never real player data.** Don't restore a real backup into a copy: it holds every player's hands. Make test data on the copy itself.
 - **Production settings and code.** Run the image as it ships. If a test needs something production doesn't have (for example, a shorter wait before hands are revealed, which takes a code change), say so in the release PR, and test the real behaviour too where you can.
-- **Start from the live version when the release changes the database.** That is what the live site goes through at deploy time, and CI doesn't rehearse it yet (#189):
+- **Start from the live version when the release changes the database.** That is what the live site goes through at deploy time. The upgrade rehearsal on every release pull request does this too (see [Restarts and deploys](#restarts-and-deploys)); doing it on the copy as well lets you try what the release changes on upgraded data:
 
   ```bash
   wait_up() { for i in $(seq 1 60); do curl -sf localhost:3001/api/health > /dev/null && return; sleep 1; done; docker logs copy; return 1; }
@@ -149,8 +163,8 @@ Then try what the release changes, by hand in a browser or with bots placed by h
 Work merges into `develop` as it's ready. A release is a pull request from `develop` into `main`, and merging it deploys.
 
 - **Who decides.** John gave a standing OK on 2026-10-26: finished work may go live without asking him each time. Ask him first about anything that costs money or changes what the product is. Tell him what shipped after each release.
-- **The release PR** says `Closes #n` for every issue it ships, and its changelog entry follows the rules in [CONTRIBUTING.md](../CONTRIBUTING.md#releases) (version, What's new only for features, the roadmap page). It lists the review passes and the copy test.
-- **Timing.** A deploy restarts the server. Hands in progress resume and browsers reconnect by themselves, but players see a short pause, so prefer quiet times.
+- **The release PR** says `Closes #n` for every issue it ships, and its changelog entry follows the rules in [CONTRIBUTING.md](../CONTRIBUTING.md#releases) (version, What's new only for features, the roadmap page). It lists the review passes, and either the copy test or, for a release of only light changes, that every change in it is light. Its head is `develop`, so anything merged there later joins it: check again just before merging a light release.
+- **Timing.** A deploy restarts the server. Hands in progress resume and browsers reconnect by themselves, but players see a short pause. So a release with any full change waits for a quiet time: avoid evenings and scheduled tournaments where possible, but don't hold a release for days. (A security fix or the revert of a bad release doesn't wait: see [RUNBOOK.md](RUNBOOK.md).) A release of only light changes goes out as soon as it's ready (John, 5 November 2026, [D25](DECISIONS.md#d25-full-and-light-changes)). Light changes that are ready at the same time go out together, so players see one pause, not several.
 - **After the merge,** Deploy runs by itself once CI passes on `main`. It checks that the live site reports the new commit, and runs the read-only checks (pages load, closed endpoints stay closed, sign-in setup answers). Watch that run. If it goes red, see [RUNBOOK.md](RUNBOOK.md#a-bad-release).
 - **A fix made straight on `main`** (a hotfix) must be merged back into `develop` right away, or the next release conflicts.
 - **To undo a release,** revert it with a pull request into `main` and keep any database migrations. See [RUNBOOK.md](RUNBOOK.md#a-bad-release).

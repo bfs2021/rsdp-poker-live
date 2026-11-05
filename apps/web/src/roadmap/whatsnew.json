@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "id": "2026.11.05.3",
+      "date": "2026-11-05",
+      "title": "Send feedback from the table",
+      "items": [
+        { "title": "Tell John what's up, right from the game", "detail": "Spotted something wrong, or have an idea? Open the table menu (the ☰ menu on a phone) and pick Send feedback. Say what happened and send it: John gets it with the table and hand number, so he can look into it. Only John reads it (and Claude, without your name, for his morning recap); for ideas you'd like everyone to see, the suggestion box on the roadmap is still there." }
+      ]
+    },
+    {
       "id": "2026.11.01.2",
       "date": "2026-11-01",
       "title": "Tournament clock rules on show",

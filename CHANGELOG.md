@@ -18,11 +18,26 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
-## [2026.11.05.3] - 2026-11-05
+## [2026.11.05.4] - 2026-11-05
 
 ### Fixed and changed
 
 - Tournaments: a player who joins a table mid-game (late registration, re-entry or a table move) and lands on the button, the small blind or between them now waits one hand for the button to pass. Before, they were dealt straight in without paying a blind that orbit.
+- Table chat: John can now read any table's chat from the admin page, including after the table has closed, for example to read feedback or look into a complaint. Each time he does, the Checking John page shows it publicly, and players at that table can tell it was theirs. The Fair dealing and Privacy pages say so. Nothing changes at the tables.
+
+## [2026.11.05.3] - 2026-11-05
+
+_Send feedback from the table_
+
+### New
+
+- **Tell John what's up, right from the game.** Spotted something wrong, or have an idea? Open the table menu (the ☰ menu on a phone) and pick Send feedback. Say what happened and send it: John gets it with the table and hand number, so he can look into it. Only John reads it (and Claude, without your name, for his morning recap); for ideas you'd like everyone to see, the suggestion box on the roadmap is still there.
+
+### Fixed and changed
+
+- New at every table: Send feedback (in the table menu, or the ☰ menu on a phone). Tell John something is wrong, or share an idea, without leaving the game. Only John reads it (and Claude, without your name, for his morning recap).
+- Behind the scenes: small changes that can't affect a game, like wording, layout and help pages, can now go live as soon as they're ready. Anything that touches the game itself is still played through on a test copy of the site first. Nothing changes at the tables.
+- Behind the scenes: the morning after a night with games, John now gets a short recap of anything that went wrong (site errors, restarts, a tournament starting late). It holds no chat or names. The server keeps its error messages for 30 days for this. The Privacy page says exactly what the recap holds.
 
 ## [2026.11.05.2] - 2026-11-05
 
@@ -565,6 +580,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.05.4]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.4
 [2026.11.05.3]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.3
 [2026.11.05.2]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.2
 [2026.11.05]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05

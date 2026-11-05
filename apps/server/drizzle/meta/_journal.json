@@ -106,6 +106,20 @@
       "when": 1793567834762,
       "tag": "0014_table_log",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793896565812,
+      "tag": "0015_feedback",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793898032821,
+      "tag": "0016_ops_log",
+      "breakpoints": true
     }
   ]
 }

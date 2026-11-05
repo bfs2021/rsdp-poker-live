@@ -26,8 +26,9 @@ import { tablePreview, tournamentPreview, withPreview } from './preview';
 import { LobbyLog, memoryLobbyStore, type LobbyStore } from './tournament/lobby';
 import { memorySharedHands, type SharedHandStore } from './shared';
 import { memorySuggestions, suggestionRoutes, type SuggestionStore } from './suggestions';
+import { cleanFeedback, FEEDBACK_ADDRESS_BURST, FEEDBACK_BURST, FEEDBACK_SITE_PER_HOUR, FEEDBACK_WINDOW_MS, feedbackRoutes, isFeedbackKind, memoryFeedback, type FeedbackStore } from './feedback';
 import { newId } from './db/ids';
-import { adminGate, limiter, sweepLimiters } from './admin';
+import { adminGate, adminTries, limiter, sweepLimiters } from './admin';
 import { accountRoutes, type AccountHooks } from './accounts';
 import { handSearchRoutes } from './handSearch';
 import { googleConfirmations, googleRoutes, type GoogleConfig } from './google';
@@ -36,6 +37,7 @@ import { dbCause, StorageError } from './db/errors';
 import { writeBackup } from './db/backup';
 import { AuditLog, auditRoutes, buildFromEnv, memoryAuditStore, type BuildInfo } from './audit';
 import { clientErrorRoutes } from './clientErrors';
+import { opsRecorder, recapRoutes } from './recap';
 import { subjectRef } from '@rsdp/engine';
 
 export interface Session {
@@ -169,12 +171,16 @@ export interface AppDeps {
   lobby?: LobbyStore;
   shared?: SharedHandStore;
   suggestions?: SuggestionStore;
+  /** Feedback sent from tables (feedback.ts). */
+  feedback?: FeedbackStore;
   /** The database that keeps accounts. Without it, sign-up and sign-in answer that accounts are not available. */
   accounts?: Db | null;
   /** Sign in with Google; off when null (production reads GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET). */
   google?: GoogleConfig | null;
   /** Lets the roadmap admin page change suggestions. Defaults to the ADMIN_KEY environment variable. */
   adminKey?: string;
+  /** A read-only key for the game-night recap (recap.ts). Defaults to the REPORT_KEY environment variable. */
+  reportKey?: string;
   /** Deck shuffles; tests pass a seeded one. */
   rng?: Rng;
   /** See RuntimeDeps.fairLeadMs; production passes FAIR_LEAD_MS. */
@@ -370,7 +376,13 @@ export function createApp(deps: AppDeps = {}) {
   const avatarStore = deps.avatars ?? memoryAvatars();
   const sharedStore = deps.shared ?? memorySharedHands();
   // A failed query's own error: drizzle's wrapper repeats every value the query carried (a whole table snapshot).
-  const log = deps.log ?? ((m, e) => console.error(m, dbCause(e) ?? ''));
+  const writeLog = deps.log ?? ((m, e) => console.error(m, dbCause(e) ?? ''));
+  // Every line is also kept 30 days for the operator's game-night recap (recap.ts).
+  const ops = opsRecorder(deps.accounts, () => clock.now());
+  const log = (message: string, err?: unknown) => {
+    writeLog(message, err);
+    ops.record(message.startsWith('browser error') ? 'browser' : 'server', message, err);
+  };
   const audit = deps.audit ?? AuditLog.after(memoryAuditStore(), null, { now: () => clock.now(), log });
   const build = deps.build ?? buildFromEnv();
   const startedAt = clock.now();
@@ -436,8 +448,18 @@ export function createApp(deps: AppDeps = {}) {
     res.json(dbHealth ? { ...body, db: await dbHealth() } : body);
   });
   auditRoutes(app, audit, build, startedAt, log);
-  const isAdmin = adminGate(deps.adminKey ?? process.env.ADMIN_KEY, () => clock.now());
+  const adminKey = deps.adminKey ?? process.env.ADMIN_KEY;
+  // One count of wrong keys for both gates.
+  const keyTries = adminTries(() => clock.now());
+  const isAdmin = adminGate(adminKey, () => clock.now(), keyTries);
+  const canReadReports = adminGate([adminKey, deps.reportKey ?? process.env.REPORT_KEY], () => clock.now(), keyTries);
+  recapRoutes(app, { canRead: canReadReports, db: deps.accounts, now: () => clock.now(), log });
   suggestionRoutes(app, deps.suggestions ?? memorySuggestions(), { isAdmin, now: () => clock.now(), log, onAdmin: (action, id) => audit.admin(action, id) });
+  const feedback = deps.feedback ?? memoryFeedback(() => clock.now());
+  feedbackRoutes(app, feedback, { canRead: isAdmin, isAdmin, log });
+  const feedbackPerPlayer = limiter(FEEDBACK_BURST, FEEDBACK_WINDOW_MS, () => clock.now());
+  const feedbackSite = limiter(FEEDBACK_SITE_PER_HOUR, 60 * 60_000, () => clock.now());
+  const feedbackAddress = limiter(FEEDBACK_ADDRESS_BURST, FEEDBACK_WINDOW_MS, () => clock.now());
   const accountHooks: AccountHooks = {
     signedIn: (playerId) => avatars.delete(playerId),
     deleted: (playerIds) => {
@@ -558,6 +580,30 @@ export function createApp(deps: AppDeps = {}) {
       (e) => res.status(e instanceof ActionError ? 400 : 500).json({ error: e instanceof Error ? e.message : String(e) }),
     );
   });
+  /** A table's saved log and chat lines with the ones not saved yet, and its state (open, or as last saved). */
+  async function tableLines(address: string) {
+    const saved = await store.loadLines(address);
+    // Lines still being saved, and tables that closed before every line was kept, are in the table's own state.
+    const state = tables.get(address)?.state ?? (await store.loadTable(address));
+    return { state, log: withRecent(saved.log, state?.log ?? []), chat: withRecent(saved.chat, state?.chat ?? []) };
+  }
+  /** Every table a tournament opened, in order, including ones that broke during play, with their log and chat. */
+  async function tournamentTableLines(s: { id: string; counters: { table: number } }): Promise<TournamentTableChat[]> {
+    const out: TournamentTableChat[] = [];
+    // Table n is `${id}:t${n}`.
+    for (let n = 1; n <= s.counters.table; n++) {
+      const { state, log: logLines, chat } = await tableLines(tableAddress(`${s.id}:t${n}`));
+      if (!logLines.length && !chat.length) continue;
+      out.push({
+        table: n,
+        // The name players saw: tables are named by their place in the room when they open, so two can share one.
+        name: state?.settings.table.name ?? `Table ${n}`,
+        log: logLines.map((l) => ({ at: l.at, text: l.text })),
+        chat: chat.map((c) => ({ at: c.at, playerId: c.playerId, name: c.name, text: c.text })),
+      });
+    }
+    return out;
+  }
   // The admin page looks a cash table up by its id, then may delete it for good (tests and mistakes).
   const adminTableId = (req: express.Request) => {
     const id = String(req.params.id);
@@ -612,6 +658,35 @@ export function createApp(deps: AppDeps = {}) {
         res.status(500).json({ error: 'Something went wrong. Try again.' });
       },
     );
+  });
+  // Issue #300 (D27): the operator may read any table's chat, open or closed, cash or tournament. Only with the admin key
+  // (not the read-only report key), and each read goes in the public record before the chat is sent, like a backup.
+  // Only the chat is sent: names as players saw them, times and words.
+  app.get('/api/admin/chat/:id', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!isAdmin(req, res)) return;
+    const id = adminTableId(req);
+    if (!id) return void res.status(404).json({ error: 'No table or tournament has that id.' });
+    const chatOnly = (chat: ChatMessage[]) => chat.map((c) => ({ at: c.at, name: c.name, text: c.text }));
+    (async () => {
+      const tournament = await tournaments.peek(id);
+      if (tournament) {
+        const lines = await tournamentTableLines(tournament);
+        audit.admin('read-tournament-chat', subjectRef('tournament', id));
+        return void res.json({
+          kind: 'tournament',
+          name: tournament.settings.name,
+          tables: lines.filter((t) => t.chat.length).map((t) => ({ table: t.table, name: t.name, chat: t.chat.map(({ at, name, text }) => ({ at, name, text })) })),
+        });
+      }
+      const { state, chat } = await tableLines(id);
+      if (!state) return void res.status(404).json({ error: 'No table or tournament has that id.' });
+      audit.admin('read-table-chat', subjectRef('table', id));
+      res.json({ kind: 'table', name: state.settings.table.name, tables: chat.length ? [{ table: 1, name: state.settings.table.name, chat: chatOnly(chat) }] : [] });
+    })().catch((e) => {
+      log('admin chat read failed', e);
+      res.status(500).json({ error: 'Something went wrong. Try again.' });
+    });
   });
   // The nightly off-site backup (GitHub Actions, backup.yml) downloads the whole database here. Each copy goes in the
   // public record: it holds any hand being played at that moment.
@@ -1543,6 +1618,39 @@ export function createApp(deps: AppDeps = {}) {
         log,
       ),
     );
+    on('feedback:send', (input, ack) =>
+      guarded(
+        ack,
+        async () => {
+          const rt = current();
+          const kind = input?.kind;
+          if (!isFeedbackKind(kind)) throw new ActionError('pick what kind of feedback it is');
+          const text = cleanFeedback(input?.text);
+          if (text === null) throw new ActionError(typeof input?.text === 'string' && input.text.length > 1000 ? 'keep it under 1000 characters' : 'write something first');
+          const address = socketAddress(socket);
+          if (!feedbackSite('all', false) || !feedbackAddress(address, false) || !feedbackPerPlayer(me)) throw new ActionError('thanks! that is a lot of feedback at once; try again in a few minutes');
+          feedbackSite('all');
+          feedbackAddress(address);
+          const { state } = rt;
+          const seat = rt.seatOf(me);
+          await feedback.create({
+            playerId: me,
+            name: seat?.name || socket.data.session.displayName || 'Guest',
+            kind,
+            text,
+            tableId: state.id,
+            tableName: state.settings.table.name,
+            mode: rt.isTournament ? 'tournament' : 'cash',
+            game: state.hand?.input.game.id ?? state.settings.game.gameId,
+            handNumber: state.handNumber,
+            seated: !!seat,
+            screen: input?.screen === 'phone' || input?.screen === 'desktop' ? input.screen : '',
+            commit: build.commit?.slice(0, 12) ?? '',
+          });
+        },
+        log,
+      ),
+    );
     on('table:gesture', (input, ack) =>
       guarded(
         ack,
@@ -1723,25 +1831,7 @@ export function createApp(deps: AppDeps = {}) {
           const now = clock.now();
           if (now - (socket.data.lastFullLog ?? 0) < EXPORT_GAP_MS) throw new ActionError('one download every few seconds, please');
           socket.data.lastFullLog = now;
-          // Table n is `${id}:t${n}`: every table it opened, in order, including ones that broke during play.
-          const out: TournamentTableChat[] = [];
-          for (let n = 1; n <= s.counters.table; n++) {
-            const address = tableAddress(`${s.id}:t${n}`);
-            const saved = await store.loadLines(address);
-            // Lines still being saved, and tables that closed before every line was kept, are in the table's own state.
-            const state = tables.get(address)?.state ?? (await store.loadTable(address));
-            const logLines = withRecent(saved.log, state?.log ?? []);
-            const chat = withRecent(saved.chat, state?.chat ?? []);
-            if (!logLines.length && !chat.length) continue;
-            out.push({
-              table: n,
-              // The name players saw: tables are named by their place in the room when they open, so two can share one.
-              name: state?.settings.table.name ?? `Table ${n}`,
-              log: logLines.map((l) => ({ at: l.at, text: l.text })),
-              chat: chat.map((c) => ({ at: c.at, playerId: c.playerId, name: c.name, text: c.text })),
-            });
-          }
-          return { tables: out };
+          return { tables: await tournamentTableLines(s) };
         },
         log,
       ),
@@ -1783,6 +1873,8 @@ export function createApp(deps: AppDeps = {}) {
     tables,
     tournaments,
     getTable,
+    /** The server's error log: one line to stderr, also kept for the game-night recap. */
+    log,
     /** Puts away idle cash tables now (the server also does this every few minutes); the ids put away. */
     unloadIdle,
     /** Brings back unfinished tournaments (and their tables) after a restart. */
@@ -1791,7 +1883,9 @@ export function createApp(deps: AppDeps = {}) {
     forgetOldAddresses,
     /** How many addresses the open-tournament limit remembers now. */
     openTournamentAddresses: () => openTournaments.addresses(),
-    async close() {
+    /** `crash`: the error the server is stopping for, kept so the recap shows the restart after it as a crash. */
+    async close(opts: { crash?: unknown } = {}) {
+      const stopped = 'crash' in opts ? ops.crashing(opts.crash) : ops.stopping();
       // Everything goes quiet before anything is saved, so tournaments and their tables are saved as of the same moment:
       // no more input, the director acts on every hand already reported, and no table deals, runs a clock or saves again.
       // The server going down is not players leaving, so their tables never see them drop (and time them out).
@@ -1811,6 +1905,7 @@ export function createApp(deps: AppDeps = {}) {
       await Promise.all(open.map((rt) => (created.get(rt.state.id) ?? Promise.resolve()).then(() => store.saveTable(rt.state)).catch(() => {})));
       await new Promise<void>((resolve) => http.close(() => resolve()));
       await audit.flush();
+      await stopped;
     },
   };
 }

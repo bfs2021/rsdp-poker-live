@@ -35,6 +35,9 @@ How this file works:
 | [D22](#d22-how-work-is-tracked-and-checked) | How work is tracked and checked | 2026-11-01 | John asked; details Claude |
 | [D23](#d23-the-code-is-under-the-mit-license) | The code is under the MIT license | 2026-11-01 | John |
 | [D24](#d24-claude-sessions-may-read-the-live-site) | Claude sessions may read the live site | 2026-11-05 | John |
+| [D25](#d25-full-and-light-changes) | Full and light changes | 2026-11-05 | John; the lists Claude |
+| [D26](#d26-a-game-night-recap-for-john-read-by-claude) | A game-night recap for John, read by Claude | 2026-11-05 | John asked; design Claude |
+| [D27](#d27-the-operator-can-read-table-chat) | The operator can read table chat | 2026-11-05 | John; design Claude |
 
 ---
 
@@ -78,8 +81,8 @@ How this file works:
   - **2026-10-25, 21:12 UTC, on a choice card.** He picked "Yes, merge to develop": merge each fix into `develop` once CI is green and a review passes, and report afterwards. Merging into `main` still needed his OK then. (Minutes later he also wrote: "I'll leave all of this up to your discretion. Don't confuse my enthusiasm for impatience.")
   - **2026-10-26, 05:13 UTC.** "Feel free to push things as they are done without asking me." From then on, finished work may go live without asking him each time.
 - **Decision:** feature branch → `develop` → `main`, and a merge into `main` deploys. A review pass means one we run ourselves, recorded on the pull request (D22).
-- **Claude's own conditions** on the standing OK, not John's words: test each release on a copy first, prefer quiet times, and tell John after each release. Asking first about anything that costs money or changes the product is John's own rule (D04, D08).
-- **Open question:** on 2026-10-26 at 23:00 UTC John wrote "go ahead and push updates now. Don't worry about active tables". It's unclear whether that applies to every release or only to that one (PR #114 reads it as that one). It's been asked of John (#236). Until he answers, prefer quiet times.
+- **Claude's own conditions** on the standing OK, not John's words: test each release on a copy first, prefer quiet times, and tell John after each release. Asking first about anything that costs money or changes the product is John's own rule (D04, D08). **Partly replaced by D25** (2026-11-05): a release of only light changes skips the copy test and the wait for a quiet time.
+- **Settled 2026-11-05 by [D25](#d25-full-and-light-changes) ([#236](https://github.com/jcolter11374/rsdp-poker-live/issues/236)):** John approved Claude's two-path proposal, which keeps quiet times for releases with any full change and lets releases of only light changes go out whenever they're ready. (The question was whether John's "go ahead and push updates now. Don't worry about active tables" of 2026-10-26, 23:00 UTC, applied to every release or only to that one. He didn't say; the new rule replaces it.)
 - **Where:** [DEPLOY.md](DEPLOY.md#releasing), [CODE_TOUR.md](CODE_TOUR.md).
 
 ## D06. What's new and the changelog
@@ -258,3 +261,45 @@ How this file works:
 - **Decision:** Claude's cloud environment allows one extra host, `rsdp-poker-live.fly.dev`, so a session can read the live site directly to check a release or read feedback. Only reads: GET requests to public pages and read-only endpoints such as `/api/version` and `/api/health`. Still never bots, test tables, test tournaments, sign-ups or anything else that writes (D07). Fly itself (`fly.io`, `flyctl`, deploys, secrets) is not on the list and still goes only through `main`'s workflows.
 - **Why:** routing every read through a workflow made release checks and reading feedback slow.
 - **Where:** the cloud environment's network settings (John's Claude account, not this repo), [CLAUDE.md](../CLAUDE.md), [RUNBOOK.md](RUNBOOK.md).
+
+## D25. Full and light changes
+
+- **Decided:** 2026-11-05, 16:10 UTC, by John, on Claude's proposal; the details are Claude's. Claude set out what each shortcut would risk: skipping the review pass lets more bugs reach players, skipping the play-test means problems show up in a real game instead, and releasing at any time means a game can pause for a few seconds while the server restarts. The checks on GitHub can't be skipped. Claude recommended keeping the full process for anything that touches the game itself, and for low-risk fixes like wording, layout or download buttons, "a lighter review plus releasing as soon as it's ready". John: "If you think it is reasonable yes. If you think it is reckless no". Claude judged it reasonable: the checks on GitHub still run on every change, and every change that could affect a game keeps every step.
+- **Decision:** a change takes one of two paths.
+  - **Full**, for anything that touches the game or players' data: dealing, chips and pots, timers, tournaments, hidden cards, privacy, fairness and the public record, sign-in, stored data, how the site runs, and the safety checks themselves. CI, a separate review pass, a play-test on a copy, and a release at a quiet time.
+  - **Light**, for changes that can't affect a game, who is allowed to see what, or what's stored: displayed wording, layout, download buttons that offer only what people can already download, docs. CI and a shorter review pass, and live as soon as it's ready.
+  - When unsure, full. A release takes the path of its riskiest change.
+- **Claude's calls**, not John's words: the exact lists and what a light review checks (in CONTRIBUTING.md), and dropping the copy test for light-only releases. The copy test was Claude's own condition in D05, and the proposal had already told John that skipping it means problems turn up in a real game.
+- **Still applies:** D21 (John sees before-and-after pictures of a change to the table's look before it goes live) and D14 (the no-HUD lock on downloads).
+- **Replaces** part of D05's conditions (the copy test and quiet times, for light changes), and settles D05's open question (#236).
+- **Where:** [CONTRIBUTING.md](../CONTRIBUTING.md#full-or-light-how-much-checking-a-change-needs), [DEPLOY.md](DEPLOY.md#releasing), [CLAUDE.md](../CLAUDE.md), the [pull request template](../.github/pull_request_template.md).
+
+## D26. A game-night recap for John, read by Claude
+
+**Replaced in part by [D27](#d27-the-operator-can-read-table-chat)** (the operator may now read table chat; the recap still reads none).
+
+- **Decided:** 2026-11-05. John asked for a short recap after each game night (errors, player feedback, anything odd) so he never has to go looking (issue #297). The design is Claude's and reversible.
+- **Decision:**
+  - The server keeps its own error lines (and browser error reports) for 30 days in its database, and a line at each clean shutdown, so a restart without one reads as a crash. Fly's log forgets within days.
+  - `GET /api/admin/recap` returns errors, restarts, activity counts, tournaments (late or never started) and what players sent with Send feedback, without names or tables (John chose to include the words, 2026-11-05) for a window of time. No chat: whether the operator may read table chat is John's call (issue #300). It takes a separate read-only key (`REPORT_KEY`), so the scheduled recap never holds the key that can delete tables or download the database.
+  - A scheduled Claude task reads it the morning after a night with games and writes John a summary in his private Claude project, split into "could affect a real game" and "minor". Quiet nights send nothing.
+- **Not done, on purpose:**
+  - An outside error-tracking service (D22 still stands). The recap sends Anthropic far less: no chat, names, addresses, cards or chips. [PRIVACY.md](PRIVACY.md) says so.
+  - Posting recaps to GitHub: the repository is public.
+  - Recording each read in the public record: like the admin page's lookups, reading changes nothing.
+- **Where:** `apps/server/src/recap.ts`, [DEPLOY.md](DEPLOY.md#game-night-recap).
+
+## D27. The operator can read table chat
+
+- **Decided:** 2026-11-05, by John: "I think the operator should be able to read table chat" (issue #300). The design is Claude's.
+- **Decision:**
+  - `GET /api/admin/chat/:id` returns the chat of one cash table, or of every table a tournament opened, by the table's or tournament's id. It works while the table is open and after it has closed. It sends only the words, the names players saw and the times: no player ids, no table log.
+  - The admin page has a "Read a table's chat" form for it, with a download as text.
+  - Only the admin key opens it. The read-only `REPORT_KEY` does not, so the scheduled recap can't read chat with the key it holds today.
+  - Every read goes in the public record as an admin action (`read-table-chat` or `read-tournament-chat`), with only a fingerprint of the table or tournament (the same one its hands use, so people with its link can tell it was theirs), before the chat is sent, the way a backup is recorded. [/transparency](https://rsdp-poker-live.fly.dev/transparency) shows each one as "Chat read".
+  - [/fairness](FAIRNESS.md#how-the-developer-could-cheat-you), [/privacy](PRIVACY.md) and /transparency say so.
+- **What isn't recorded:** chat seen any other way: reading the database or a backup, a shell on the server, or being at the table. The pages say so.
+- **Why recorded:** John could already read chat in the database (PRIVACY.md said so). The admin page makes it easy, so each use is public, unlike the admin page's other lookups, which change nothing and aren't recorded (D26's reasoning for the recap).
+- **Not done, on purpose:** a GitHub workflow that downloads chat: the repository is public, and a workflow's files can be downloaded by others. Whether the game-night recap (D26) should use chat is a separate call for that work; if it does, its key, what it reads and the public record entry need their own decision.
+- **Replaces** D26's "No chat: whether the operator may read table chat is John's call (issue #300)" as far as the operator goes; the recap itself still reads no chat until a change says otherwise.
+- **Where:** `apps/server/src/app.ts` (`/api/admin/chat/:id`), `apps/web/src/roadmap/AdminPage.tsx`, [FAIRNESS.md](FAIRNESS.md), [PRIVACY.md](PRIVACY.md), `apps/web/src/fairness/TransparencyPage.tsx`.

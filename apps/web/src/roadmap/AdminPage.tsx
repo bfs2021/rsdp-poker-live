@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { StatusPill } from './Suggestions';
 import { ApiError, checkAdminKey, deleteSuggestion, fetchSuggestions, logOrder, shortDate, STATUS_LABEL, STATUSES, updateSuggestion, type Suggestion } from './suggestions';
-import { adminDeleteTable, adminLookUpTable, issueResetCode, type AdminTable } from '../account/api';
+import { deleteFeedback, feedbackOrder, fetchFeedback, KIND_LABEL, markFeedback, type Feedback } from './feedback';
+import { adminDeleteTable, adminLookUpTable, adminReadChat, issueResetCode, type AdminChat, type AdminTable } from '../account/api';
 import './roadmap.css';
 import { SiteHeader } from '../components/SiteHeader';
 
@@ -89,10 +90,12 @@ export function RoadmapAdminPage() {
         ) : (
           <>
             <p className="muted">
-              Changes show on the public log right away. <button onClick={signOut}>Sign out</button>
+              Suggestion changes show on the public roadmap right away. <button onClick={signOut}>Sign out</button>
             </p>
+            <FeedbackList adminKey={key} />
             <ResetCodeForm adminKey={key} />
             <DeleteTableForm adminKey={key} />
+            <ReadChatForm adminKey={key} />
             <h2>Suggestions</h2>
             {error && <p className="error">{error}</p>}
             {list.length === 0 && <p className="muted">No suggestions yet.</p>}
@@ -220,6 +223,72 @@ function tableIdFrom(text: string) {
   return /\/t\/([\w-]+)/.exec(t)?.[1] ?? t;
 }
 
+/** A table's or tournament's id from a pasted link (…/t/abc123 or …/tn/abc123) or the id itself. */
+export function chatIdFrom(text: string) {
+  const t = text.trim();
+  return /\/tn?\/([\w-]+)/.exec(t)?.[1] ?? t;
+}
+
+/** The chat as plain text, one line each, under a heading per table when a tournament had more than one. */
+export function adminChatText(c: AdminChat, when: (at: number) => string = (at) => new Date(at).toLocaleString()) {
+  if (!c.tables.length) return `${c.name || 'Table'}\n\nNothing was said in the chat.\n`;
+  const parts = c.tables.map((t) => [...(c.kind === 'tournament' ? [`== ${t.name} ==`] : []), ...t.chat.map((m) => `[${when(m.at)}] ${m.name}: ${m.text}`)].join('\n'));
+  return `${c.name || 'Table'}\n\n${parts.join('\n\n')}\n`;
+}
+
+/**
+ * Issue #300 (D27): the operator reads any table's chat, open or closed, cash or tournament. Each read goes in the
+ * public record (/transparency), so it is never quiet.
+ */
+function ReadChatForm({ adminKey }: { adminKey: string }) {
+  const [link, setLink] = useState('');
+  const [chat, setChat] = useState<AdminChat | null>(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  function read(e: FormEvent) {
+    e.preventDefault();
+    setChat(null);
+    setError('');
+    setBusy(true);
+    adminReadChat(adminKey, chatIdFrom(link))
+      .then(setChat, (err) => setError((err as Error).message))
+      .finally(() => setBusy(false));
+  }
+
+  function download(c: AdminChat) {
+    const url = URL.createObjectURL(new Blob([adminChatText(c)], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(c.name || 'table').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'table'} chat.txt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1_000);
+  }
+
+  return (
+    <form className="suggest-form" onSubmit={read}>
+      <strong>Read a table&apos;s chat</strong>
+      <span className="muted">
+        Paste a cash table&apos;s or a tournament&apos;s link. Works after it has closed. Each read is shown publicly on /transparency, with the table&apos;s fingerprint (its players can tell it was theirs), as /fairness and /privacy say.
+      </span>
+      <label>
+        Table or tournament link or id
+        <input value={link} spellCheck={false} autoCapitalize="none" required onChange={(e) => (setLink(e.target.value), setChat(null))} />
+      </label>
+      {error && <p className="error">{error}</p>}
+      {chat && (
+        <div className="suggest-thanks">
+          <pre className="admin-chat">{adminChatText(chat)}</pre>
+          <button type="button" onClick={() => download(chat)}>
+            Download as text
+          </button>
+        </div>
+      )}
+      <button disabled={busy || !link.trim()}>{busy ? 'Reading…' : 'Read the chat'}</button>
+    </form>
+  );
+}
+
 /** Test tables and mistakes: look a cash table up by its link, then delete it for good. */
 function DeleteTableForm({ adminKey }: { adminKey: string }) {
   const [link, setLink] = useState('');
@@ -288,5 +357,80 @@ function DeleteTableForm({ adminKey }: { adminKey: string }) {
       )}
       <button disabled={busy || !link.trim()}>Look it up</button>
     </form>
+  );
+}
+
+/** Feedback players sent from tables: private, so only here. */
+function FeedbackList({ adminKey }: { adminKey: string }) {
+  const [list, setList] = useState<Feedback[] | null>(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    fetchFeedback(adminKey)
+      .then(setList)
+      .catch((e: Error) => setError(e.message));
+  }, [adminKey]);
+
+  async function run(fn: () => Promise<void>) {
+    setBusy(true);
+    setError('');
+    try {
+      await fn();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const open = list?.filter((f) => !f.done).length ?? 0;
+  return (
+    <section className="feedback-admin">
+      <h2>
+        Feedback from tables{open > 0 && <span className="suggest-status in_progress">{open} new</span>}
+      </h2>
+      <p className="muted">Private: only the admin sees this. Kept for a year, and deleted with the sender's account.</p>
+      {error && <p className="error">{error}</p>}
+      {list?.length === 0 && <p className="muted">No feedback yet.</p>}
+      <ul className="admin-list">
+        {feedbackOrder(list ?? []).map((f) => (
+          <li key={f.id} className={f.done ? 'done' : ''}>
+            <div className="suggest-head">
+              <strong>{f.name}</strong>
+              <span className={`suggest-status ${f.kind === 'problem' ? 'declined' : f.kind === 'idea' ? 'approved' : ''}`}>{KIND_LABEL[f.kind]}</span>
+              {f.done && <span className="suggest-status shipped">Done</span>}
+            </div>
+            <span className="feedback-text">{f.text}</span>
+            <span className="suggest-meta">
+              #{f.id} · {new Date(f.createdAt).toLocaleString()} · <a href={`/t/${f.tableId}`}>{f.tableName || 'Table'}</a> ({f.mode}
+              {f.game && `, ${f.game}`}) · {f.handNumber > 0 ? `hand ${f.handNumber}` : 'before the first hand'} · {f.seated ? 'seated' : 'not seated'}
+              {f.screen && ` · ${f.screen}`}
+              {f.commit && ` · build ${f.commit.slice(0, 7)}`}
+            </span>
+            <div className="admin-buttons">
+              <button disabled={busy} onClick={() => run(async () => {
+                const saved = await markFeedback(adminKey, f.id, !f.done);
+                setList((l) => l && l.map((x) => (x.id === saved.id ? saved : x)));
+              })}>
+                {f.done ? 'Mark not done' : 'Mark done'}
+              </button>
+              <button
+                disabled={busy}
+                onClick={() =>
+                  confirm(`Delete feedback #${f.id} from ${f.name} for good?`) &&
+                  run(async () => {
+                    await deleteFeedback(adminKey, f.id);
+                    setList((l) => l && l.filter((x) => x.id !== f.id));
+                  })
+                }
+              >
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

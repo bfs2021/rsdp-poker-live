@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-11-01",
+  "lastUpdated": "2026-11-05",
   "intro": "What's live, what's coming next, and what's further out. Everything here is free for everyone at the table, with no paid tiers.",
   "sections": [
     {
@@ -31,7 +31,8 @@
         { "title": "Safety work behind the scenes", "detail": "Security updates to two of the libraries the site is built on, and a practice run of each update on test data before it goes live." },
         { "title": "Optional accounts", "detail": "Sign in with a username and password, or with Google, so your name, picture, notes and history follow you to every device. Guests can still play without one." },
         { "title": "About, Privacy, Terms and Credits", "detail": "About is a quick introduction for new friends. Privacy says what the site keeps about you and how to delete it, Terms of use says the site is free and comes as it is, and Credits lists the free software it's built on. The site's own code is open source too." },
-        { "title": "Roadmap, suggestions and What's new", "detail": "This page: send your ideas and follow them in the suggestion log. What's new lists what each release added, and the Changelog lists the small fixes." }
+        { "title": "Roadmap, suggestions and What's new", "detail": "This page: send your ideas and follow them in the suggestion log. What's new lists what each release added, and the Changelog lists the small fixes." },
+        { "title": "Send feedback from the table", "detail": "Something wrong, or an idea mid-game? Send feedback from the table menu. Only John reads it (and Claude, without your name, for his morning recap), with the table and hand number so he can look into it." }
       ]
     },
     {
