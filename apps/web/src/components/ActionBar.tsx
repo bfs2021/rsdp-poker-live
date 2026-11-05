@@ -242,7 +242,7 @@ export function ActionBar({
     send({ type: 'fold' });
   };
 
-  // Keyboard: F fold, K check, C call, R raise box (Enter sends it).
+  // Keyboard: F fold, K check, C call, R raise box (Enter sends it), a digit starts typing the amount there.
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => keys.current(e);
@@ -271,7 +271,12 @@ export function ActionBar({
     if (k === 'f' && legal.canFold) fold();
     else if (k === 'k' && legal.canCheck) send({ type: 'check' });
     else if (k === 'c' && !legal.canCheck && !legal.canBringIn) send({ type: 'call' });
-    else if (k === 'r' && amountBox.current) {
+    else if (/^[0-9]$/.test(k) && amountBox.current) {
+      // A number on your turn starts the bet amount: the box takes focus now, so this key lands in it, replacing
+      // what was there (#320). Not preventDefault: the browser types the digit into the newly focused box.
+      amountBox.current.focus();
+      amountBox.current.select();
+    } else if (k === 'r' && amountBox.current) {
       e.preventDefault();
       amountBox.current.focus();
       amountBox.current.select();
