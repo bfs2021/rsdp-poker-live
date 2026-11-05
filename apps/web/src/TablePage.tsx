@@ -667,7 +667,7 @@ export function TablePage({ tableId }: { tableId: string }) {
               <SidePanel view={view} fmt={fmt} />
             </PartBoundary>
             <PartBoundary name="chat">
-              <ChatBox view={view} letGo />
+              <ChatBox view={view} letGo={hasKeyboard()} />
             </PartBoundary>
           </aside>
         )}

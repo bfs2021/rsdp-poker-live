@@ -46,7 +46,7 @@ export function ChatBox({ view, autoFocus = false, letGo = false }: { view: Tabl
   }, [shown.length, view.chat.at(-1)?.at]);
 
   // At a desk the chat box lets go once a message is sent, so the next keys are shortcuts or a bet again,
-  // not more chat (#320). Enter goes back in. A phone's chat sheet keeps its keyboard up for the next line.
+  // not more chat (#320). Enter goes back in. Phones and tablets (no mouse) keep the keyboard up for the next line.
   const release = () => {
     if (letGo && document.activeElement instanceof HTMLElement && document.activeElement.closest('.chat-box')) document.activeElement.blur();
   };
