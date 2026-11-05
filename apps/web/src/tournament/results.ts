@@ -52,11 +52,11 @@ export function downloadResults(s: TournamentState) {
 
 /** Every table's chat and log of a finished tournament as one text file, table by table, each in time order. */
 export function tableChatText(s: TournamentState, tables: TournamentTableChat[], when: (at: number) => string = (at) => new Date(at).toLocaleString()): string {
-  const chats = tables.reduce((n, t) => n + t.chat.length, 0);
+  const chats = tables.reduce((n, t) => n + t.chat.filter((c) => c.playerId).length, 0);
   const out = [`${s.settings.name}: table chat and log (${tables.length} ${tables.length === 1 ? 'table' : 'tables'}, ${chats} chat ${chats === 1 ? 'message' : 'messages'})`, ''];
   if (!tables.length) out.push('Nothing was said or logged at the tables.');
   for (const t of tables) {
-    out.push(`=== Table ${t.table} ===`);
+    out.push(`=== ${t.name} (table ${t.table} to open) ===`);
     // No hands: each table's hand history is its own download while it is open.
     for (const l of fullLogLines(t.log, t.chat, [], '', String)) out.push(`${when(l.at)}  ${l.kind === 'chat' ? '[chat] ' : ''}${l.text}`);
     out.push('');

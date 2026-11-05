@@ -7,6 +7,7 @@ import { variants } from '@rsdp/engine/core';
 import { registerAllVariants } from '@rsdp/engine/variants';
 import { defaultSettings, tableAddress, type TournamentTableChat } from '@rsdp/tournament';
 import { createApp } from '../src/app';
+import { tableName } from '../src/tournament/manager';
 import { closeDb, type Db } from '../src/db';
 import { createTestDb } from '../src/db/testing';
 import { dbIdentity, dbStore } from '../src/storage';
@@ -83,6 +84,7 @@ describe('table chat of a finished tournament', () => {
 
     const { tables } = await host.call<{ tables: TournamentTableChat[] }>('tournament:tableChat', { id });
     expect(tables.map((t) => t.table)).toEqual([1]);
+    expect(tables[0].name).toBe(tableName('Feedback night', 1));
     expect(tables[0].chat.map((c) => `${c.name}: ${c.text}`)).toEqual(['Ana: the new bet slider is great', 'Ben: blinds felt fast']);
     expect(tables[0].chat.every((c) => typeof c.at === 'number')).toBe(true);
     // A second download straight away waits a few seconds, as the table's own does.

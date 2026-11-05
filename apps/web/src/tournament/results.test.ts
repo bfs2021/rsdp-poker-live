@@ -32,13 +32,13 @@ describe('table chat download', () => {
     const text = tableChatText(
       field(['Ana', 'Bo']),
       [
-        { table: 1, log: [{ at: at(0), text: 'Ana sat down' }], chat: [{ at: at(2), playerId: 'p0', name: 'Ana', text: 'gl all' }] },
-        { table: 3, log: [], chat: [{ at: at(1), playerId: 'p1', name: 'Bo', text: 'blinds felt fast' }] },
+        { table: 1, name: 'Table 1', log: [{ at: at(0), text: 'Ana sat down' }], chat: [{ at: at(2), playerId: 'p0', name: 'Ana', text: 'gl all' }] },
+        { table: 3, name: 'Table 2', log: [], chat: [{ at: at(1), playerId: 'p1', name: 'Bo', text: 'blinds felt fast' }, { at: at(3), playerId: null, name: 'Dealer', text: 'Bo wins' }] },
       ],
       (t) => `+${(t - T0) / 60_000}m`,
     );
     expect(text).toBe(
-      ['Friday/Night: table chat and log (2 tables, 2 chat messages)', '', '=== Table 1 ===', '+0m  Ana sat down', '+2m  [chat] Ana: gl all', '', '=== Table 3 ===', '+1m  [chat] Bo: blinds felt fast', '', ''].join('\n'),
+      ['Friday/Night: table chat and log (2 tables, 2 chat messages)', '', '=== Table 1 (table 1 to open) ===', '+0m  Ana sat down', '+2m  [chat] Ana: gl all', '', '=== Table 2 (table 3 to open) ===', '+1m  [chat] Bo: blinds felt fast', '+3m  [chat] Bo wins', '', ''].join('\n'),
     );
   });
 
