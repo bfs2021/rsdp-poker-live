@@ -274,7 +274,8 @@ export const hands = pgTable(
     events: jsonb('events').$type<unknown[]>().notNull(),
     results: jsonb('results').$type<unknown>(),
   },
-  (t) => [uniqueIndex('hands_table_number_idx').on(t.tableId, t.number)],
+  // started_at: the game-night recap counts a night's hands.
+  (t) => [uniqueIndex('hands_table_number_idx').on(t.tableId, t.number), index('hands_started_at_idx').on(t.startedAt)],
 );
 
 /**
@@ -555,4 +556,25 @@ export const auditLog = pgTable(
     hash: text('hash').notNull(),
   },
   (t) => [index('audit_log_subject_idx').on(t.subject, t.seq), index('audit_log_kind_idx').on(t.kind, t.seq)],
+);
+
+// ---------------------------------------------------------------- operations log
+
+export const OPS_KINDS = ['server', 'browser', 'stop'] as const;
+export type OpsKind = (typeof OPS_KINDS)[number];
+
+/**
+ * The server's own error lines (and browser errors it was told about), kept 30 days for the operator's
+ * game-night recap (recap.ts), plus a line for each clean shutdown so a restart without one reads as a crash.
+ * Lines carry no address, account or table link (see clientErrors.ts and recap.ts).
+ */
+export const opsLog = pgTable(
+  'ops_log',
+  {
+    n: bigserial('n', { mode: 'number' }).primaryKey(),
+    at: at('at').notNull(),
+    kind: text('kind', { enum: OPS_KINDS }).notNull(),
+    message: text('message').notNull(),
+  },
+  (t) => [index('ops_log_at_idx').on(t.at), check('ops_log_kind_check', sql`${t.kind} in (${oneOf(OPS_KINDS)})`)],
 );

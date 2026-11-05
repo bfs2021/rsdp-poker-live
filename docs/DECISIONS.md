@@ -36,6 +36,7 @@ How this file works:
 | [D23](#d23-the-code-is-under-the-mit-license) | The code is under the MIT license | 2026-11-01 | John |
 | [D24](#d24-claude-sessions-may-read-the-live-site) | Claude sessions may read the live site | 2026-11-05 | John |
 | [D25](#d25-full-and-light-changes) | Full and light changes | 2026-11-05 | John; the lists Claude |
+| [D26](#d26-a-game-night-recap-for-john-read-by-claude) | A game-night recap for John, read by Claude | 2026-11-05 | John asked; design Claude |
 
 ---
 
@@ -270,3 +271,16 @@ How this file works:
 - **Still applies:** D21 (John sees before-and-after pictures of a change to the table's look before it goes live) and D14 (the no-HUD lock on downloads).
 - **Replaces** part of D05's conditions (the copy test and quiet times, for light changes), and settles D05's open question (#236).
 - **Where:** [CONTRIBUTING.md](../CONTRIBUTING.md#full-or-light-how-much-checking-a-change-needs), [DEPLOY.md](DEPLOY.md#releasing), [CLAUDE.md](../CLAUDE.md), the [pull request template](../.github/pull_request_template.md).
+
+## D26. A game-night recap for John, read by Claude
+
+- **Decided:** 2026-11-05. John asked for a short recap after each game night (errors, player feedback, anything odd) so he never has to go looking (issue #297). The design is Claude's and reversible.
+- **Decision:**
+  - The server keeps its own error lines (and browser error reports) for 30 days in its database, and a line at each clean shutdown, so a restart without one reads as a crash. Fly's log forgets within days.
+  - `GET /api/admin/recap` returns errors, restarts, activity counts, tournaments (late or never started) and what players sent with Send feedback, without names or tables (John chose to include the words, 2026-11-05) for a window of time. No chat: whether the operator may read table chat is John's call (issue #300). It takes a separate read-only key (`REPORT_KEY`), so the scheduled recap never holds the key that can delete tables or download the database.
+  - A scheduled Claude task reads it the morning after a night with games and writes John a summary in his private Claude project, split into "could affect a real game" and "minor". Quiet nights send nothing.
+- **Not done, on purpose:**
+  - An outside error-tracking service (D22 still stands). The recap sends Anthropic far less: no chat, names, addresses, cards or chips. [PRIVACY.md](PRIVACY.md) says so.
+  - Posting recaps to GitHub: the repository is public.
+  - Recording each read in the public record: like the admin page's lookups, reading changes nothing.
+- **Where:** `apps/server/src/recap.ts`, [DEPLOY.md](DEPLOY.md#game-night-recap).

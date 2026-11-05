@@ -63,7 +63,7 @@ export function FeedbackDialog({ portrait, onClose }: { portrait: boolean; onClo
           <textarea rows={5} maxLength={FEEDBACK_MAX} value={text} placeholder={PLACEHOLDER[kind]} autoFocus onChange={(e) => setText(e.target.value)} />
         </label>
         <p className="muted">
-          Only John sees this, with your table name, this table and the hand number, so he can look into it. Other players don’t. For ideas you’d like everyone to see, use the{' '}
+          Only John sees this, with your table name, this table and the hand number, so he can look into it. Other players don’t. Claude, which helps John run the site, reads it too for his morning recap, without your name or the table. For ideas you’d like everyone to see, use the{' '}
           <a href="/roadmap" target="_blank" rel="noreferrer">
             suggestion box
           </a>

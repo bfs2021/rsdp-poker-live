@@ -65,6 +65,22 @@ jobs:
             flyctl secrets unset ADMIN_KEY --stage --app "$FLY_APP" 2>/dev/null || true
             echo "No ADMIN_KEY secret; the roadmap admin page is off."
           fi
+      # The read-only key for the game-night recap (docs/DEPLOY.md, "Game-night recap"): copied from the REPORT_KEY
+      # repository secret when one is set, like the admin key.
+      - name: Report key
+        env:
+          REPORT_KEY: ${{ secrets.REPORT_KEY }}
+        run: |
+          if [ -n "$REPORT_KEY" ]; then
+            if [ "${#REPORT_KEY}" -lt 12 ]; then
+              echo "::error::The REPORT_KEY secret must be at least 12 characters; the server ignores shorter keys."
+              exit 1
+            fi
+            flyctl secrets set --stage --app "$FLY_APP" "REPORT_KEY=$REPORT_KEY" > /dev/null
+          else
+            flyctl secrets unset REPORT_KEY --stage --app "$FLY_APP" 2>/dev/null || true
+            echo "No REPORT_KEY secret; the game-night recap can only be read with the admin key."
+          fi
       # Sign in with Google: on when both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET repository secrets are set; otherwise the button is hidden.
       # Google sends people back to PUBLIC_URL (fly.toml) + /auth/google/callback.
       - name: Google sign-in keys
