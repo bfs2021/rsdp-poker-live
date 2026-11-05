@@ -20,14 +20,6 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 
 ## [2026.11.05.6] - 2026-11-05
 
-### Fixed and changed
-
-- On a computer: after you send a chat message, the cursor now leaves the chat box, so the keys you press next go to the game again (F, K, C, R, or a bet amount) instead of into chat. Press Enter to chat again. Clicking a quick reply (gg, nh...) lets go too.
-- On a computer: on your turn, typing a number starts your bet amount in the bet box, then Enter bets it. No need to click the box first.
-- Hosts on a computer: pressing Enter after clicking Start game or Pause no longer presses that button again (Start game turns into Stop game, so it asked whether to stop the game). Enter goes to the chat box, as it does elsewhere.
-
-## [2026.11.05.5] - 2026-11-05
-
 _A bigger table on big screens_
 
 ### New
@@ -36,9 +28,17 @@ _A bigger table on big screens_
 
 ### Fixed and changed
 
+- On a computer: after you send a chat message, the cursor now leaves the chat box, so the keys you press next go to the game again (F, K, C, R, or a bet amount) instead of into chat. Press Enter to chat again. Clicking a quick reply (gg, nh...) lets go too.
+- On a computer: on your turn, typing a number starts your bet amount in the bet box, then Enter bets it. No need to click the box first.
+- Hosts on a computer: pressing Enter after clicking Start game or Pause no longer presses that button again (Start game turns into Stop game, so it asked whether to stop the game). Enter goes to the chat box, as it does elsewhere.
+- Big screens: on a window 1440 pixels wide or more, the table now fills the screen. The table, seats, cards, chips and pot all grow to use the space that used to be dark, while the felt, colours, cards and sounds stay the same. Chat moves to a box in the bottom-left corner beside your action buttons, and the log, ledger, hands, stats and host controls open from the new Log button (Host & log for hosts) in the top bar. Laptops and phones look as before.
+
+## [2026.11.05.5] - 2026-11-05
+
+### Fixed and changed
+
 - The bet amount box now takes only numbers (and a decimal point at tables that count in dollars and cents, or when amounts are shown in big blinds). Before, some browsers let you type letters into it.
 - Phones: in Omaha and other games with four or more cards, your own cards no longer cover the players sitting either side of you at a full table. When there isn't room, your cards sit a little closer together and a little smaller. Computers are unchanged.
-- Big screens: on a window 1440 pixels wide or more, the table now fills the screen. The table, seats, cards, chips and pot all grow to use the space that used to be dark, while the felt, colours, cards and sounds stay the same. Chat moves to a box in the bottom-left corner beside your action buttons, and the log, ledger, hands, stats and host controls open from the new Log button (Host & log for hosts) in the top bar. Laptops and phones look as before.
 
 ## [2026.11.05.4] - 2026-11-05
 
