@@ -260,7 +260,7 @@ function ReadChatForm({ adminKey }: { adminKey: string }) {
     const url = URL.createObjectURL(new Blob([adminChatText(c)], { type: 'text/plain;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(c.name || 'table').replace(/[\\/:*?"<>|]+/g, ' ').trim()} chat.txt`;
+    a.download = `${(c.name || 'table').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'table'} chat.txt`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1_000);
   }
@@ -269,8 +269,7 @@ function ReadChatForm({ adminKey }: { adminKey: string }) {
     <form className="suggest-form" onSubmit={read}>
       <strong>Read a table&apos;s chat</strong>
       <span className="muted">
-        Paste a cash table&apos;s or a tournament&apos;s link. Works after it has closed. Each read is shown publicly on /transparency (not which table), as /fairness and /privacy
-        say.
+        Paste a cash table&apos;s or a tournament&apos;s link. Works after it has closed. Each read is shown publicly on /transparency, with the table&apos;s fingerprint (its players can tell it was theirs), as /fairness and /privacy say.
       </span>
       <label>
         Table or tournament link or id

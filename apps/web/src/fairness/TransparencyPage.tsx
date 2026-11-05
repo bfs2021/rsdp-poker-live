@@ -118,7 +118,7 @@ export function TransparencyPage() {
 
         <h2>The public record</h2>
         <p>
-          Every hand, every change to a player&rsquo;s buy-ins and cash-outs, every admin action that changes something, every time John reads a table&rsquo;s chat, and every server start goes into a chain where each entry includes a fingerprint of the one
+          Every hand, every change to a player&rsquo;s buy-ins and cash-outs, every admin action that changes something, every chat John reads from the admin page, and every server start goes into a chain where each entry includes a fingerprint of the one
           before. Editing or removing an old entry breaks every fingerprint after it. The record holds no names and no table links.
         </p>
         <ul>
@@ -149,7 +149,7 @@ export function TransparencyPage() {
           </ul>
         )}
         <p className="muted">
-          The site&rsquo;s record can be wrong about itself, so GitHub&rsquo;s copy is the one to trust. A restart is normal after a release, or when Fly moves the machine. Admin actions are things like removing a test table, a nightly backup, or John reading a table&rsquo;s chat (the entry says that he did, not which table). A shell on the server (which John can open) is not
+          The site&rsquo;s record can be wrong about itself, so GitHub&rsquo;s copy is the one to trust. A restart is normal after a release, or when Fly moves the machine. Admin actions are things like removing a test table, a nightly backup, or John reading a table&rsquo;s chat from the admin page (the entry holds only the table&rsquo;s fingerprint, so people with its link can tell it was theirs; nobody else can tell which table). A shell on the server (which John can open) is not
           recorded anywhere: Fly doesn&rsquo;t offer a way to show that publicly.
         </p>
 

@@ -158,8 +158,8 @@ when they deal at a home game.
 - **Change the records.** Chip counts, the cash ledger, the leaderboard and
   hand histories live in a database he controls, and he could edit them.
   Since 26 October 2026 every hand, every change to a player's buy-ins and
-  cash-outs, every admin action that changes something, and every time John
-  reads a table's chat also goes into a public, hash-chained
+  cash-outs, every admin action that changes something, and every chat read
+  from the admin page also goes into a public, hash-chained
   record, and GitHub copies it every few hours. Editing something already in the
   record now shows: in "Check this hand", in the ledger's check against the
   record, in a warning from any browser that saw the record before, and in
@@ -171,11 +171,14 @@ when they deal at a home game.
 - **Read table chat.** Since November 2026 (issue #300) the admin page can
   read any table's chat, cash or tournament, while it is open or long after it
   has closed. That includes everything said at the table, by players and
-  spectators. Each read goes in the public record and on
-  [/transparency](/transparency) as "Chat read", so you can see when John read
-  a chat, though not which table (the record never names tables). He could
-  already read chat in the database before this; the admin page just makes it
-  easy, so it is recorded. Lobby chat is open to anyone with the tournament's
+  spectators. Each read from the admin page goes in the public record and on
+  [/transparency](/transparency) as "Chat read". The entry holds only the
+  table's (or tournament's) fingerprint, the same one its hands use, so
+  anyone with the table's link can tell it was their table, and nobody else
+  can tell which table it was. Other ways John can see chat leave no "Chat
+  read" entry: reading the database or a backup, a shell on the server, or
+  sitting at or watching the table. He could always read chat in the
+  database; the admin page makes it easy, so that way is recorded. Lobby chat is open to anyone with the tournament's
   link anyway. Don't say anything at a table you wouldn't want John to read.
 - **Use admin powers, or a shell on the server.** The admin page can remove
   test tables, answer suggestions and read table chat; each use now goes in the public record
@@ -242,7 +245,7 @@ the repository (and pulling the `transparency` branch now and then).
   between two checks may show only in part.
 - **The public record.** Every hand, every change to a player's buy-ins and
   cash-outs, every table deleted, every admin action that changes something,
-  every time John reads a table's chat, and every server start is
+  every chat read from the admin page, and every server start is
   an entry in an append-only chain (`packages/engine/src/audit.ts`). Each entry
   includes a fingerprint (SHA-256) of the one before, so changing or removing
   an old entry changes every fingerprint after it. Entries hold no names and
