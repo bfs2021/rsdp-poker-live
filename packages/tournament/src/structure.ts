@@ -341,6 +341,19 @@ export function rsdpStructure(opts: Pick<BuildOptions, 'rebuyThroughLevel'> = {}
 }
 
 /**
+ * Whether these are the RSDP blind levels: its 28 blinds in order, each 8
+ * minutes, with no antes. Breaks, rebuy marks and a level's own game or limit
+ * bets don't count, so a host can add those and still be on the RSDP levels.
+ */
+export function isRsdpLevels(rows: StructureRow[]): boolean {
+  const levels = rows.filter((r): r is LevelRow => r.kind === 'level');
+  return (
+    levels.length === RSDP_BLINDS.length &&
+    levels.every((l, i) => l.sb === RSDP_BLINDS[i][0] && l.bb === RSDP_BLINDS[i][1] && l.anteType === 'none' && l.ante === 0 && l.minutes === RSDP_LEVEL_MINUTES)
+  );
+}
+
+/**
  * Generates a structure aimed at finishing in about `targetMinutes` (TRN-15
  * improvement). It uses the regular ladder and stretches or shrinks level
  * length so the last generated level starts near the target time. Breaks of

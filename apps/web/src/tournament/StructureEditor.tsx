@@ -2,8 +2,10 @@ import { useState } from 'react';
 import {
   MAX_LEVELS,
   generateStructure,
+  isRsdpLevels,
   plannedMinutes,
   presetStructure,
+  rsdpStructure,
   validateStructure,
   MAX_CHIPS,
   type AnteType,
@@ -28,7 +30,8 @@ interface Props {
   showGames?: boolean;
 }
 
-const PRESET_LABELS: Record<PresetName, string> = {
+const PRESET_LABELS: Record<PresetName | 'rsdp', string> = {
+  rsdp: 'RSDP (28 levels of 8 min, no antes)',
   hyper: 'Hyper (25 BB, 4 min)',
   turbo: 'Turbo (50 BB, 8 min)',
   regular: 'Regular (100 BB, 15 min)',
@@ -41,7 +44,9 @@ const chipNum = (v: string) => Math.min(MAX_CHIPS, num(v));
 
 /** Edit blind levels and breaks. Cards on phones, a grid on wider screens. */
 export function StructureEditor({ rows, onChange, startingStack, expectedEntrants, maxRebuys, lockedThrough = -1, currentRow, showGames }: Props) {
-  const [preset, setPreset] = useState<PresetName | 'target'>('regular');
+  const rsdp = isRsdpLevels(rows);
+  // What "Use different blind levels" offers first: something other than what's there now.
+  const [preset, setPreset] = useState<PresetName | 'rsdp' | 'target'>(() => (rsdp ? 'regular' : 'rsdp'));
   const [target, setTarget] = useState(180);
   const [anteType, setAnteType] = useState<AnteType>('per-player');
   // Collapsed by default on phones, where 20+ level cards make a very long page.
@@ -49,10 +54,14 @@ export function StructureEditor({ rows, onChange, startingStack, expectedEntrant
   const [open, setOpen] = useState(false);
   const { errors, warnings } = validateStructure(rows, { maxRebuys });
   const editable = (i: number) => i > lockedThrough;
+  const levelCount = rows.filter((r) => r.kind === 'level').length;
+  const breakCount = rows.length - levelCount;
 
   const load = () => {
-    const opts = { startingStack, expectedEntrants, anteType };
-    const fresh = preset === 'target' ? generateStructure({ ...opts, targetMinutes: target }) : presetStructure(preset, opts);
+    // With rebuys on, the first four new levels allow them, as when a starter is loaded or rebuys are ticked.
+    const rebuys = maxRebuys > 0 ? { rebuyThroughLevel: 4 } : {};
+    const opts = { startingStack, expectedEntrants, anteType, ...rebuys };
+    const fresh = preset === 'rsdp' ? rsdpStructure(rebuys) : preset === 'target' ? generateStructure({ ...opts, targetMinutes: target }) : presetStructure(preset, opts);
     onChange([...rows.slice(0, lockedThrough + 1), ...fresh.slice(lockedThrough + 1)]);
   };
 
@@ -73,39 +82,55 @@ export function StructureEditor({ rows, onChange, startingStack, expectedEntrant
   let levelNo = 0;
   return (
     <div className="tn-structure">
-      <div className="tn-preset-bar">
-        <label>
-          Start from
-          <select value={preset} onChange={(e) => setPreset(e.target.value as PresetName | 'target')}>
-            {(Object.keys(PRESET_LABELS) as PresetName[]).map((p) => (
-              <option key={p} value={p}>
-                {PRESET_LABELS[p]}
-              </option>
-            ))}
-            <option value="target">Fit a target length…</option>
-          </select>
-        </label>
-        {preset === 'target' && (
-          <label>
-            Minutes
-            <input type="number" min={30} max={1440} value={target} onChange={(e) => setTarget(num(e.target.value))} />
-          </label>
+      <p className="tn-structure-summary">
+        {rsdp ? (
+          <>
+            <b>RSDP blind levels:</b> 28 levels of 8 minutes, starting at 100/200, no antes
+          </>
+        ) : (
+          `${levelCount} ${levelCount === 1 ? 'level' : 'levels'}`
         )}
-        <label>
-          Antes
-          <select value={anteType} onChange={(e) => setAnteType(e.target.value as AnteType)}>
-            <option value="per-player">Per player</option>
-            <option value="big-blind">Big blind ante</option>
-            <option value="none">None</option>
-          </select>
-        </label>
-        <button type="button" onClick={load}>
-          Load
-        </button>
-      </div>
-      <p className="muted">
-        {rows.filter((r) => r.kind === 'level').length} levels, about {Math.round(plannedMinutes(rows) / 6) / 10} h until the last level, which runs until the end.
+        {breakCount > 0 ? `, ${rsdp ? 'plus ' : ''}${breakCount} ${breakCount === 1 ? 'break' : 'breaks'}` : ''}. About {Math.round(plannedMinutes(rows) / 6) / 10} h until the last level, which runs until the end.
       </p>
+
+      <details className="tn-details tn-replace">
+        <summary>Use different blind levels</summary>
+        <div className="tn-preset-bar">
+          <label>
+            Replace the levels with
+            <select value={preset} onChange={(e) => setPreset(e.target.value as PresetName | 'rsdp' | 'target')}>
+              {(Object.keys(PRESET_LABELS) as (PresetName | 'rsdp')[]).map((p) => (
+                <option key={p} value={p}>
+                  {PRESET_LABELS[p]}
+                </option>
+              ))}
+              <option value="target">Fit a target length…</option>
+            </select>
+          </label>
+          {preset === 'target' && (
+            <label>
+              Minutes
+              <input type="number" min={30} max={1440} value={target} onChange={(e) => setTarget(num(e.target.value))} />
+            </label>
+          )}
+          {preset !== 'rsdp' && (
+            <label>
+              Antes
+              <select value={anteType} onChange={(e) => setAnteType(e.target.value as AnteType)}>
+                <option value="per-player">Per player</option>
+                <option value="big-blind">Big blind ante</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+          )}
+          <button type="button" onClick={load}>
+            Replace levels
+          </button>
+        </div>
+        <p className="muted">
+          Nothing changes until you press Replace levels. It swaps the levels {lockedThrough >= 0 ? 'still to come' : 'below'} for new ones.
+        </p>
+      </details>
 
       <details className="tn-details" open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
       <summary>{open ? 'Hide levels' : `Edit levels (${rows.length} rows)`}</summary>

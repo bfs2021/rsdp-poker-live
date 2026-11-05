@@ -60,12 +60,8 @@ const STARTER_SPECS: Record<StarterId, { preset: PresetName | 'rsdp'; stack: num
   deep: { preset: 'deep', stack: 20_000, lateThrough: 6 },
 };
 
-/**
- * Puts a starter's stack, blind levels and late registration on `current`,
- * and for RSDP its table rules, keeping everything else (name, games, start, prizes). Rebuys and add-ons
- * that are on stay on, on the first four levels and the first break.
- */
-export function applyStarter(current: TournamentSettings, id: StarterId): TournamentSettings {
+/** What a starter sets on `current`: the stack, blind levels and late registration, and for RSDP the table rules. */
+function starterParts(current: TournamentSettings, id: StarterId): Pick<TournamentSettings, 'startingStack' | 'structure' | 'lateRegistration' | 'tableRules'> {
   const spec = STARTER_SPECS[id];
   const expectedEntrants = current.start.kind === 'sng' ? current.start.playersNeeded : Math.min(current.maxEntrants, 30);
   const rebuys = current.rebuy.max > 0 ? { rebuyThroughLevel: 4 } : {};
@@ -81,12 +77,54 @@ export function applyStarter(current: TournamentSettings, id: StarterId): Tourna
   // A short field, or RSDP's levels, can have no break; an add-on needs one, so add one after level 4.
   if (current.addOn.max > 0 && !structure.some((r) => r.kind === 'break')) structure = [...structure.slice(0, 4), { kind: 'break', minutes: 5, addOn: true }, ...structure.slice(4)];
   return {
-    ...structuredClone(current),
     startingStack: spec.stack,
     structure,
     lateRegistration: { enabled: true, throughLevel: spec.lateThrough },
-    rebuy: { ...current.rebuy, chips: spec.stack },
-    addOn: { ...current.addOn, chips: spec.stack },
     ...(id === 'rsdp' ? { tableRules: { ...RSDP_TABLE_RULES } } : {}),
   };
+}
+
+/**
+ * Puts a starter's stack, blind levels and late registration on `current`,
+ * and for RSDP its table rules, keeping everything else (name, games, start, prizes). Rebuys and add-ons
+ * that are on stay on, on the first four levels and the first break.
+ */
+export function applyStarter(current: TournamentSettings, id: StarterId): TournamentSettings {
+  const parts = starterParts(current, id);
+  return {
+    ...structuredClone(current),
+    ...parts,
+    rebuy: { ...current.rebuy, chips: parts.startingStack },
+    addOn: { ...current.addOn, chips: parts.startingStack },
+  };
+}
+
+/** One row as a string, so two structures can be compared row by row whatever order their fields were set in. */
+const rowKey = (r: StructureRow) =>
+  JSON.stringify(
+    r.kind === 'break'
+      ? ['break', r.minutes, !!r.addOn]
+      : ['level', r.sb, r.bb, r.ante, r.anteType, r.minutes, r.gameId ?? null, r.limit ? [r.limit.smallBet, r.limit.bigBet, r.limit.bringIn ?? null] : null, !!r.rebuy],
+  );
+
+/**
+ * The starter these settings are on: the one that pressing again would change
+ * nothing it sets (stack, blind levels, late registration, and for RSDP the
+ * table rules). Null when the host has changed any of those since.
+ */
+export function matchingStarter(settings: TournamentSettings): StarterId | null {
+  for (const { id } of STARTERS) {
+    const want = starterParts(settings, id);
+    if (settings.startingStack !== want.startingStack) continue;
+    const late = settings.lateRegistration;
+    if (late.enabled !== want.lateRegistration.enabled || late.throughLevel !== want.lateRegistration.throughLevel) continue;
+    if (settings.structure.length !== want.structure.length || settings.structure.some((r, i) => rowKey(r) !== rowKey(want.structure[i]))) continue;
+    if (want.tableRules) {
+      const have = settings.tableRules;
+      const rules = want.tableRules;
+      if (!have || (Object.keys(rules) as (keyof typeof rules)[]).some((k) => have[k] !== rules[k])) continue;
+    }
+    return id;
+  }
+  return null;
 }
