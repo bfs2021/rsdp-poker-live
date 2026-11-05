@@ -117,7 +117,11 @@ describe('betBoxAccepts', () => {
     expect(betBoxAccepts('', false)).toBe(true);
   });
   it('keeps letters and number-box extras out (#306)', () => {
-    for (const t of ['a', 'abc', 'e', 'E', '+', '-', '1e5', '12a', ' ', ','])
+    for (const t of ['a', 'abc', 'e', 'E', '+', '-', '1e5', '12a', ' '])
       for (const decimals of [false, true]) expect(betBoxAccepts(t, decimals), t).toBe(false);
+  });
+  it('takes a decimal comma where fractions are allowed, for comma-decimal phones', () => {
+    expect(betBoxAccepts('12,5', true)).toBe(true);
+    expect(betBoxAccepts(',', false)).toBe(false);
   });
 });

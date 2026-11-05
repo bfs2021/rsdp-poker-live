@@ -60,11 +60,12 @@ export function betFromInput(unit: BetUnit, value: number): number {
 
 /**
  * Whether text typed, pasted or dropped into the bet box may go in: digits only,
- * plus a decimal point when the box takes fractions (dollars and cents, or big blinds).
+ * plus a decimal point (or comma) when the box takes fractions (dollars and cents, or big blinds).
  * Browsers let letters, "e", "+" and "-" into a number box; this keeps them out.
  */
 export function betBoxAccepts(text: string, decimals: boolean): boolean {
-  return decimals ? /^[0-9.]*$/.test(text) : /^[0-9]*$/.test(text);
+  // A comma too: phones set to a comma-decimal region show only "," on the decimal keypad.
+  return decimals ? /^[0-9.,]*$/.test(text) : /^[0-9]*$/.test(text);
 }
 
 export const BETTING_NAME: Record<BettingKind, string> = { 'no-limit': 'No Limit', 'pot-limit': 'Pot Limit', 'fixed-limit': 'Limit' };

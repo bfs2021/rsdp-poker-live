@@ -79,6 +79,15 @@ const PHONE_HAND = {
  */
 function useHandFit(felt: RefObject<HTMLElement>, compact: boolean): HandFit | null {
   const [fit, setFit] = useState<HandFit | null>(null);
+  // Seats glide to new places when someone sits down or leaves; measure again once they've arrived.
+  const [, setGlides] = useState(0);
+  useEffect(() => {
+    const el = felt.current;
+    if (!el || !compact) return;
+    const arrived = (e: TransitionEvent) => (e.target as HTMLElement).classList?.contains('seat') && setGlides((g) => g + 1);
+    el.addEventListener('transitionend', arrived);
+    return () => el.removeEventListener('transitionend', arrived);
+  }, [felt, compact]);
   useLayoutEffect(() => {
     const el = felt.current;
     const me = el?.querySelector<HTMLElement>('.seat.me');
@@ -89,7 +98,8 @@ function useHandFit(felt: RefObject<HTMLElement>, compact: boolean): HandFit | n
       const sideways = window.matchMedia('(max-height: 500px)').matches;
       const natural = PHONE_HAND[sideways ? 'sideways' : 'upright'][cards === 4 ? 'four' : 'more'];
       const others = [...el.querySelectorAll<HTMLElement>('.seat:not(.me) .nameplate')].map((p) => p.getBoundingClientRect());
-      next = fitHand(cards, handRoom(plate.getBoundingClientRect(), others, sideways, natural.cw * 1.4), natural);
+      // On its side the cards hang off the seat's left edge, which can be wider than its nameplate.
+      next = fitHand(cards, handRoom((sideways ? me! : plate).getBoundingClientRect(), others, sideways, natural.cw * 1.4), natural);
     }
     if (next?.cw !== fit?.cw || next?.overlap !== fit?.overlap) setFit(next);
   });
