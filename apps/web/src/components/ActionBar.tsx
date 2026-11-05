@@ -3,7 +3,7 @@ import type { Action } from '@rsdp/engine/core';
 import type { CoachTip, TableView } from '@rsdp/engine/wire';
 import { call } from '../socket';
 import './action-bar.css';
-import { bbExactFormat, betFromInput, betStops, betToInput, betUnit, nearestStop, roundToUnit, type BetUnit, type Fmt } from '../format';
+import { bbExactFormat, betBoxAccepts, betFromInput, betStops, betToInput, betUnit, nearestStop, roundToUnit, type BetUnit, type Fmt } from '../format';
 import { handStrength } from '../strength';
 import { tipText } from '../coach';
 import { usePrefs } from '../prefs';
@@ -520,7 +520,15 @@ export function ActionBar({
             <input
               ref={amountBox}
               type="number"
-              inputMode="decimal"
+              inputMode={bigBlind || centsMode ? 'decimal' : 'numeric'}
+              // Only numbers go in (and a decimal point when the box takes fractions); letters are kept out, not just ignored.
+              onBeforeInput={(e) => {
+                if (!betBoxAccepts(e.data ?? '', !!bigBlind || centsMode)) e.preventDefault();
+              }}
+              onPaste={(e) => {
+                if (!betBoxAccepts(e.clipboardData.getData('text').trim(), !!bigBlind || centsMode)) e.preventDefault();
+              }}
+              onDrop={(e) => e.preventDefault()}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && legal.canRaise) send({ type: raiseType, to: clamp(amount) });
               }}

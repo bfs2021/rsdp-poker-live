@@ -180,3 +180,51 @@ export function besideBet(bet: Point, from: Point, to: Point, half: { w: number;
   if (vertical) return { x: bet.x - Math.sign(dx || 1) * (half.w + gap), y: bet.y };
   return { x: bet.x, y: bet.y - Math.sign(dy || -1) * (half.h + gap) };
 }
+
+/** A box on screen, as getBoundingClientRect gives it. */
+export interface Box {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+/**
+ * On a phone, how wide your own hand may be before it covers a neighbour's nameplate (#304).
+ * Standing up, your cards sit centred above your nameplate, so the room is twice the
+ * distance to the nearest plate either side, among the plates level with your cards.
+ * On its side, your cards sit just left of your nameplate, so the room is the gap to
+ * the nearest plate on the left. Infinity when nothing is in the way.
+ */
+export function handRoom(mine: Box, others: readonly Box[], sideways: boolean, cardHeight: number, margin = 6): number {
+  if (sideways) {
+    const edge = Math.max(-Infinity, ...others.filter((o) => o.bottom > mine.top && o.top < mine.bottom && o.right <= mine.left + margin).map((o) => o.right));
+    return mine.left - margin - edge - margin;
+  }
+  const top = mine.top - cardHeight;
+  const level = others.filter((o) => o.bottom > top && o.top < mine.top + 8);
+  const cx = (mine.left + mine.right) / 2;
+  const near = Math.min(...level.map((o) => (o.right <= cx ? cx - o.right : o.left >= cx ? o.left - cx : Infinity)));
+  return 2 * (near - margin);
+}
+
+/** A card width and how much each card covers the one before it, in pixels. */
+export interface HandFit {
+  cw: number;
+  overlap: number;
+}
+
+/**
+ * Your hand made to fit the room beside your nameplate: first the cards bunch up, still showing
+ * at least `minShow` of each card (enough for its rank and suit), then they get smaller, down to
+ * `minCw`. Null when the hand fits as it is, so the usual look is kept.
+ */
+export function fitHand(cards: number, room: number, natural: HandFit, minShow = 0.45, minCw = 30): HandFit | null {
+  const width = (f: HandFit) => f.cw + (cards - 1) * (f.cw - f.overlap);
+  if (cards < 2 || !(room < width(natural))) return null;
+  const show = Math.min(minShow, (natural.cw - natural.overlap) / natural.cw);
+  const bunched = (room - natural.cw) / (cards - 1);
+  if (bunched >= show * natural.cw) return { cw: natural.cw, overlap: Math.round(natural.cw - bunched) };
+  const cw = Math.max(minCw, Math.min(natural.cw, Math.floor(room / (1 + (cards - 1) * show))));
+  return { cw, overlap: Math.round(cw * (1 - show)) };
+}

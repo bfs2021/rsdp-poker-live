@@ -3,7 +3,7 @@ import type { SeatView, TableView } from '@rsdp/engine/wire';
 import { clock, type Fmt } from '../format';
 import { handStrength } from '../strength';
 import { PlayingCard } from './PlayingCard';
-import { besideBet, clearSideBands, fromVars, inFront, lerp, px, seatFractions, stadiumPoint, type Point, type Reach } from './geometry';
+import { besideBet, clearSideBands, fitHand, fromVars, handRoom, inFront, lerp, px, seatFractions, stadiumPoint, type HandFit, type Point, type Reach } from './geometry';
 import { BoardExtras, FeltExtras, SeatExtras } from './table/slots';
 import { baseChip, CHIP_SET, ChipStacks, DOLLAR_CHIPS } from './table/Chips';
 import { feltStyle, usePrefs } from '../prefs';
@@ -60,6 +60,50 @@ function useSize(ref: RefObject<HTMLElement>) {
     return () => ro.disconnect();
   }, [ref]);
   return size;
+}
+
+/**
+ * Your own hand's size on a phone as styles.css draws it (the 4-card and 5-to-7-card rules,
+ * standing up and on its side). Keep in step with those rules.
+ */
+const PHONE_HAND = {
+  upright: { four: { cw: 60, overlap: 24 }, more: { cw: 38, overlap: 15 } },
+  sideways: { four: { cw: 40, overlap: 24 }, more: { cw: 34, overlap: 15 } },
+};
+
+/**
+ * On a phone, a hand of four or more cards can be wider than the gap between the players either
+ * side of you, and then covers their nameplates (#304). Measured after each render, this gives a
+ * smaller fit for your cards when they'd reach a neighbour, and null when they fit as they are.
+ * Desktop seats tuck the cards into the nameplate, so they're left alone.
+ */
+function useHandFit(felt: RefObject<HTMLElement>, compact: boolean): HandFit | null {
+  const [fit, setFit] = useState<HandFit | null>(null);
+  // Seats glide to new places when someone sits down or leaves; measure again once they've arrived.
+  const [, setGlides] = useState(0);
+  useEffect(() => {
+    const el = felt.current;
+    if (!el || !compact) return;
+    const arrived = (e: TransitionEvent) => (e.target as HTMLElement).classList?.contains('seat') && setGlides((g) => g + 1);
+    el.addEventListener('transitionend', arrived);
+    return () => el.removeEventListener('transitionend', arrived);
+  }, [felt, compact]);
+  useLayoutEffect(() => {
+    const el = felt.current;
+    const me = el?.querySelector<HTMLElement>('.seat.me');
+    const plate = me?.querySelector<HTMLElement>('.nameplate');
+    const cards = me?.querySelectorAll('.hole:not(.mucked) .playing-card').length ?? 0;
+    let next: HandFit | null = null;
+    if (el && compact && plate && cards >= 4) {
+      const sideways = window.matchMedia('(max-height: 500px)').matches;
+      const natural = PHONE_HAND[sideways ? 'sideways' : 'upright'][cards === 4 ? 'four' : 'more'];
+      const others = [...el.querySelectorAll<HTMLElement>('.seat:not(.me) .nameplate')].map((p) => p.getBoundingClientRect());
+      // On its side the cards hang off the seat's left edge, which can be wider than its nameplate.
+      next = fitHand(cards, handRoom((sideways ? me! : plate).getBoundingClientRect(), others, sideways, natural.cw * 1.4), natural);
+    }
+    if (next?.cw !== fit?.cw || next?.overlap !== fit?.overlap) setFit(next);
+  });
+  return fit;
 }
 
 /**
@@ -155,6 +199,7 @@ export function Table({
   const prefs = usePrefs();
   const size = useSize(felt);
   const reach = useSeatReach(felt);
+  const handFit = useHandFit(felt, compact);
   const n = view.seats.length;
   // Rotate so your own seat is at the bottom.
   const offset = view.me.seat ?? 0;
@@ -332,8 +377,8 @@ export function Table({
   return (
     <div
       ref={felt}
-      className={['felt', compact && 'compact', done && hand!.awards.length > 0 && 'showdown', view.me.seat !== null && 'seated-view', myTurn && 'my-turn', view.cardsWatched && 'cards-watched'].filter(Boolean).join(' ')}
-      style={{ ...feltStyle(prefs, view.settings.table.felt), '--seat-scale': seatScale, ...(boardCard ? { '--board-cw': `${boardCard}px` } : {}) } as CSSProperties}
+      className={['felt', compact && 'compact', handFit && 'hand-fit', done && hand!.awards.length > 0 && 'showdown', view.me.seat !== null && 'seated-view', myTurn && 'my-turn', view.cardsWatched && 'cards-watched'].filter(Boolean).join(' ')}
+      style={{ ...feltStyle(prefs, view.settings.table.felt), '--seat-scale': seatScale, ...(boardCard ? { '--board-cw': `${boardCard}px` } : {}), ...(handFit ? { '--fit-cw': `${handFit.cw}px`, '--fit-overlap': `${-handFit.overlap}px` } : {}) } as CSSProperties}
     >
       <FeltEmblem />
       <div className={`board${multiRun || multiBoard ? ' multi' : ''}`} style={boardShift ? { translate: `0 ${Math.round(boardShift)}px` } : undefined}>

@@ -22,6 +22,8 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 
 ### Fixed and changed
 
+- The bet amount box now takes only numbers (and a decimal point at tables that count in dollars and cents, or when amounts are shown in big blinds). Before, some browsers let you type letters into it.
+- Phones: in Omaha and other games with four or more cards, your own cards no longer cover the players sitting either side of you at a full table. When there isn't room, your cards sit a little closer together and a little smaller. Computers are unchanged.
 - On a computer: after you send a chat message, the cursor now leaves the chat box, so the keys you press next go to the game again (F, K, C, R, or a bet amount) instead of into chat. Press Enter to chat again. Clicking a quick reply (gg, nh...) lets go too.
 - On a computer: on your turn, typing a number starts your bet amount in the bet box, then Enter bets it. No need to click the box first.
 
