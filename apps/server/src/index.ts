@@ -12,6 +12,7 @@ import { dbSetups } from './savedSetups';
 import { dbAvatars } from './avatars';
 import { dbSharedHands } from './shared';
 import { dbSuggestions } from './suggestions';
+import { dbFeedback } from './feedback';
 import { dbIdentity, dbStore } from './storage';
 import { googleFromEnv } from './google';
 import { dbTournamentStore } from './tournament/store';
@@ -31,7 +32,7 @@ const db = await createDb({ pgliteDir });
 const webDist = path.resolve(here, '../../web/dist');
 // The public record carries on from its last entry; a server start is its own entry.
 const audit = await AuditLog.open(dbAuditStore(db));
-const server = createApp({ audit, fairLeadMs: FAIR_LEAD_MS, webDist, identity: dbIdentity(db), store: dbStore(db), tournaments: dbTournamentStore(db), notes: dbNotes(db), setups: dbSetups(db), lobby: dbLobbyStore(db), avatars: dbAvatars(db), shared: dbSharedHands(db), suggestions: dbSuggestions(db), accounts: db, google: googleFromEnv(), checkDb: () => db.execute(sql`select 1`) });
+const server = createApp({ audit, fairLeadMs: FAIR_LEAD_MS, webDist, identity: dbIdentity(db), store: dbStore(db), tournaments: dbTournamentStore(db), notes: dbNotes(db), setups: dbSetups(db), lobby: dbLobbyStore(db), avatars: dbAvatars(db), shared: dbSharedHands(db), suggestions: dbSuggestions(db), feedback: dbFeedback(db), accounts: db, google: googleFromEnv(), checkDb: () => db.execute(sql`select 1`) });
 // Unfinished tournaments carry on, and scheduled ones keep their start time.
 await server.resume();
 

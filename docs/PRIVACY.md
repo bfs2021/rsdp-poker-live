@@ -55,6 +55,7 @@ public, so don't put anything private in one, just ask him to get in touch).
 | Tables you hid, practice games you deleted, when you reset your practice graph | You | Only you |
 | Shared hand links | You, when you press Share on a hand | Anyone with the link, until you delete it or your account |
 | Roadmap suggestions | You, with the name you type | Everyone, on the [roadmap](/roadmap) |
+| Feedback you send with **Send feedback** at a table, with the name you used there, the table, its name, cash or tournament, the game, the hand number, whether you were seated, phone or desktop, and the site's version | You | Only John (with the admin key), so he can look into it |
 
 ## Why the site keeps it
 
@@ -70,6 +71,7 @@ reason. These are ours:
   you played);
   the public record and backups, so cheating can be spotted and the site
   survives a disaster (the record holds no names, and backups are locked);
+  feedback you send, so problems can be found and fixed;
   and rate limits, to keep the site safe. You can object
   to any of these (see *Your rights*).
 - Nothing is done on the basis of consent, so there is nothing to withdraw,
@@ -167,6 +169,7 @@ backup also shows up on [Checking John](/transparency).
 - Tournament lobby chat: for as long as the site runs.
 - Practice tables you made and only you and bots played at: until you delete
   them from your profile.
+- Feedback sent from a table: until John deletes it, and at most a year.
 - Signed-in sessions: 30 days. Password reset codes: until used or expired.
   The Google sign-in cookie: 10 minutes.
 - Backups: 90 days each.
@@ -192,7 +195,7 @@ authority (in the UK, the ICO).
 - **With an account:** open [your profile](/profile) and use **Delete account**.
   That removes your username, password, Google link, sessions, browser
   secrets, name, picture, notes, saved setups, hidden tables, practice graph
-  reset and shared hand links straight away. Hands you already
+  reset, shared hand links and feedback you sent straight away. Hands you already
   played, and your messages in table chat, stay in other players' history,
   ledgers and table logs under the name you used at the time, because they
   are part of their games too. If you want your

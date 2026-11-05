@@ -1,6 +1,13 @@
 {
   "releases": [
     {
+      "id": "2026.11.05.3",
+      "date": "2026-11-05",
+      "fixes": [
+        "New at every table: Send feedback (in the table menu, or the ☰ menu on a phone). Tell John something is wrong, or share an idea, without leaving the game. Only John reads it."
+      ]
+    },
+    {
       "id": "2026.11.05.2",
       "date": "2026-11-05",
       "fixes": [
