@@ -362,6 +362,43 @@ try {
     }
   });
 
+  await step('wide desktop: a bigger table, chat in the corner, the log behind a button', async () => {
+    const host = await open('wide host', { width: 1920, height: 1080 });
+    await host.goto(BASE);
+    await host.fill('input[required]', 'Wen');
+    await host.click('button:has-text("Create table")');
+    await host.waitForURL(/\/t\//);
+    await host.locator('.seat.empty button').first().click();
+    await host.click('button:has-text("Sit down")');
+    await host.waitForSelector('.seat.me');
+    // No side column: chat is in the corner, and the table has grown into the room.
+    if (await host.locator('aside.side:not(.drawer)').count()) throw new Error('the side column is still there on a wide window');
+    await host.locator('.corner-chat .chat-form input').waitFor();
+    await host.locator('.felt.grown').waitFor();
+    const scale = await host.locator('.felt').evaluate((el) => parseFloat(el.style.getPropertyValue('--seat-scale')));
+    if (!(scale > 1.1)) throw new Error(`the seats didn't grow on a wide window (scale ${scale})`);
+    // A host whose game hasn't started sees the panel open, with Start game in it; the top bar's button closes it.
+    await host.locator('.side.drawer.open button:has-text("Start game")').waitFor();
+    await host.click('.drawer-button');
+    await host.locator('.side.drawer:not(.open)').waitFor();
+    await host.locator('button:has-text("Start game")').waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {
+      throw new Error('Start game still shows with the panel closed');
+    });
+    await host.click('.drawer-button');
+    await host.locator('.side.drawer.open').waitFor();
+    await host.keyboard.press('Escape');
+    await host.locator('.side.drawer:not(.open)').waitFor();
+    // Enter jumps into the corner chat, and a message shows there.
+    await host.evaluate(() => document.activeElement?.blur());
+    await host.keyboard.press('Enter');
+    const focused = await host.evaluate(() => !!document.activeElement?.closest('.corner-chat'));
+    if (!focused) throw new Error('Enter did not jump into the corner chat');
+    await host.keyboard.type('hello from the corner');
+    await host.keyboard.press('Enter');
+    await host.locator('.corner-chat .chat-line:has-text("hello from the corner")').waitFor();
+    await host.screenshot({ path: path.join(OUT, 'wide.png') });
+  });
+
   if (errors.length) throw new Error(`console errors:\n${errors.join('\n')}`);
   console.log('smoke test passed');
 } catch (e) {

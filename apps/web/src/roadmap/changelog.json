@@ -1,6 +1,13 @@
 {
   "releases": [
     {
+      "id": "2026.11.05.7",
+      "date": "2026-11-05",
+      "fixes": [
+        "Big screens: on a window 1440 pixels wide or more, the table now fills the screen. The table, seats, cards, chips and pot all grow to use the space that used to be dark, while the felt, colours, cards and sounds stay the same. Chat moves to a box in the bottom-left corner beside your action buttons, and the log, ledger, hands, stats and host controls open from the new Log button (Host & log for hosts) in the top bar. Laptops and phones look as before."
+      ]
+    },
+    {
       "id": "2026.11.05.6",
       "date": "2026-11-05",
       "fixes": [
