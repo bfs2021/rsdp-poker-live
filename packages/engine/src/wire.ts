@@ -64,6 +64,11 @@ export interface SeatView {
   mood: string | null;
   /** A practice bot: who added it, its look (an index into BOT_LOOKS) and how well it plays (not kept for replays). Absent for people. */
   bot?: { ownerId: PlayerId; ownerName: string; look: number; level?: BotLevel };
+  /**
+   * Set only in the browser, never by the server: a player knocked out of a tournament in the hand just shown,
+   * kept in their seat with their cards up until the next deal so the table sees them go ('fading' just before it).
+   */
+  departed?: 'out' | 'fading';
 }
 
 export interface HandView {
@@ -106,6 +111,11 @@ export interface HandView {
   awards: Award[];
   /** Events this viewer may see, for the hand log and animations. */
   events: HandEvent[];
+  /**
+   * Set only in the browser, never by the server: while an all-in runout waits before its last card, the boards
+   * that card goes on, so each shows a face-down card there until it turns over.
+   */
+  comingNext?: { run: number; board: number }[];
 }
 
 export interface RequestView {

@@ -25,6 +25,7 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 - On a computer: after you send a chat message, the cursor now leaves the chat box, so the keys you press next go to the game again (F, K, C, R, or a bet amount) instead of into chat. Press Enter to chat again. Clicking a quick reply (gg, nh...) lets go too.
 - On a computer: on your turn, typing a number starts your bet amount in the bet box, then Enter bets it. No need to click the box first.
 - Hosts on a computer: pressing Enter after clicking Start game or Pause no longer presses that button again (Start game turns into Stop game, so it asked whether to stop the game). Enter goes to the chat box, as it does elsewhere.
+- All-in run-outs have more build-up: the last card waits face down on the board for a moment, then turns over, and the result shows a beat later. In a tournament, a player knocked out by a run-out now has their cards face up the whole time (before, they flipped back face down until the result), and they stay in their seat, marked Knocked out, until the next hand, instead of vanishing the moment the result showed.
 
 ## [2026.11.05.5] - 2026-11-05
 

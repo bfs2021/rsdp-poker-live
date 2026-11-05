@@ -298,7 +298,8 @@
 
 /* Table motion switched off: the same as the device asking for less motion. */
 :root[data-motion='off'] {
-  .deal-hole, .deal-board, .flip-in, .bet, .chip-flight, .win-float, .seat.winner .nameplate, .seat.acting .nameplate { animation: none !important; }
+  .deal-hole, .deal-board, .flip-in, .bet, .chip-flight, .win-float, .seat.winner .nameplate, .seat.acting .nameplate, .held-slot, .turn-held { animation: none !important; }
+  .seat.departed .nameplate { animation: none !important; opacity: 0.6; filter: grayscale(0.8); }
   .dealer, .seat, .seat .hole, .playing-card, .felt-area, .action-bar .buttons button, .timer-fill { transition: none !important; }
   .chip-flight { display: none; }
   .chat-bubble { animation: chat-fade 0.4s 5.6s ease-in both; }
