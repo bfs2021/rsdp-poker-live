@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 import { createApp } from '../src/app';
 import { closeDb, queryRows, type Db } from '../src/db';
 import { createTestDb, resetTestDb } from '../src/db/testing';
-import { opsLine, opsRecorder, recapWindow, soundsLikeAProblem, type Recap } from '../src/recap';
+import { opsLine, opsRecorder, recapWindow, type Recap } from '../src/recap';
 
 const ADMIN = 'test-admin-key-0123456789';
 const REPORT = 'test-report-key-0123456789';
@@ -60,7 +60,7 @@ describe('game-night recap', { timeout: 30_000 }, () => {
     });
   });
 
-  it('counts errors, tells a clean restart from a crash, and keeps problem-sounding chat without names', async () => {
+  it('counts errors, tells a clean restart from a crash, finds late tournaments, and reads no chat', async () => {
     const t0 = Date.parse('2026-11-04T23:00:00Z');
     const at = (min: number) => new Date(t0 + min * 60_000);
     await db.execute(sql`insert into players (id) values ('p1')`);
@@ -153,11 +153,8 @@ describe('game-night recap', { timeout: 30_000 }, () => {
           didNotStart: true,
         }),
       ]);
-      expect(recap.chatLinesRead).toBe(3);
-      expect(recap.chat.map((c) => [c.where, c.text])).toEqual([
-        ['cash table', 'my screen froze, see /t/:id'],
-        ['tournament table', 'the timer is stuck'],
-      ]);
+      // No chat at all (issue #300), and no names.
+      expect(JSON.stringify(recap)).not.toMatch(/froze|timer is stuck|nice hand/);
       expect(JSON.stringify(recap)).not.toContain('Somebody');
     });
   });
@@ -228,13 +225,6 @@ describe('recap helpers', () => {
     expect(recapWindow({ hours: '0' }, now)).toMatch(/above 0/);
     // With from given, hours is ignored.
     expect(recapWindow({ from: '2026-11-05T01:00:00Z', hours: 'x' }, now)).toEqual({ from: new Date('2026-11-05T01:00:00Z'), to: new Date(now) });
-  });
-
-  it('flags chat about the site, not poker talk', () => {
-    expect(soundsLikeAProblem('it froze on me')).toBe(true);
-    expect(soundsLikeAProblem('the app keeps reloading')).toBe(true);
-    expect(soundsLikeAProblem('nice hand')).toBe(false);
-    expect(soundsLikeAProblem('raise it up')).toBe(false);
   });
 
   it('takes table, tournament and hand ids out of server lines', () => {

@@ -22,7 +22,7 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 
 ### Fixed and changed
 
-- Behind the scenes: the morning after a night with games, John now gets a short recap of anything that went wrong (site errors, restarts, a tournament starting late) and chat messages that sound like someone reporting a problem, without names. The server keeps its error messages for 30 days for this. The Privacy page says exactly what the recap holds.
+- Behind the scenes: the morning after a night with games, John now gets a short recap of anything that went wrong (site errors, restarts, a tournament starting late). It holds no chat or names. The server keeps its error messages for 30 days for this. The Privacy page says exactly what the recap holds.
 
 ## [2026.11.05.2] - 2026-11-05
 

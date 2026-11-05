@@ -133,10 +133,8 @@ for how it works.
   hears about problems without going looking. The recap holds: the server's
   error lines, when the server restarted, how many tables, hands and
   tournaments there were (with each tournament's name, entry count and start
-  time), and the chat lines from tables and tournament lobbies that sound like
-  someone reporting a problem with the site (words like "froze", "stuck",
-  "lag" or "bug"). Chat lines go without the sender's name and with table
-  links removed. It holds no IP addresses, accounts, cards or chip counts.
+  time). Error lines go with table links and ids removed. It holds no chat,
+  names, IP addresses, accounts, cards or chip counts.
   Claude writes John a plain-English summary of it in John's private
   workspace.
 - **GitHub** holds the code, the regular copy of the public record and the

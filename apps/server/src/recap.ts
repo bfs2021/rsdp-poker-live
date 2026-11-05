@@ -1,5 +1,5 @@
 // The operator's game-night recap (docs/DEPLOY.md, "Game-night recap"): what broke, what restarted, how much was
-// played, and what players said that sounds like a problem, over a window of time. The server's error lines are kept
+// played and whether tournaments started on time, over a window of time. It reads no chat (issue #300). The server's error lines are kept
 // here for 30 days (ops_log) as well as in Fly's log, which forgets them within days. Read-only: the route takes the
 // admin key or the read-only report key, and changes nothing.
 
@@ -16,19 +16,10 @@ export const OPS_KEEP_DAYS = 30;
 export const RECAP_MAX_HOURS = 7 * 24;
 /** Longest line kept. */
 export const OPS_MESSAGE_MAX = 500;
-/** Most chat lines one recap returns. */
-const CHAT_MAX = 200;
 /** Lines one server start may write per hour, so a fault looping in a hot path can't fill the disk. */
 const OPS_PER_HOUR = 2_000;
 /** A restart counts as clean when the server said it was stopping at most this long before it started again. */
 const CLEAN_GAP_MS = 15 * 60_000;
-
-/** Words that make a chat line worth a look: problems with the site, not poker talk. Kept loose on purpose. */
-const PROBLEM_WORDS =
-  /\b(bug\w*|glitch\w*|froze|frozen|freez\w*|lag\w*|stuck|broke\w*|crash\w*|errors?|disconnect\w*|kicked|refresh\w*|reload\w*|wrong|weird|not working|doesn'?t work|didn'?t work|won'?t (load|let|work)|can'?t (see|click|join|sit|bet|act|hear)|timer|timed? out|missing|disappear\w*|vanish\w*|blank|white screen|spinning|loading|site|app)\b/i;
-
-/** Whether a chat line sounds like someone reporting a problem with the site. */
-export const soundsLikeAProblem = (text: string) => PROBLEM_WORDS.test(text);
 
 /**
  * Table, tournament and hand ids are their invite links: a server line names them bare ("saving table Ab3_x9KqLm
@@ -121,13 +112,6 @@ export interface Recap {
     didNotStart: boolean;
     finishedAt: string | null;
   }[];
-  /** Chat lines (tables and tournament lobbies) that sound like problem reports, oldest first, without names. */
-  chat: {
-    at: string;
-    where: 'cash table' | 'tournament table' | 'tournament lobby';
-    text: string;
-  }[];
-  chatLinesRead: number;
 }
 
 const iso = (v: unknown) => new Date(v as string | number | Date).toISOString();
@@ -137,7 +121,7 @@ const num = (v: unknown) => Number(v ?? 0);
 export async function buildRecap(db: Db, from: Date, to: Date): Promise<Recap> {
   const fromMs = from.getTime();
   const toMs = to.getTime();
-  const [boots, stops, errors, hands, tourneys, tableChat, lobbyChat] = await Promise.all([
+  const [boots, stops, errors, hands, tourneys] = await Promise.all([
     queryRows<{ at: string; data: { commit?: string | null } }>(
       db,
       // From a little before the window: a stop only counts for the first start after it.
@@ -164,15 +148,6 @@ export async function buildRecap(db: Db, from: Date, to: Date): Promise<Recap> {
       db,
       // Open ones too: a scheduled tournament that never started may not have been saved for days.
       sql`select status, state from tournaments where updated_at >= ${from} or status in ('registering', 'seating')`,
-    ),
-    queryRows<{ at: string; mode: string; item: { text?: unknown } }>(
-      db,
-      sql`select l.at, t.mode, l.item from table_log l join tables t on t.id = l.table_id
-          where l.kind = 'chat' and l.at >= ${from} and l.at < ${to} order by l.n`,
-    ),
-    queryRows<{ at: string; item: { kind?: unknown; text?: unknown } }>(
-      db,
-      sql`select at, item from tournament_log where at >= ${from} and at < ${to} and item->>'kind' = 'chat' order by n`,
     ),
   ]);
 
@@ -223,19 +198,6 @@ export async function buildRecap(db: Db, from: Date, to: Date): Promise<Recap> {
   }
   tournaments.sort((a, b) => (a.scheduledFor ?? a.startedAt ?? '').localeCompare(b.scheduledFor ?? b.startedAt ?? ''));
 
-  const lines: Recap['chat'] = [];
-  const keep = (at: unknown, where: Recap['chat'][number]['where'], text: unknown) => {
-    if (typeof text !== 'string' || !soundsLikeAProblem(text)) return;
-    lines.push({
-      at: iso(at),
-      where,
-      text: oneLine(withoutLinks(text)).slice(0, 300),
-    });
-  };
-  for (const c of tableChat) keep(c.at, c.mode === 'tournament' ? 'tournament table' : 'cash table', c.item?.text);
-  for (const c of lobbyChat) keep(c.at, 'tournament lobby', c.item?.text);
-  lines.sort((a, b) => a.at.localeCompare(b.at));
-
   return {
     from: from.toISOString(),
     to: to.toISOString(),
@@ -250,8 +212,6 @@ export async function buildRecap(db: Db, from: Date, to: Date): Promise<Recap> {
     })),
     activity,
     tournaments,
-    chat: lines.slice(-CHAT_MAX),
-    chatLinesRead: tableChat.length + lobbyChat.length,
   };
 }
 

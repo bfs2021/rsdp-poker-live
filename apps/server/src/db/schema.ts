@@ -294,8 +294,7 @@ export const tableLog = pgTable(
     /** The rest of a TableLogEntry or ChatMessage (runtime/types.ts), without its time. */
     item: jsonb('item').$type<unknown>().notNull(),
   },
-  // at: the game-night recap reads a night's chat.
-  (t) => [index('table_log_table_idx').on(t.tableId, t.n), index('table_log_at_idx').on(t.at)],
+  (t) => [index('table_log_table_idx').on(t.tableId, t.n)],
 );
 
 // ---------------------------------------------------------------- tournaments
@@ -336,7 +335,7 @@ export const tournamentLog = pgTable(
     /** A LobbyItem from @rsdp/tournament, without its id and time. */
     item: jsonb('item').$type<unknown>().notNull(),
   },
-  (t) => [index('tournament_log_tournament_idx').on(t.tournamentId, t.n), index('tournament_log_at_idx').on(t.at)],
+  (t) => [index('tournament_log_tournament_idx').on(t.tournamentId, t.n)],
 );
 
 // ---------------------------------------------------------------- jobs

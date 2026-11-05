@@ -1,5 +1,5 @@
 {
-  "id": "00de983c-0fcd-453a-8f21-16055cfe8b3c",
+  "id": "468ad0e4-f0d3-48d5-8d84-86302dc9ca81",
   "prevId": "87b56b0a-d891-4742-8e1c-a0ffc026642b",
   "version": "7",
   "dialect": "postgresql",
@@ -1732,21 +1732,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "table_log_at_idx": {
-          "name": "table_log_at_idx",
-          "columns": [
-            {
-              "expression": "at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -2028,21 +2013,6 @@
             },
             {
               "expression": "n",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tournament_log_at_idx": {
-          "name": "tournament_log_at_idx",
-          "columns": [
-            {
-              "expression": "at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
