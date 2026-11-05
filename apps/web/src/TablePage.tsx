@@ -28,6 +28,7 @@ import { SettingsDialog } from './components/SettingsDialog';
 import { RulesDialog } from './components/RulesDialog';
 import { PeopleDialog } from './components/PeopleDialog';
 import { LookDialog } from './components/LookDialog';
+import { FeedbackDialog } from './components/FeedbackDialog';
 import { hasKeyboard, ShortcutsDialog } from './components/Shortcuts';
 import { Dock } from './components/table/Dock';
 import { useRunoutReveal } from './runout';
@@ -112,7 +113,7 @@ function useTableEffects(view: TableView | null, skew: number, preQueued: { curr
 
 const HURRY_MS = 5000;
 
-type Dialog = { kind: 'seat'; seat: number; waitlist?: boolean } | { kind: 'player'; seat: SeatView } | { kind: 'add-bot'; seat: number } | { kind: 'rebuy' } | { kind: 'settings' } | { kind: 'rules' } | { kind: 'people' } | { kind: 'look' } | { kind: 'keys' } | null;
+type Dialog = { kind: 'seat'; seat: number; waitlist?: boolean } | { kind: 'player'; seat: SeatView } | { kind: 'add-bot'; seat: number } | { kind: 'rebuy' } | { kind: 'settings' } | { kind: 'rules' } | { kind: 'people' } | { kind: 'look' } | { kind: 'keys' } | { kind: 'feedback' } | null;
 
 /** How long the keyboard tip stays up if nobody presses Got it. */
 const KEYS_TIP_MS = 20_000;
@@ -490,6 +491,7 @@ export function TablePage({ tableId }: { tableId: string }) {
                 { label: 'How to play', onClick: () => setDialog({ kind: 'rules' }) },
                 { label: 'Keyboard shortcuts', hint: <kbd>?</kbd>, onClick: () => setDialog({ kind: 'keys' }) },
                 { label: 'Look, sound and me', onClick: () => setDialog({ kind: 'look' }) },
+                { label: 'Send feedback', hint: '✉️', onClick: () => setDialog({ kind: 'feedback' }) },
                 {
                   label: `Sound: ${VOLUME_NAME[volume].replace(/^Sound /, '')}`,
                   hint: volume === 0 ? '🔇' : volume < 0.5 ? '🔈' : volume < 1 ? '🔉' : '🔊',
@@ -687,6 +689,14 @@ export function TablePage({ tableId }: { tableId: string }) {
             >
               🎨 Look, sound and me
             </button>
+            <button
+              onClick={() => {
+                close();
+                setDialog({ kind: 'feedback' });
+              }}
+            >
+              ✉️ Send feedback
+            </button>
             {volumeButton}
           </div>
           {seatOptions}
@@ -735,6 +745,7 @@ export function TablePage({ tableId }: { tableId: string }) {
       {dialog?.kind === 'people' && <PeopleDialog view={view} fmt={fmt} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'look' && <LookDialog view={view} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'keys' && <ShortcutsDialog onClose={() => setDialog(null)} />}
+      {dialog?.kind === 'feedback' && <FeedbackDialog portrait={portrait} onClose={() => setDialog(null)} />}
     </div>
   );
 }

@@ -26,6 +26,7 @@ import { tablePreview, tournamentPreview, withPreview } from './preview';
 import { LobbyLog, memoryLobbyStore, type LobbyStore } from './tournament/lobby';
 import { memorySharedHands, type SharedHandStore } from './shared';
 import { memorySuggestions, suggestionRoutes, type SuggestionStore } from './suggestions';
+import { cleanFeedback, FEEDBACK_ADDRESS_BURST, FEEDBACK_BURST, FEEDBACK_SITE_PER_HOUR, FEEDBACK_WINDOW_MS, feedbackRoutes, isFeedbackKind, memoryFeedback, type FeedbackStore } from './feedback';
 import { newId } from './db/ids';
 import { adminGate, adminTries, limiter, sweepLimiters } from './admin';
 import { accountRoutes, type AccountHooks } from './accounts';
@@ -170,6 +171,8 @@ export interface AppDeps {
   lobby?: LobbyStore;
   shared?: SharedHandStore;
   suggestions?: SuggestionStore;
+  /** Feedback sent from tables (feedback.ts). */
+  feedback?: FeedbackStore;
   /** The database that keeps accounts. Without it, sign-up and sign-in answer that accounts are not available. */
   accounts?: Db | null;
   /** Sign in with Google; off when null (production reads GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET). */
@@ -452,6 +455,11 @@ export function createApp(deps: AppDeps = {}) {
   const canReadReports = adminGate([adminKey, deps.reportKey ?? process.env.REPORT_KEY], () => clock.now(), keyTries);
   recapRoutes(app, { canRead: canReadReports, db: deps.accounts, now: () => clock.now(), log });
   suggestionRoutes(app, deps.suggestions ?? memorySuggestions(), { isAdmin, now: () => clock.now(), log, onAdmin: (action, id) => audit.admin(action, id) });
+  const feedback = deps.feedback ?? memoryFeedback(() => clock.now());
+  feedbackRoutes(app, feedback, { canRead: isAdmin, isAdmin, log });
+  const feedbackPerPlayer = limiter(FEEDBACK_BURST, FEEDBACK_WINDOW_MS, () => clock.now());
+  const feedbackSite = limiter(FEEDBACK_SITE_PER_HOUR, 60 * 60_000, () => clock.now());
+  const feedbackAddress = limiter(FEEDBACK_ADDRESS_BURST, FEEDBACK_WINDOW_MS, () => clock.now());
   const accountHooks: AccountHooks = {
     signedIn: (playerId) => avatars.delete(playerId),
     deleted: (playerIds) => {
@@ -1553,6 +1561,39 @@ export function createApp(deps: AppDeps = {}) {
           if (recent.length >= CHAT_BURST) throw new ActionError('slow down a little');
           rt.chat(me, String(input?.text ?? ''));
           chatTimes.set(me, [...recent, now]);
+        },
+        log,
+      ),
+    );
+    on('feedback:send', (input, ack) =>
+      guarded(
+        ack,
+        async () => {
+          const rt = current();
+          const kind = input?.kind;
+          if (!isFeedbackKind(kind)) throw new ActionError('pick what kind of feedback it is');
+          const text = cleanFeedback(input?.text);
+          if (text === null) throw new ActionError(typeof input?.text === 'string' && input.text.length > 1000 ? 'keep it under 1000 characters' : 'write something first');
+          const address = socketAddress(socket);
+          if (!feedbackSite('all', false) || !feedbackAddress(address, false) || !feedbackPerPlayer(me)) throw new ActionError('thanks! that is a lot of feedback at once; try again in a few minutes');
+          feedbackSite('all');
+          feedbackAddress(address);
+          const { state } = rt;
+          const seat = rt.seatOf(me);
+          await feedback.create({
+            playerId: me,
+            name: seat?.name || socket.data.session.displayName || 'Guest',
+            kind,
+            text,
+            tableId: state.id,
+            tableName: state.settings.table.name,
+            mode: rt.isTournament ? 'tournament' : 'cash',
+            game: state.hand?.input.game.id ?? state.settings.game.gameId,
+            handNumber: state.handNumber,
+            seated: !!seat,
+            screen: input?.screen === 'phone' || input?.screen === 'desktop' ? input.screen : '',
+            commit: build.commit?.slice(0, 12) ?? '',
+          });
         },
         log,
       ),

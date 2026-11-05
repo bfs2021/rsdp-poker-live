@@ -25,6 +25,7 @@ describe('createDb', () => {
       'accounts',
       'audit_log',
       'chip_movements',
+      'feedback',
       'hands',
       'hidden_tables',
       'jobs',

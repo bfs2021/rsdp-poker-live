@@ -81,8 +81,10 @@ export function opsRecorder(db: Db | null | undefined, now: () => number): OpsRe
 export interface Recap {
   from: string;
   to: string;
-  /** No hand was dealt in the window. */
+  /** No hand was dealt and no feedback was sent in the window. */
   quiet: boolean;
+  /** How many messages players sent with Send feedback, by kind. Only counts: John reads the words on the admin page. */
+  feedback: { problem: number; idea: number; other: number };
   restarts: { at: string; commit: string | null; clean: boolean }[];
   /** Grouped by message, most frequent first (at most 200). Lines past the hourly cap were never kept. */
   errors: {
@@ -121,7 +123,7 @@ const num = (v: unknown) => Number(v ?? 0);
 export async function buildRecap(db: Db, from: Date, to: Date): Promise<Recap> {
   const fromMs = from.getTime();
   const toMs = to.getTime();
-  const [boots, stops, errors, hands, tourneys] = await Promise.all([
+  const [boots, stops, errors, hands, tourneys, sent] = await Promise.all([
     queryRows<{ at: string; data: { commit?: string | null } }>(
       db,
       // From a little before the window: a stop only counts for the first start after it.
@@ -148,6 +150,11 @@ export async function buildRecap(db: Db, from: Date, to: Date): Promise<Recap> {
       db,
       // Open ones too: a scheduled tournament that never started may not have been saved for days.
       sql`select status, state from tournaments where updated_at >= ${from} or status in ('registering', 'seating')`,
+    ),
+    // Counts only: what players wrote is for John's eyes (/privacy), read on the admin page.
+    queryRows<{ kind: string; count: string }>(
+      db,
+      sql`select kind, count(*) as count from feedback where created_at >= ${from} and created_at < ${to} group by kind`,
     ),
   ]);
 
@@ -201,7 +208,12 @@ export async function buildRecap(db: Db, from: Date, to: Date): Promise<Recap> {
   return {
     from: from.toISOString(),
     to: to.toISOString(),
-    quiet: activity.hands === 0,
+    quiet: activity.hands === 0 && sent.length === 0,
+    feedback: {
+      problem: num(sent.find((f) => f.kind === 'problem')?.count),
+      idea: num(sent.find((f) => f.kind === 'idea')?.count),
+      other: num(sent.find((f) => f.kind === 'other')?.count),
+    },
     restarts,
     errors: errors.map((e) => ({
       kind: e.kind,

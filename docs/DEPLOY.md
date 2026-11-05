@@ -24,7 +24,7 @@ What to do when something goes wrong is in [RUNBOOK.md](RUNBOOK.md).
 | `PGLITE_DIR` | `/data/pglite` in the image | Where the embedded database lives when `DATABASE_URL` is unset. |
 | `NODE_ENV` | `production` in the image | Turns off development CORS. |
 | `PUBLIC_URL` | unset; `fly.toml` sets the live address | The site's public address. Link previews use it, and Google sends people back to `PUBLIC_URL` + `/auth/google/callback`. Unset, the request's own address is used. |
-| `ADMIN_KEY` | unset (a secret) | Turns on the roadmap admin page and the backup download (`/api/admin/backup`). At least 12 characters, or the server ignores it. |
+| `ADMIN_KEY` | unset (a secret) | Turns on the roadmap admin page (suggestions, table feedback, reset codes) and the backup download (`/api/admin/backup`). At least 12 characters, or the server ignores it. |
 | `REPORT_KEY` | unset (a secret) | A read-only key for the game-night recap (`/api/admin/recap`, see [Game-night recap](#game-night-recap)). It opens nothing else. At least 12 characters, or the server ignores it. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | unset (secrets) | Sign in with Google is on only when both are set. |
 | `BUILD_COMMIT` | set when the image is built | The commit the image came from. `deploy.yml` passes it as a build argument, and `/api/version` reports it. |
@@ -113,12 +113,13 @@ If the volume is gone, deploy first so a new one exists. Restoring takes the sit
 
 ## Game-night recap
 
-The morning after a night with games, a scheduled Claude task in John's project sends him a short recap: anything that could have affected a real game first, then minor things. It reads no chat (whether the operator may read chat is issue #300); players' reports come from the table feedback button. It reads `GET /api/admin/recap` (header `X-Admin-Key` with `REPORT_KEY` or `ADMIN_KEY`; `?hours=24` by default, or `?from=&to=` as ISO times, at most 7 days). The answer is JSON (`apps/server/src/recap.ts`):
+The morning after a night with games, a scheduled Claude task in John's project sends him a short recap: anything that could have affected a real game first, then minor things. It reads no chat (whether the operator may read chat is issue #300), and only counts the table feedback (John reads the words on `/roadmap/admin`). It reads `GET /api/admin/recap` (header `X-Admin-Key` with `REPORT_KEY` or `ADMIN_KEY`; `?hours=24` by default, or `?from=&to=` as ISO times, at most 7 days). The answer is JSON (`apps/server/src/recap.ts`):
 
 - `restarts`: each server start, and whether it followed a clean shutdown. A start with no clean shutdown in the 15 minutes before it was a crash or a machine restart.
 - `errors`: the server's error lines and browser error reports, grouped by text, with counts. The server keeps these in the `ops_log` table for 30 days, at most 2,000 lines an hour.
 - `activity` and `tournaments`: hands and tables by kind; each tournament that was due, started or finished in the window, with its entries and how late a scheduled one dealt.
-- `quiet`: no hands were dealt, so the task sends nothing.
+- `feedback`: how many Send feedback messages came in, by kind (problem, idea, other). Counts only.
+- `quiet`: no hands were dealt and no feedback came in, so the task sends nothing.
 
 Reading it changes nothing and isn't an admin action in the public record. The scheduled task needs the live site on the cloud environment's network allowlist and `RSDP_REPORT_KEY` in that environment.
 

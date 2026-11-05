@@ -16,6 +16,7 @@ export async function resetTestDb(db: Db): Promise<void> {
     'audit_log',
     'ops_log',
     'suggestions',
+    'feedback',
     'player_notes',
     'saved_setups',
     'jobs',

@@ -31,7 +31,7 @@ describe('backups', { timeout: 30_000 }, () => {
     await fill(db);
     const { text, summary } = await backupOf(db);
     expect(summary.rows.players).toBe(2);
-    expect(Object.keys(summary.rows)).toHaveLength(23);
+    expect(Object.keys(summary.rows)).toHaveLength(24);
 
     const copy = await createTestDb();
     try {

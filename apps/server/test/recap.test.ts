@@ -106,6 +106,8 @@ describe('game-night recap', { timeout: 30_000 }, () => {
     await db.execute(
       sql`insert into tournaments (id, host_player_id, status, state, updated_at) values ('tn2', 'p1', 'registering', ${JSON.stringify(stuck)}, ${at(-5000)})`,
     );
+    await db.execute(sql`insert into feedback (created_at, player_id, name, kind, text, table_id, mode) values
+      (${at(8)}, 'p1', 'Somebody', 'problem', 'cards froze', 'cash1', 'cash'), (${at(-300)}, 'p1', 'Somebody', 'idea', 'old', 'cash1', 'cash')`);
     await db.execute(sql`insert into ops_log (at, kind, message) values
       (${at(30)}, 'server', 'saving table failed: timeout'),
       (${at(31)}, 'server', 'saving table failed: timeout'),
@@ -129,6 +131,7 @@ describe('game-night recap', { timeout: 30_000 }, () => {
         cashHands: 2,
         tournamentHands: 1,
       });
+      expect(recap.feedback).toEqual({ problem: 1, idea: 0, other: 0 });
       expect(recap.restarts.map((r) => r.clean)).toEqual([true, false, false]);
       expect(recap.errors[0]).toMatchObject({
         kind: 'server',
@@ -155,6 +158,7 @@ describe('game-night recap', { timeout: 30_000 }, () => {
       ]);
       // No chat at all (issue #300), and no names.
       expect(JSON.stringify(recap)).not.toMatch(/froze|timer is stuck|nice hand/);
+      expect(JSON.stringify(recap)).not.toContain('cards froze');
       expect(JSON.stringify(recap)).not.toContain('Somebody');
     });
   });

@@ -496,6 +496,45 @@ export const suggestions = pgTable(
   (t) => [check('suggestions_status_check', sql`${t.status} in (${oneOf(SUGGESTION_STATUSES)})`), index('suggestions_status_idx').on(t.status)],
 );
 
+// ---------------------------------------------------------------- table feedback
+
+export const FEEDBACK_KINDS = ['problem', 'idea', 'other'] as const;
+
+/**
+ * What a player sent with Send feedback at a table. Private: only the admin
+ * reads it. Goes when the sender deletes their account, and after a year.
+ */
+export const feedback = pgTable(
+  'feedback',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    createdAt: at('created_at').notNull().defaultNow(),
+    playerId: text('player_id')
+      .notNull()
+      .references(() => players.id, { onDelete: 'cascade' }),
+    /** The name they used at the table then. */
+    name: text('name').notNull(),
+    kind: text('kind').notNull(),
+    text: text('text').notNull(),
+    tableId: text('table_id').notNull(),
+    tableName: text('table_name').notNull().default(''),
+    /** 'cash' or 'tournament'. */
+    mode: text('mode').notNull(),
+    /** The game being played (a variant id such as 'nlhe'). */
+    game: text('game').notNull().default(''),
+    /** The hand being played, or the last one dealt; 0 before the first. */
+    handNumber: integer('hand_number').notNull().default(0),
+    seated: boolean('seated').notNull().default(false),
+    /** 'phone' or 'desktop', as the page says. */
+    screen: text('screen').notNull().default(''),
+    /** The commit the server was built from, when known. */
+    commit: text('commit').notNull().default(''),
+    /** The admin has dealt with it. */
+    done: boolean('done').notNull().default(false),
+  },
+  (t) => [check('feedback_kind_check', sql`${t.kind} in (${oneOf(FEEDBACK_KINDS)})`), index('feedback_created_at_idx').on(t.createdAt)],
+);
+
 // ---------------------------------------------------------------- public record
 
 /**
