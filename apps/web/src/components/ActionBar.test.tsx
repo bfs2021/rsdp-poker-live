@@ -732,6 +732,23 @@ describe('keyboard', () => {
     expect(moves()).toEqual([expect.objectContaining({ type: 'raise', to: 300 })]);
   });
 
+  it('puts the cursor in the bet box when you type a number on your turn, with the old amount selected to be replaced (#320)', async () => {
+    renderBar(facingBet(100));
+    const ev = new KeyboardEvent('keydown', { key: '3', cancelable: true });
+    window.dispatchEvent(ev);
+    await settle();
+    expect(document.activeElement).toBe(box());
+    // The browser types the digit into the box: the shortcut must not swallow it.
+    expect(ev.defaultPrevented).toBe(false);
+    expect(moves()).toEqual([]);
+  });
+
+  it('leaves numbers alone before your turn', async () => {
+    renderBar(waitingOn(100));
+    await press('3');
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it('ticks a pre-move with its key before your turn', async () => {
     renderBar(waitingOn(100));
     await press('c');

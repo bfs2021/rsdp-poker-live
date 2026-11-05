@@ -5,11 +5,12 @@ const KEYS: [string, string][] = [
   ['K', 'Check'],
   ['C', 'Call'],
   ['R', 'Raise: jumps to the amount box (type it, then Enter). In limit games it raises.'],
+  ['0-9', 'On your turn: start typing a bet amount (then Enter)'],
   ['A', 'Call any (before your turn)'],
   ['B', 'Show amounts in chips or big blinds'],
   ['T', 'Tip on your turn (hands with only bots)'],
   ['W', 'In the replayer: why the bots played'],
-  ['Enter', 'Type in the chat (Esc to leave it)'],
+  ['Enter', 'Type in the chat. Enter again sends it and takes you back to the table (Esc leaves without sending)'],
   ['?', 'Show this list'],
 ];
 
