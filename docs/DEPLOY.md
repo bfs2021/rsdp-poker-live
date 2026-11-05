@@ -24,7 +24,7 @@ What to do when something goes wrong is in [RUNBOOK.md](RUNBOOK.md).
 | `PGLITE_DIR` | `/data/pglite` in the image | Where the embedded database lives when `DATABASE_URL` is unset. |
 | `NODE_ENV` | `production` in the image | Turns off development CORS. |
 | `PUBLIC_URL` | unset; `fly.toml` sets the live address | The site's public address. Link previews use it, and Google sends people back to `PUBLIC_URL` + `/auth/google/callback`. Unset, the request's own address is used. |
-| `ADMIN_KEY` | unset (a secret) | Turns on the roadmap admin page and the backup download (`/api/admin/backup`). At least 12 characters, or the server ignores it. |
+| `ADMIN_KEY` | unset (a secret) | Turns on the roadmap admin page (suggestions, table feedback, reset codes) and the backup download (`/api/admin/backup`). At least 12 characters, or the server ignores it. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | unset (secrets) | Sign in with Google is on only when both are set. |
 | `BUILD_COMMIT` | set when the image is built | The commit the image came from. `deploy.yml` passes it as a build argument, and `/api/version` reports it. |
 | `FLY_IMAGE_REF`, `FLY_MACHINE_ID` | set by Fly | Reported by `/api/version`. `FLY_IMAGE_REF` also goes in the public record each time the server starts, with the commit. |

@@ -29,6 +29,7 @@ export async function fill(target: Db) {
   await q(`insert into player_notes (owner_player_id, target_player_id, text, color) values ('p1', 'p2', 'bluffs\nthe river', 'red')`);
   await q(`insert into saved_setups (player_id, kind, name, json) values ('p1', 'table', 'Home game', '{"a":1}')`);
   await q(`insert into shared_hands (id, table_id, hand_number, created_by, snapshot) values ('sh-0123456789', 't1', 1, 'p1', '{"x":1}')`);
+  await q(`insert into feedback (player_id, name, kind, text, table_id, mode, hand_number, seated) values ('p2', 'Zoë', 'problem', 'The timer\njumped', 't1', 'cash', 12, true)`);
   await q(`insert into suggestions (name, title) values ('Mike', 'Bomb pots'), ('Zoë', 'Stud')`);
   await q(`insert into tournaments (id, host_player_id, status, state) values ('tn1', 'p1', 'running', '{"level":3}')`);
   await q(`insert into tournament_log (tournament_id, item_id, at, item) values ('tn1', 'i1', now(), '{"k":"bust"}'), ('tn1', 'i2', now(), '{"k":"win"}')`);

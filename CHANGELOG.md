@@ -20,8 +20,15 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 
 ## [2026.11.05.3] - 2026-11-05
 
+_Send feedback from the table_
+
+### New
+
+- **Tell John what's up, right from the game.** Spotted something wrong, or have an idea? Open the table menu (the ☰ menu on a phone) and pick Send feedback. Say what happened and send it: John gets it with the table and hand number, so he can look into it. Only John reads it; for ideas you'd like everyone to see, the suggestion box on the roadmap is still there.
+
 ### Fixed and changed
 
+- New at every table: Send feedback (in the table menu, or the ☰ menu on a phone). Tell John something is wrong, or share an idea, without leaving the game. Only John reads it.
 - Behind the scenes: small changes that can't affect a game, like wording, layout and help pages, can now go live as soon as they're ready. Anything that touches the game itself is still played through on a test copy of the site first. Nothing changes at the tables.
 
 ## [2026.11.05.2] - 2026-11-05

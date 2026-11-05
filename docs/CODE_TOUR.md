@@ -139,6 +139,12 @@ opens the connection and keeps your browser's secret.
   sends what broke to `POST /api/client-error`
   ([`clientErrors.ts`](../apps/server/src/clientErrors.ts)), which writes
   one line to the server log: the kind of page (`/t/:id`), never its link.
+- [`components/FeedbackDialog.tsx`](../apps/web/src/components/FeedbackDialog.tsx)
+  is Send feedback in the table menu. It goes over the socket
+  (`feedback:send`) to [`feedback.ts`](../apps/server/src/feedback.ts),
+  which saves it with the table and hand number in the `feedback` table.
+  It is private: only the admin reads it, on `/roadmap/admin` or from
+  `GET /api/feedback`.
 - [`src/fair.ts`](../apps/web/src/fair.ts) is your browser's half of fair
   dealing: it sends your seed for the next hand and watches that it was used.
   [`src/audit.ts`](../apps/web/src/audit.ts) checks the public record when

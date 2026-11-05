@@ -896,3 +896,6 @@ dl.shortcuts dd { margin: 0; }
   .setup-row { flex-wrap: wrap; }
   .setup-row .who { flex-basis: 100%; }
 }
+
+/* Send feedback (FeedbackDialog.tsx) */
+.feedback-form textarea { font: inherit; resize: vertical; }
