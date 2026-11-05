@@ -18,6 +18,12 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
+## [2026.11.05.2] - 2026-11-05
+
+### Fixed and changed
+
+- Tournaments: once a tournament is over, its host and players can download what was said at every table, including tables that broke during play, with "Download table chat" in the lobby's Tables tab. Before, table chat was kept but couldn't be read once the tables closed.
+
 ## [2026.11.05] - 2026-11-05
 
 ### Fixed and changed
@@ -553,6 +559,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.05.2]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.2
 [2026.11.05]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05
 [2026.11.02]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.02
 [2026.11.01.9]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.01.9

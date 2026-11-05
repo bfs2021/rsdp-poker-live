@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { apply, createTournament, defaultSettings, type TournamentState } from '@rsdp/tournament';
-import { resultsCsv, resultsFileName } from './results';
+import { resultsCsv, resultsFileName, tableChatText } from './results';
 
 const T0 = Date.parse('2026-10-30T02:00:00Z');
 
@@ -23,5 +23,26 @@ describe('results CSV', () => {
 
   it('names the file after the tournament and its day', () => {
     expect(resultsFileName(field(['Ana', 'Bo']))).toBe('Friday Night 2026-10-30.csv');
+  });
+});
+
+describe('table chat download', () => {
+  it('lists each table in turn, chat and log in time order, chat marked', () => {
+    const at = (m: number) => T0 + m * 60_000;
+    const text = tableChatText(
+      field(['Ana', 'Bo']),
+      [
+        { table: 1, log: [{ at: at(0), text: 'Ana sat down' }], chat: [{ at: at(2), playerId: 'p0', name: 'Ana', text: 'gl all' }] },
+        { table: 3, log: [], chat: [{ at: at(1), playerId: 'p1', name: 'Bo', text: 'blinds felt fast' }] },
+      ],
+      (t) => `+${(t - T0) / 60_000}m`,
+    );
+    expect(text).toBe(
+      ['Friday/Night: table chat and log (2 tables, 2 chat messages)', '', '=== Table 1 ===', '+0m  Ana sat down', '+2m  [chat] Ana: gl all', '', '=== Table 3 ===', '+1m  [chat] Bo: blinds felt fast', '', ''].join('\n'),
+    );
+  });
+
+  it('says so when nothing was said', () => {
+    expect(tableChatText(field(['Ana', 'Bo']), [])).toContain('Nothing was said or logged at the tables.');
   });
 });
