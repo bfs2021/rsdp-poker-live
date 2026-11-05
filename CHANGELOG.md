@@ -29,6 +29,7 @@ _Send feedback from the table_
 ### Fixed and changed
 
 - New at every table: Send feedback (in the table menu, or the ☰ menu on a phone). Tell John something is wrong, or share an idea, without leaving the game. Only John reads it.
+- Behind the scenes: small changes that can't affect a game, like wording, layout and help pages, can now go live as soon as they're ready. Anything that touches the game itself is still played through on a test copy of the site first. Nothing changes at the tables.
 
 ## [2026.11.05.2] - 2026-11-05
 

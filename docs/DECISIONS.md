@@ -34,6 +34,8 @@ How this file works:
 | [D21](#d21-look-and-feel) | Look and feel | 2026-10-25 to 2026-10-29 | John |
 | [D22](#d22-how-work-is-tracked-and-checked) | How work is tracked and checked | 2026-11-01 | John asked; details Claude |
 | [D23](#d23-the-code-is-under-the-mit-license) | The code is under the MIT license | 2026-11-01 | John |
+| [D24](#d24-claude-sessions-may-read-the-live-site) | Claude sessions may read the live site | 2026-11-05 | John |
+| [D25](#d25-full-and-light-changes) | Full and light changes | 2026-11-05 | John; the lists Claude |
 
 ---
 
@@ -77,8 +79,8 @@ How this file works:
   - **2026-10-25, 21:12 UTC, on a choice card.** He picked "Yes, merge to develop": merge each fix into `develop` once CI is green and a review passes, and report afterwards. Merging into `main` still needed his OK then. (Minutes later he also wrote: "I'll leave all of this up to your discretion. Don't confuse my enthusiasm for impatience.")
   - **2026-10-26, 05:13 UTC.** "Feel free to push things as they are done without asking me." From then on, finished work may go live without asking him each time.
 - **Decision:** feature branch → `develop` → `main`, and a merge into `main` deploys. A review pass means one we run ourselves, recorded on the pull request (D22).
-- **Claude's own conditions** on the standing OK, not John's words: test each release on a copy first, prefer quiet times, and tell John after each release. Asking first about anything that costs money or changes the product is John's own rule (D04, D08).
-- **Open question:** on 2026-10-26 at 23:00 UTC John wrote "go ahead and push updates now. Don't worry about active tables". It's unclear whether that applies to every release or only to that one (PR #114 reads it as that one). It's been asked of John (#236). Until he answers, prefer quiet times.
+- **Claude's own conditions** on the standing OK, not John's words: test each release on a copy first, prefer quiet times, and tell John after each release. Asking first about anything that costs money or changes the product is John's own rule (D04, D08). **Partly replaced by D25** (2026-11-05): a release of only light changes skips the copy test and the wait for a quiet time.
+- **Settled 2026-11-05 by [D25](#d25-full-and-light-changes) ([#236](https://github.com/jcolter11374/rsdp-poker-live/issues/236)):** John approved Claude's two-path proposal, which keeps quiet times for releases with any full change and lets releases of only light changes go out whenever they're ready. (The question was whether John's "go ahead and push updates now. Don't worry about active tables" of 2026-10-26, 23:00 UTC, applied to every release or only to that one. He didn't say; the new rule replaces it.)
 - **Where:** [DEPLOY.md](DEPLOY.md#releasing), [CODE_TOUR.md](CODE_TOUR.md).
 
 ## D06. What's new and the changelog
@@ -90,7 +92,7 @@ How this file works:
 ## D07. Never test against the live site
 
 - **Decided:** 2026-10-25, by John, after test data reached the live site (the "Smoke Cup", PR #35).
-- **Decision:** never run bots, test tables or test games against the live site; test on a copy. Only read-only checks touch the live site, from GitHub Actions. Removing something from the live site needs John's OK. Practice bots are only ever seated by hand by a player or host: seats are never filled with bots automatically, and tournaments refuse bots.
+- **Decision:** never run bots, test tables or test games against the live site; test on a copy. Only read-only checks touch the live site, from GitHub Actions. **Replaced in part by [D24](#d24-claude-sessions-may-read-the-live-site)** (sessions may now also read it directly). Removing something from the live site needs John's OK. Practice bots are only ever seated by hand by a player or host: seats are never filled with bots automatically, and tournaments refuse bots.
 - **Where:** `e2e/smoke.mjs` (refuses the live address), `deploy.yml` (read-only checks), `apps/server/src/runtime/table.ts` (no bots in tournaments), [RUNBOOK.md](RUNBOOK.md#incident-log).
 
 ## D08. Hosting: one always-on machine on Fly.io
@@ -249,3 +251,22 @@ How this file works:
 - **Decided:** 2026-11-01, by John, choosing MIT over AGPL-3.0 or keeping all rights reserved (issue #202).
 - **Decision:** the code is open source under the MIT license. Anyone may use, copy, change and run their own copy, as long as the copyright notice and license go with it. Before this the repository had no license, so people could read the code but had no clear permission to copy it, though the fairness page encourages keeping a copy.
 - **Where:** [LICENSE](../LICENSE), the `license` field in every package.json, README, [CREDITS.md](CREDITS.md).
+
+## D24. Claude sessions may read the live site
+
+- **Decided:** 2026-11-05, by John, saying yes to letting Claude's sessions read the live site (issue #298). Replaces the "from GitHub Actions" part of D07; the rest of D07 stands.
+- **Decision:** Claude's cloud environment allows one extra host, `rsdp-poker-live.fly.dev`, so a session can read the live site directly to check a release or read feedback. Only reads: GET requests to public pages and read-only endpoints such as `/api/version` and `/api/health`. Still never bots, test tables, test tournaments, sign-ups or anything else that writes (D07). Fly itself (`fly.io`, `flyctl`, deploys, secrets) is not on the list and still goes only through `main`'s workflows.
+- **Why:** routing every read through a workflow made release checks and reading feedback slow.
+- **Where:** the cloud environment's network settings (John's Claude account, not this repo), [CLAUDE.md](../CLAUDE.md), [RUNBOOK.md](RUNBOOK.md).
+
+## D25. Full and light changes
+
+- **Decided:** 2026-11-05, 16:10 UTC, by John, on Claude's proposal; the details are Claude's. Claude set out what each shortcut would risk: skipping the review pass lets more bugs reach players, skipping the play-test means problems show up in a real game instead, and releasing at any time means a game can pause for a few seconds while the server restarts. The checks on GitHub can't be skipped. Claude recommended keeping the full process for anything that touches the game itself, and for low-risk fixes like wording, layout or download buttons, "a lighter review plus releasing as soon as it's ready". John: "If you think it is reasonable yes. If you think it is reckless no". Claude judged it reasonable: the checks on GitHub still run on every change, and every change that could affect a game keeps every step.
+- **Decision:** a change takes one of two paths.
+  - **Full**, for anything that touches the game or players' data: dealing, chips and pots, timers, tournaments, hidden cards, privacy, fairness and the public record, sign-in, stored data, how the site runs, and the safety checks themselves. CI, a separate review pass, a play-test on a copy, and a release at a quiet time.
+  - **Light**, for changes that can't affect a game, who is allowed to see what, or what's stored: displayed wording, layout, download buttons that offer only what people can already download, docs. CI and a shorter review pass, and live as soon as it's ready.
+  - When unsure, full. A release takes the path of its riskiest change.
+- **Claude's calls**, not John's words: the exact lists and what a light review checks (in CONTRIBUTING.md), and dropping the copy test for light-only releases. The copy test was Claude's own condition in D05, and the proposal had already told John that skipping it means problems turn up in a real game.
+- **Still applies:** D21 (John sees before-and-after pictures of a change to the table's look before it goes live) and D14 (the no-HUD lock on downloads).
+- **Replaces** part of D05's conditions (the copy test and quiet times, for light changes), and settles D05's open question (#236).
+- **Where:** [CONTRIBUTING.md](../CONTRIBUTING.md#full-or-light-how-much-checking-a-change-needs), [DEPLOY.md](DEPLOY.md#releasing), [CLAUDE.md](../CLAUDE.md), the [pull request template](../.github/pull_request_template.md).
