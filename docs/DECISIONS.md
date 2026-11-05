@@ -277,7 +277,7 @@ How this file works:
 - **Decided:** 2026-11-05. John asked for a short recap after each game night (errors, player feedback, anything odd) so he never has to go looking (issue #297). The design is Claude's and reversible.
 - **Decision:**
   - The server keeps its own error lines (and browser error reports) for 30 days in its database, and a line at each clean shutdown, so a restart without one reads as a crash. Fly's log forgets within days.
-  - `GET /api/admin/recap` returns errors, restarts, activity counts, tournaments (late or never started) and how many feedback messages came in (not their words, which /privacy says only John reads) for a window of time. No chat: whether the operator may read table chat is John's call (issue #300). It takes a separate read-only key (`REPORT_KEY`), so the scheduled recap never holds the key that can delete tables or download the database.
+  - `GET /api/admin/recap` returns errors, restarts, activity counts, tournaments (late or never started) and what players sent with Send feedback, without names or tables (John chose to include the words, 2026-11-05) for a window of time. No chat: whether the operator may read table chat is John's call (issue #300). It takes a separate read-only key (`REPORT_KEY`), so the scheduled recap never holds the key that can delete tables or download the database.
   - A scheduled Claude task reads it the morning after a night with games and writes John a summary in his private Claude project, split into "could affect a real game" and "minor". Quiet nights send nothing.
 - **Not done, on purpose:**
   - An outside error-tracking service (D22 still stands). The recap sends Anthropic far less: no chat, names, addresses, cards or chips. [PRIVACY.md](PRIVACY.md) says so.

@@ -55,7 +55,7 @@ public, so don't put anything private in one, just ask him to get in touch).
 | Tables you hid, practice games you deleted, when you reset your practice graph | You | Only you |
 | Shared hand links | You, when you press Share on a hand | Anyone with the link, until you delete it or your account |
 | Roadmap suggestions | You, with the name you type | Everyone, on the [roadmap](/roadmap) |
-| Feedback you send with **Send feedback** at a table, with the name you used there, the table, its name, cash or tournament, the game, the hand number, whether you were seated, phone or desktop, and the site's version | You | Only John (with the admin key), so he can look into it |
+| Feedback you send with **Send feedback** at a table, with the name you used there, the table, its name, cash or tournament, the game, the hand number, whether you were seated, phone or desktop, and the site's version | You | Only John (with the admin key), so he can look into it, and Claude when it writes John's game-night recap (without your name, the table or its name; see below) |
 
 ## Why the site keeps it
 
@@ -135,9 +135,11 @@ for how it works.
   hears about problems without going looking. The recap holds: the server's
   error lines, when the server restarted, how many tables, hands and
   tournaments there were (with each tournament's name, entry count and start
-  time), and how many messages were sent with Send feedback (not what they
-  say). Error lines go with table links and ids removed. It holds no chat,
-  feedback text, names, IP addresses, accounts, cards or chip counts.
+  time), and what was sent with Send feedback (its words, kind, game, hand
+  number, cash or tournament, seated or not, phone or desktop, but not your
+  name, the table or its name). Error lines and feedback go with table links
+  and ids removed. It holds no chat, names, IP addresses, accounts, cards or
+  chip counts.
   Claude writes John a plain-English summary of it in John's private
   workspace.
 - **GitHub** holds the code, the regular copy of the public record and the

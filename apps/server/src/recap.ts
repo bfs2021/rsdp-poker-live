@@ -83,8 +83,8 @@ export interface Recap {
   to: string;
   /** No hand was dealt and no feedback was sent in the window. */
   quiet: boolean;
-  /** How many messages players sent with Send feedback, by kind. Only counts: John reads the words on the admin page. */
-  feedback: { problem: number; idea: number; other: number };
+  /** What players sent with Send feedback, oldest first (at most 200): no name, table or table name. */
+  feedback: { at: string; kind: string; text: string; where: 'cash' | 'tournament'; game: string; hand: number; seated: boolean; screen: string }[];
   restarts: { at: string; commit: string | null; clean: boolean }[];
   /** Grouped by message, most frequent first (at most 200). Lines past the hourly cap were never kept. */
   errors: {
@@ -151,10 +151,11 @@ export async function buildRecap(db: Db, from: Date, to: Date): Promise<Recap> {
       // Open ones too: a scheduled tournament that never started may not have been saved for days.
       sql`select status, state from tournaments where updated_at >= ${from} or status in ('registering', 'seating')`,
     ),
-    // Counts only: what players wrote is for John's eyes (/privacy), read on the admin page.
-    queryRows<{ kind: string; count: string }>(
+    // What players sent with Send feedback, without their names or which table (John decided 2026-11-05, #297).
+    queryRows<{ created_at: string; kind: string; text: string; mode: string; game: string; hand_number: number; seated: boolean; screen: string }>(
       db,
-      sql`select kind, count(*) as count from feedback where created_at >= ${from} and created_at < ${to} group by kind`,
+      sql`select created_at, kind, text, mode, game, hand_number, seated, screen from feedback
+          where created_at >= ${from} and created_at < ${to} order by id limit 200`,
     ),
   ]);
 
@@ -209,11 +210,16 @@ export async function buildRecap(db: Db, from: Date, to: Date): Promise<Recap> {
     from: from.toISOString(),
     to: to.toISOString(),
     quiet: activity.hands === 0 && sent.length === 0,
-    feedback: {
-      problem: num(sent.find((f) => f.kind === 'problem')?.count),
-      idea: num(sent.find((f) => f.kind === 'idea')?.count),
-      other: num(sent.find((f) => f.kind === 'other')?.count),
-    },
+    feedback: sent.map((f) => ({
+      at: iso(f.created_at),
+      kind: f.kind,
+      text: withoutIds(withoutLinks(f.text)).slice(0, 1000),
+      where: f.mode === 'tournament' ? 'tournament' : 'cash',
+      game: f.game,
+      hand: Number(f.hand_number),
+      seated: !!f.seated,
+      screen: f.screen,
+    })),
     restarts,
     errors: errors.map((e) => ({
       kind: e.kind,

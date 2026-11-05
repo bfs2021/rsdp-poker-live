@@ -131,7 +131,9 @@ describe('game-night recap', { timeout: 30_000 }, () => {
         cashHands: 2,
         tournamentHands: 1,
       });
-      expect(recap.feedback).toEqual({ problem: 1, idea: 0, other: 0 });
+      expect(recap.feedback).toEqual([
+        { at: at(8).toISOString(), kind: 'problem', text: 'cards froze', where: 'cash', game: '', hand: 0, seated: false, screen: '' },
+      ]);
       expect(recap.restarts.map((r) => r.clean)).toEqual([true, false, false]);
       expect(recap.errors[0]).toMatchObject({
         kind: 'server',
@@ -157,8 +159,7 @@ describe('game-night recap', { timeout: 30_000 }, () => {
         }),
       ]);
       // No chat at all (issue #300), and no names.
-      expect(JSON.stringify(recap)).not.toMatch(/froze|timer is stuck|nice hand/);
-      expect(JSON.stringify(recap)).not.toContain('cards froze');
+      expect(JSON.stringify(recap)).not.toMatch(/screen froze|timer is stuck|nice hand/);
       expect(JSON.stringify(recap)).not.toContain('Somebody');
     });
   });
