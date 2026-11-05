@@ -5,7 +5,7 @@ Plain steps for the likely emergencies, in the order to try them. Background on 
 Who can do what:
 
 - **John** owns the GitHub, Fly.io and Google accounts. Only he can open the Fly dashboard, change repository settings or secrets, or use his backup key.
-- **Claude sessions** can read GitHub, open pull requests and run workflows from the Actions tab. They can't reach the live site or Fly directly, so anything on the machine itself goes through a workflow or through John.
+- **Claude sessions** can read GitHub, open pull requests and run workflows from the Actions tab. They can read the live site directly (read-only, D24 in [DECISIONS.md](DECISIONS.md)), but can't reach Fly, so anything on the machine itself goes through a workflow or through John.
 
 To see what's live: `https://rsdp-poker-live.fly.dev/api/version` reports the commit the server runs, and the newest green Deploy run on `main` shows when it went out. The newest [release](https://github.com/jcolter11374/rsdp-poker-live/releases) normally names the same commit.
 
