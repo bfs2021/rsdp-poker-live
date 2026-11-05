@@ -1,6 +1,13 @@
 {
   "releases": [
     {
+      "id": "2026.11.05.2",
+      "date": "2026-11-05",
+      "fixes": [
+        "Tournaments: once a tournament is over, its host and players can download what was said at every table, including tables that broke during play, with \"Download table chat\" in the lobby's Tables tab. Before, table chat was kept but couldn't be read once the tables closed."
+      ]
+    },
+    {
       "id": "2026.11.05",
       "date": "2026-11-05",
       "fixes": [

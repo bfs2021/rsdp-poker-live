@@ -9,7 +9,7 @@ import type { Rng } from '@rsdp/engine';
 import { ActionError, type PlayerId } from '@rsdp/engine/core';
 import { amountText, applyAtNextHand, defaultSettings, mergePatches, newCashSettings, parseSettings, SettingsError, spectatorsSeeCards } from '@rsdp/engine/settings';
 import type { Ack, BotLevel, ClientToServer, ServerToClient, TurnKey } from '@rsdp/engine/wire';
-import { isArchived, LOBBY_CHAT_MAX, logEvent, namesIn, type LobbyItem, type TournamentClientToServer, type TournamentServerToClient } from '@rsdp/tournament';
+import { isArchived, isTournamentStaff, LOBBY_CHAT_MAX, tableAddress, logEvent, namesIn, type LobbyItem, type TournamentClientToServer, type TournamentServerToClient, type TournamentTableChat } from '@rsdp/tournament';
 import { hashSecret, IdentityError } from './identity';
 import { realGameHand, TableRuntime } from './runtime/table';
 import { botIdsOf, systemClock, type ChatMessage, type Clock, type HandRecord, type PastHand, type RuntimeState, type TableLine, type TableLogEntry } from './runtime/types';
@@ -1707,6 +1707,41 @@ export function createApp(deps: AppDeps = {}) {
           if (now - (lastLobbyChat.get(me) ?? 0) < LOBBY_CHAT_GAP_MS) throw new ActionError('slow down a little');
           lastLobbyChat.set(me, now);
           addToLobby(id, [{ at: now, kind: 'chat', playerId: me, name, text }]);
+        },
+        log,
+      ),
+    );
+    on('tournament:tableChat', (input, ack) =>
+      guarded(
+        ack,
+        async () => {
+          const s = await tournaments.peek(String(input?.id ?? ''));
+          if (!s) throw new ActionError('tournament not found');
+          if (s.status !== 'finished' && s.status !== 'cancelled') throw new ActionError('table chat can be downloaded once the tournament is over');
+          // Its host, co-hosts and players: anyone else could only have watched.
+          if (!isTournamentStaff(s, me) && !s.entries.some((e) => e.playerId === me)) throw new ActionError('only the host and players can download the table chat');
+          const now = clock.now();
+          if (now - (socket.data.lastFullLog ?? 0) < EXPORT_GAP_MS) throw new ActionError('one download every few seconds, please');
+          socket.data.lastFullLog = now;
+          // Table n is `${id}:t${n}`: every table it opened, in order, including ones that broke during play.
+          const out: TournamentTableChat[] = [];
+          for (let n = 1; n <= s.counters.table; n++) {
+            const address = tableAddress(`${s.id}:t${n}`);
+            const saved = await store.loadLines(address);
+            // Lines still being saved, and tables that closed before every line was kept, are in the table's own state.
+            const state = tables.get(address)?.state ?? (await store.loadTable(address));
+            const logLines = withRecent(saved.log, state?.log ?? []);
+            const chat = withRecent(saved.chat, state?.chat ?? []);
+            if (!logLines.length && !chat.length) continue;
+            out.push({
+              table: n,
+              // The name players saw: tables are named by their place in the room when they open, so two can share one.
+              name: state?.settings.table.name ?? `Table ${n}`,
+              log: logLines.map((l) => ({ at: l.at, text: l.text })),
+              chat: chat.map((c) => ({ at: c.at, playerId: c.playerId, name: c.name, text: c.text })),
+            });
+          }
+          return { tables: out };
         },
         log,
       ),

@@ -20,7 +20,7 @@ export interface AnswerSocket {
  */
 export const CALL_TIMEOUT_MS = 30_000;
 /** Downloads of a whole game's hands can be big, so they get longer on a slow phone connection. */
-export const SLOW_CALLS: Record<string, number> = { 'table:export': 120_000, 'table:fullLog': 120_000 };
+export const SLOW_CALLS: Record<string, number> = { 'table:export': 120_000, 'table:fullLog': 120_000, 'tournament:tableChat': 120_000 };
 
 /** What a player sees when no answer came. */
 export const NO_ANSWER = 'No answer from the server. Check your connection, then try again.';

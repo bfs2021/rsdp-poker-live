@@ -24,7 +24,7 @@ import { PrizeList } from './PayoutEditor';
 import { StructureEditor, StructureTable } from './StructureEditor';
 import { TableRulesEditor } from './TableRules';
 import { AlertsToggle } from './TournamentAlerts';
-import { downloadResults } from './results';
+import { downloadResults, downloadTableChat } from './results';
 import { Activity, LobbyChat, useLobbyLog, useUnreadChat } from './LobbyLog';
 import { SiteHeader } from '../components/SiteHeader';
 import { initialsColor } from '../components/table/Persona';
@@ -141,7 +141,7 @@ export function TournamentLobby({ id }: { id: string }) {
         </nav>
         <section className="tn-card">
           {tab === 'players' && <Players state={state} me={session?.playerId} />}
-          {tab === 'tables' && <Tables state={state} />}
+          {tab === 'tables' && <Tables state={state} me={session?.playerId} />}
           {tab === 'chat' && <LobbyChat id={id} items={log} session={session} />}
           {tab === 'activity' && <Activity items={log} />}
           {tab === 'structure' && (
@@ -475,29 +475,68 @@ function Players({ state, me }: { state: TournamentState; me?: string }) {
   );
 }
 
-function Tables({ state }: { state: TournamentState }) {
-  if (!state.tables.length) return <p className="muted">Tables are created when the tournament starts{state.settings.start.kind === 'scheduled' ? ' (a minute before the start time)' : ''}.</p>;
+function Tables({ state, me }: { state: TournamentState; me?: string }) {
+  const over = state.status === 'finished' || state.status === 'cancelled';
+  const played = state.counters.table > 0;
+  // A closed table can't be opened again, so once it is over its chat comes from here (host, co-hosts and players).
+  const chat = over && played && (isTournamentStaff(state, me) || state.entries.some((e) => e.playerId === me)) ? <TableChatDownload state={state} /> : null;
+  if (!state.tables.length)
+    return over ? (
+      <>
+        <p className="muted">{played ? 'The tables have closed.' : 'No tables were opened.'}</p>
+        {chat}
+      </>
+    ) : (
+      <p className="muted">Tables are created when the tournament starts{state.settings.start.kind === 'scheduled' ? ' (a minute before the start time)' : ''}.</p>
+    );
   return (
-    <div className="tn-tables">
-      {state.tables.map((t, i) => {
-        const players = t.seats.map((id, seat) => ({ seat, e: id ? state.entries.find((x) => x.id === id) : undefined })).filter((x) => x.e);
-        return (
-          <div className="tn-table-card" key={t.id}>
-            <h3>
-              <a href={`/t/${tableAddress(t.id)}`}>Table {i + 1}</a> <span className="muted">· {players.length} players{t.inHand ? ' · in a hand' : ''}</span>
-            </h3>
-            <ul>
-              {players.map(({ seat, e }) => (
-                <li key={seat}>
-                  <span className="muted">{seat + 1}</span> {e!.displayName}
-                  <span className="num">{chips(e!.stack)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })}
-    </div>
+    <>
+      {chat}
+      <div className="tn-tables">
+        {state.tables.map((t, i) => {
+          const players = t.seats.map((id, seat) => ({ seat, e: id ? state.entries.find((x) => x.id === id) : undefined })).filter((x) => x.e);
+          return (
+            <div className="tn-table-card" key={t.id}>
+              <h3>
+                <a href={`/t/${tableAddress(t.id)}`}>Table {i + 1}</a> <span className="muted">· {players.length} players{t.inHand ? ' · in a hand' : ''}</span>
+              </h3>
+              <ul>
+                {players.map(({ seat, e }) => (
+                  <li key={seat}>
+                    <span className="muted">{seat + 1}</span> {e!.displayName}
+                    <span className="num">{chips(e!.stack)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function TableChatDownload({ state }: { state: TournamentState }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const get = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      downloadTableChat(state, await tournamentClient().tableChat(state.id));
+    } catch (e) {
+      setError(sentence(e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <p className="row wrap">
+      <button disabled={busy} onClick={() => void get()} title="What was said and logged at every table, including tables that broke during play">
+        {busy ? 'Getting the chat…' : 'Download table chat'}
+      </button>
+      {error && <span className="error">{error}</span>}
+    </p>
   );
 }
 
