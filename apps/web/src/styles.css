@@ -453,8 +453,18 @@ button.danger { background: #3a2323; border-color: #5a3030; }
 .pill.offline::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--bad); margin-right: 4px; vertical-align: 1px; }
 .seat .status.low-text { color: var(--bad); font-weight: 700; }
 .action-bar .fold.confirm { background: var(--bad); border-color: var(--bad); color: #fff; }
+/* All-in runouts (#308): the last card waits face down on the board with a soft glow, then turns over there. */
+.held-slot { display: flex; border-radius: 6px; animation: held-glow 1.3s ease-in-out 0.5s infinite alternate; }
+@keyframes held-glow { from { box-shadow: 0 0 0 0 rgba(255, 214, 120, 0); } to { box-shadow: 0 0 14px 2px rgba(255, 214, 120, 0.45); } }
+.turn-held { animation: flip-in 0.42s ease-out both; }
+/* A player knocked out of a tournament stays in their seat, cards up, through the result: the nameplate greys
+   a moment after it shows, and the seat fades away just before the next deal. */
+.seat.departed .nameplate { animation: depart-dim 0.8s ease 1.2s both; }
+@keyframes depart-dim { to { opacity: 0.6; filter: grayscale(0.8); } }
+.seat.departed.fading { opacity: 0; transition: opacity 0.9s ease; }
 @media (prefers-reduced-motion: reduce) {
-  .deal-hole, .deal-board, .flip-in, .bet, .chip-flight, .win-float, .seat.winner .nameplate, .seat.acting .nameplate { animation: none !important; }
+  .deal-hole, .deal-board, .flip-in, .bet, .chip-flight, .win-float, .seat.winner .nameplate, .seat.acting .nameplate, .held-slot, .turn-held { animation: none !important; }
+  .seat.departed .nameplate { animation: none; opacity: 0.6; filter: grayscale(0.8); }
   .dealer, .seat, .seat .hole { transition: none; }
   .chip-flight { display: none; }
 }

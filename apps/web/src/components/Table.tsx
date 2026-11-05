@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
+import { runoutSteps } from '@rsdp/engine/core';
 import type { SeatView, TableView } from '@rsdp/engine/wire';
 import { clock, type Fmt } from '../format';
 import { handStrength } from '../strength';
@@ -167,8 +168,15 @@ function useSeatReach(felt: RefObject<HTMLElement>) {
   return reach;
 }
 
+/** The last card of a single all-in run: it waited face down on the board before turning over (#308). */
+function heldCards(hand: TableView['hand']): string[] {
+  if (!hand || !hand.events.some((e) => e.t === 'run-it' && e.times === 1)) return [];
+  return runoutSteps(hand.events).at(-1)?.flatMap((e) => e.cards) ?? [];
+}
+
 /** A short badge for a seat that is not playing, or null when it is. */
 function seatBadge(s: SeatView, tournament: boolean): { text: string; kind: 'offline' | 'away' | 'info' } | null {
+  if (s.departed) return { text: 'Knocked out', kind: 'info' };
   if (!s.online) return { text: s.sittingOut ? 'Away · offline' : 'Offline', kind: 'offline' };
   if (s.sittingOut) {
     if (s.sitOutReason === 'busted') return { text: 'Busted', kind: 'away' };
@@ -417,6 +425,9 @@ export function Table({
   const multiRun = runs.length > 1;
   const multiBoard = (runs[0]?.length ?? 0) > 1;
   const stud = hand?.family === 'stud';
+  // A single all-in run's last card waits face down on its board, then turns over where it lies (#308).
+  const coming = new Set((hand?.comingNext ?? []).map((c) => `${c.run}-${c.board}`));
+  const held = new Set(heldCards(hand));
   // Cash games use casino chips, a cent upwards. In chips, colours follow the stakes: the smallest forced bet sets the white chip.
   const stakes = hand?.stakes ?? view.settings.stakes;
   const dollars = view.settings.stakes.centsMode;
@@ -439,14 +450,24 @@ export function Table({
               cards.length > 0 && (
                 <div className="cards board-row" key={`${r}-${b}`}>
                   {(multiRun || multiBoard) && <span className="board-label">{multiRun ? `Run ${r + 1}` : `Board ${b + 1}`}</span>}
-                  {cards.map((c, i) => (
-                    <PlayingCard
-                      key={`${hand!.handNumber}-${r}-${b}-${c}`}
-                      card={c}
-                      className={`deal-board ${highlight(c, boardWinners.get(`${r}-${b}`))}`}
-                      style={{ animationDelay: `${cards.length <= 3 ? i * 160 : 0}ms` }}
-                    />
-                  ))}
+                  {cards.map((c, i) =>
+                    held.has(c) ? (
+                      // Takes the face-down card's place and turns over there.
+                      <PlayingCard key={`${hand!.handNumber}-${r}-${b}-${c}`} card={c} className={`turn-held ${highlight(c, boardWinners.get(`${r}-${b}`))}`} />
+                    ) : (
+                      <PlayingCard
+                        key={`${hand!.handNumber}-${r}-${b}-${c}`}
+                        card={c}
+                        className={`deal-board ${highlight(c, boardWinners.get(`${r}-${b}`))}`}
+                        style={{ animationDelay: `${cards.length <= 3 ? i * 160 : 0}ms` }}
+                      />
+                    ),
+                  )}
+                  {coming.has(`${r}-${b}`) && (
+                    <span className="held-slot" key={`${hand!.handNumber}-${r}-${b}-held`}>
+                      <PlayingCard card={null} className="deal-board" />
+                    </span>
+                  )}
                 </div>
               ),
           ),
@@ -526,7 +547,9 @@ export function Table({
           s.cards.length > 0 && (isMe || !s.folded) && 'has-cards',
           // Stud and five-card draw hands are too long to tuck beside the nameplate.
           s.cards.length > 4 && 'long-hand',
-          onSeatClick && 'host-click',
+          s.departed && 'departed',
+          s.departed === 'fading' && 'fading',
+          onSeatClick && !s.departed && 'host-click',
         ]
           .filter(Boolean)
           .join(' ');
@@ -565,7 +588,7 @@ export function Table({
               </div>
               <div
                 className="nameplate"
-                onClick={onSeatClick ? () => onSeatClick(s) : undefined}
+                onClick={onSeatClick && !s.departed ? () => onSeatClick(s) : undefined}
               >
                 {badge && badge.kind !== 'info' && <div className={`pill ${badge.kind}`}>{badge.text}</div>}
                 <div className="name" title={s.bot ? `${s.name}, ${botOwnerLabel(s.bot, 'practice bot')}` : undefined}>

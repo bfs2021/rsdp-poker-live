@@ -31,7 +31,7 @@ import { LookDialog } from './components/LookDialog';
 import { FeedbackDialog } from './components/FeedbackDialog';
 import { hasKeyboard, ShortcutsDialog } from './components/Shortcuts';
 import { Dock } from './components/table/Dock';
-import { useRunoutReveal } from './runout';
+import { useDepartures, useRunoutReveal } from './runout';
 import { holdReloadWhile, reloadIfStale } from './freshness';
 import { TableStrip } from './tournament/TableStrip';
 import { navigate, tournamentOfTable, useFollowSeat } from './tournament/hooks';
@@ -120,8 +120,9 @@ const KEYS_TIP_MS = 20_000;
 
 export function TablePage({ tableId }: { tableId: string }) {
   const [live, setView] = useState<TableView | null>(null);
-  // An all-in runout is dealt a street at a time; everything below sees the table as it is shown.
-  const view = useRunoutReveal(live);
+  // An all-in runout is dealt a street at a time; everything below sees the table as it is shown. A player knocked
+  // out stays in their seat until the next deal.
+  const view = useDepartures(useRunoutReveal(live));
   const [skew, setSkew] = useState(0);
   const [error, setError] = useState('');
   /** The server's answer when it refused (or never answered) Sit out, I'm back, straddle or wait for the big blind. */
