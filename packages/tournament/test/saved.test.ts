@@ -152,6 +152,8 @@ describe('which starter the form is on', () => {
     expect(matchingStarter(rebuys)).toBe('rsdp');
     const addOns = { ...rsdp, addOn: { ...rsdp.addOn, max: 1 }, structure: [...rsdp.structure.slice(0, 4), { kind: 'break' as const, minutes: 5, addOn: true }, ...rsdp.structure.slice(4)] };
     expect(matchingStarter(addOns)).toBe('rsdp');
+    // Ticked and then unticked again: the marks left on the levels do nothing, so it is still RSDP.
+    expect(matchingStarter({ ...rebuys, rebuy: { ...rebuys.rebuy, max: 0 } })).toBe('rsdp');
   });
 
   it('is none once the host changes the stack, a level, late registration or the clock', () => {

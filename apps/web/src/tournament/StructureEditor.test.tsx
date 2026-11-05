@@ -84,3 +84,15 @@ describe('StructureEditor says what the levels are', () => {
     expect(validateStructure(rows, { maxRebuys: 1 }).errors).toEqual([]);
   });
 });
+
+describe('Replace levels keeps add-ons', () => {
+  it('keeps the add-on break when the RSDP levels are put back', () => {
+    const onChange = vi.fn<(rows: StructureRow[]) => void>();
+    const rows: StructureRow[] = [level, { ...level, sb: 50, bb: 100 }, { kind: 'break', minutes: 5, addOn: true }, { ...level, sb: 100, bb: 200 }];
+    render(<StructureEditor rows={rows} onChange={onChange} startingStack={63_000} expectedEntrants={9} maxRebuys={0} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Replace levels' }));
+    const out = onChange.mock.lastCall![0];
+    expect(isRsdpLevels(out)).toBe(true);
+    expect(out[2]).toEqual({ kind: 'break', minutes: 5, addOn: true });
+  });
+});

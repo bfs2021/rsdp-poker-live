@@ -14,7 +14,7 @@ import {
   type StructureRow,
 } from '@rsdp/tournament';
 import { GAMES, chips } from './format';
-import { canAddStructureLevel, nextStructureLevel } from './structureRows';
+import { canAddStructureLevel, keepRebuysAndAddOns, nextStructureLevel } from './structureRows';
 
 interface Props {
   rows: StructureRow[];
@@ -58,11 +58,11 @@ export function StructureEditor({ rows, onChange, startingStack, expectedEntrant
   const breakCount = rows.length - levelCount;
 
   const load = () => {
-    // With rebuys on, the first four new levels allow them, as when a starter is loaded or rebuys are ticked.
-    const rebuys = maxRebuys > 0 ? { rebuyThroughLevel: 4 } : {};
-    const opts = { startingStack, expectedEntrants, anteType, ...rebuys };
-    const fresh = preset === 'rsdp' ? rsdpStructure(rebuys) : preset === 'target' ? generateStructure({ ...opts, targetMinutes: target }) : presetStructure(preset, opts);
-    onChange([...rows.slice(0, lockedThrough + 1), ...fresh.slice(lockedThrough + 1)]);
+    const opts = { startingStack, expectedEntrants, anteType };
+    const fresh = preset === 'rsdp' ? rsdpStructure() : preset === 'target' ? generateStructure({ ...opts, targetMinutes: target }) : presetStructure(preset, opts);
+    // Rebuy levels and the add-on break stay where the host had them.
+    const kept = keepRebuysAndAddOns(rows, fresh);
+    onChange([...rows.slice(0, lockedThrough + 1), ...kept.slice(lockedThrough + 1)]);
   };
 
   const update = (i: number, patch: Partial<LevelRow> | { minutes: number } | { addOn: boolean }) => {

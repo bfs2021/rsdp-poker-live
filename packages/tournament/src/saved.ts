@@ -99,18 +99,24 @@ export function applyStarter(current: TournamentSettings, id: StarterId): Tourna
   };
 }
 
-/** One row as a string, so two structures can be compared row by row whatever order their fields were set in. */
-const rowKey = (r: StructureRow) =>
+/**
+ * One row as a string, so two structures can be compared row by row whatever order their fields were set in.
+ * Rebuy and add-on marks count only while rebuys or add-ons are on; ticking one off leaves its marks behind.
+ */
+const rowKey = (r: StructureRow, rebuys: boolean, addOns: boolean) =>
   JSON.stringify(
     r.kind === 'break'
-      ? ['break', r.minutes, !!r.addOn]
-      : ['level', r.sb, r.bb, r.ante, r.anteType, r.minutes, r.gameId ?? null, r.limit ? [r.limit.smallBet, r.limit.bigBet, r.limit.bringIn ?? null] : null, !!r.rebuy],
+      ? ['break', r.minutes, addOns && !!r.addOn]
+      : ['level', r.sb, r.bb, r.ante, r.anteType, r.minutes, r.gameId ?? null, r.limit ? [r.limit.smallBet, r.limit.bigBet, r.limit.bringIn ?? null] : null, rebuys && !!r.rebuy],
   );
 
 /**
  * The starter these settings are on: the one that pressing again would change
  * nothing it sets (stack, blind levels, late registration, and for RSDP the
- * table rules). Null when the host has changed any of those since.
+ * table rules). Null when the host has changed any of those since. Turbo,
+ * Standard and Deep stack build their levels for the expected field, so
+ * changing max players or a Sit & Go's size can un-pick them; RSDP's levels
+ * never depend on it.
  */
 export function matchingStarter(settings: TournamentSettings): StarterId | null {
   for (const { id } of STARTERS) {
@@ -118,7 +124,8 @@ export function matchingStarter(settings: TournamentSettings): StarterId | null 
     if (settings.startingStack !== want.startingStack) continue;
     const late = settings.lateRegistration;
     if (late.enabled !== want.lateRegistration.enabled || late.throughLevel !== want.lateRegistration.throughLevel) continue;
-    if (settings.structure.length !== want.structure.length || settings.structure.some((r, i) => rowKey(r) !== rowKey(want.structure[i]))) continue;
+    const key = (r: StructureRow) => rowKey(r, settings.rebuy.max > 0, settings.addOn.max > 0);
+    if (settings.structure.length !== want.structure.length || settings.structure.some((r, i) => key(r) !== key(want.structure[i]))) continue;
     if (want.tableRules) {
       const have = settings.tableRules;
       const rules = want.tableRules;
