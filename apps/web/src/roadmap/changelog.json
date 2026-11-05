@@ -1,6 +1,13 @@
 {
   "releases": [
     {
+      "id": "2026.11.05",
+      "date": "2026-11-05",
+      "fixes": [
+        "New tournament: the blind levels now say plainly when they're the RSDP levels (28 levels of 8 minutes, no antes), and the RSDP button at the top shows as picked. The tool for swapping in other levels has moved under \"Use different blind levels\", so the form no longer looks set to Regular blinds with antes. Your games stay your choice, mixed games included."
+      ]
+    },
+    {
       "id": "2026.11.02",
       "date": "2026-11-02",
       "fixes": [
