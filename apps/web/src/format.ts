@@ -58,6 +58,16 @@ export function betFromInput(unit: BetUnit, value: number): number {
   return fromInput(unit.centsMode, value);
 }
 
+/**
+ * Whether text typed, pasted or dropped into the bet box may go in: digits only,
+ * plus a decimal point (or comma) when the box takes fractions (dollars and cents, or big blinds).
+ * Browsers let letters, "e", "+" and "-" into a number box; this keeps them out.
+ */
+export function betBoxAccepts(text: string, decimals: boolean): boolean {
+  // A comma too: phones set to a comma-decimal region show only "," on the decimal keypad.
+  return decimals ? /^[0-9.,]*$/.test(text) : /^[0-9]*$/.test(text);
+}
+
 export const BETTING_NAME: Record<BettingKind, string> = { 'no-limit': 'No Limit', 'pot-limit': 'Pot Limit', 'fixed-limit': 'Limit' };
 
 /** Short label for the felt and top bar: NLH, PLO8, Stud, NL Badugi. */
