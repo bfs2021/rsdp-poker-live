@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "id": "2026.11.05.5",
+      "date": "2026-11-05",
+      "fixes": [
+        "The bet amount box now takes only numbers (and a decimal point at tables that count in dollars and cents, or when amounts are shown in big blinds). Before, some browsers let you type letters into it.",
+        "Phones: in Omaha and other games with four or more cards, your own cards no longer cover the players sitting either side of you at a full table. When there isn't room, your cards sit a little closer together and a little smaller. Computers are unchanged."
+      ]
+    },
+    {
       "id": "2026.11.05.4",
       "date": "2026-11-05",
       "fixes": [

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bbExactFormat, bbFormat, betFromInput, betStops, betToInput, betUnit, nearestStop, roundToUnit, SLIDER_STOPS, studBringIn } from './format';
+import { bbExactFormat, bbFormat, betBoxAccepts, betFromInput, betStops, betToInput, betUnit, nearestStop, roundToUnit, SLIDER_STOPS, studBringIn } from './format';
 
 describe('bbFormat', () => {
   it('shows amounts in big blinds, to one decimal when it is not whole', () => {
@@ -106,5 +106,18 @@ describe('bet slider stops', () => {
     expect(stops[nearestStop(stops, 1861)]).toBe(1900);
     expect(roundToUnit(187, 25)).toBe(175);
     expect(roundToUnit(188, 25)).toBe(200);
+  });
+});
+
+describe('betBoxAccepts', () => {
+  it('lets digits in, and a decimal point only when the box takes fractions', () => {
+    expect(betBoxAccepts('125', false)).toBe(true);
+    expect(betBoxAccepts('12.5', true)).toBe(true);
+    expect(betBoxAccepts('.', false)).toBe(false);
+    expect(betBoxAccepts('', false)).toBe(true);
+  });
+  it('keeps letters and number-box extras out (#306)', () => {
+    for (const t of ['a', 'abc', 'e', 'E', '+', '-', '1e5', '12a', ' ', ','])
+      for (const decimals of [false, true]) expect(betBoxAccepts(t, decimals), t).toBe(false);
   });
 });
