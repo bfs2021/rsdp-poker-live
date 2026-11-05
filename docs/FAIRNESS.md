@@ -158,7 +158,8 @@ when they deal at a home game.
 - **Change the records.** Chip counts, the cash ledger, the leaderboard and
   hand histories live in a database he controls, and he could edit them.
   Since 26 October 2026 every hand, every change to a player's buy-ins and
-  cash-outs, and every admin action that changes something also goes into a public, hash-chained
+  cash-outs, every admin action that changes something, and every time John
+  reads a table's chat also goes into a public, hash-chained
   record, and GitHub copies it every few hours. Editing something already in the
   record now shows: in "Check this hand", in the ledger's check against the
   record, in a warning from any browser that saw the record before, and in
@@ -167,8 +168,17 @@ when they deal at a home game.
   hand play out differently), an edit in the hours before GitHub next copies
   it that no browser saw, and the leaderboard, which is worked out from hands
   and isn't checked separately. If amounts matter, keep your own tally too.
+- **Read table chat.** Since November 2026 (issue #300) the admin page can
+  read any table's chat, cash or tournament, while it is open or long after it
+  has closed. That includes everything said at the table, by players and
+  spectators. Each read goes in the public record and on
+  [/transparency](/transparency) as "Chat read", so you can see when John read
+  a chat, though not which table (the record never names tables). He could
+  already read chat in the database before this; the admin page just makes it
+  easy, so it is recorded. Lobby chat is open to anyone with the tournament's
+  link anyway. Don't say anything at a table you wouldn't want John to read.
 - **Use admin powers, or a shell on the server.** The admin page can remove
-  test tables and answer suggestions; each use now goes in the public record
+  test tables, answer suggestions and read table chat; each use now goes in the public record
   and on [/transparency](/transparency). Looking is not recorded: the admin
   page can list tables and who is at them without leaving an entry, and the
   game-night recap John gets (errors, restarts, how much was played; see
@@ -231,8 +241,8 @@ the repository (and pulling the `transparency` branch now and then).
   release is normal. Fly keeps only its recent events, so a burst of restarts
   between two checks may show only in part.
 - **The public record.** Every hand, every change to a player's buy-ins and
-  cash-outs, every table deleted, every admin action that changes something
-  and every server start is
+  cash-outs, every table deleted, every admin action that changes something,
+  every time John reads a table's chat, and every server start is
   an entry in an append-only chain (`packages/engine/src/audit.ts`). Each entry
   includes a fingerprint (SHA-256) of the one before, so changing or removing
   an old entry changes every fingerprint after it. Entries hold no names and

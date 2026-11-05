@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { StatusPill } from './Suggestions';
 import { ApiError, checkAdminKey, deleteSuggestion, fetchSuggestions, logOrder, shortDate, STATUS_LABEL, STATUSES, updateSuggestion, type Suggestion } from './suggestions';
 import { deleteFeedback, feedbackOrder, fetchFeedback, KIND_LABEL, markFeedback, type Feedback } from './feedback';
-import { adminDeleteTable, adminLookUpTable, issueResetCode, type AdminTable } from '../account/api';
+import { adminDeleteTable, adminLookUpTable, adminReadChat, issueResetCode, type AdminChat, type AdminTable } from '../account/api';
 import './roadmap.css';
 import { SiteHeader } from '../components/SiteHeader';
 
@@ -95,6 +95,7 @@ export function RoadmapAdminPage() {
             <FeedbackList adminKey={key} />
             <ResetCodeForm adminKey={key} />
             <DeleteTableForm adminKey={key} />
+            <ReadChatForm adminKey={key} />
             <h2>Suggestions</h2>
             {error && <p className="error">{error}</p>}
             {list.length === 0 && <p className="muted">No suggestions yet.</p>}
@@ -220,6 +221,73 @@ function ResetCodeForm({ adminKey }: { adminKey: string }) {
 function tableIdFrom(text: string) {
   const t = text.trim();
   return /\/t\/([\w-]+)/.exec(t)?.[1] ?? t;
+}
+
+/** A table's or tournament's id from a pasted link (…/t/abc123 or …/tn/abc123) or the id itself. */
+export function chatIdFrom(text: string) {
+  const t = text.trim();
+  return /\/tn?\/([\w-]+)/.exec(t)?.[1] ?? t;
+}
+
+/** The chat as plain text, one line each, under a heading per table when a tournament had more than one. */
+export function adminChatText(c: AdminChat, when: (at: number) => string = (at) => new Date(at).toLocaleString()) {
+  if (!c.tables.length) return `${c.name || 'Table'}\n\nNothing was said in the chat.\n`;
+  const parts = c.tables.map((t) => [...(c.kind === 'tournament' ? [`== ${t.name} ==`] : []), ...t.chat.map((m) => `[${when(m.at)}] ${m.name}: ${m.text}`)].join('\n'));
+  return `${c.name || 'Table'}\n\n${parts.join('\n\n')}\n`;
+}
+
+/**
+ * Issue #300 (D27): the operator reads any table's chat, open or closed, cash or tournament. Each read goes in the
+ * public record (/transparency), so it is never quiet.
+ */
+function ReadChatForm({ adminKey }: { adminKey: string }) {
+  const [link, setLink] = useState('');
+  const [chat, setChat] = useState<AdminChat | null>(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  function read(e: FormEvent) {
+    e.preventDefault();
+    setChat(null);
+    setError('');
+    setBusy(true);
+    adminReadChat(adminKey, chatIdFrom(link))
+      .then(setChat, (err) => setError((err as Error).message))
+      .finally(() => setBusy(false));
+  }
+
+  function download(c: AdminChat) {
+    const url = URL.createObjectURL(new Blob([adminChatText(c)], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(c.name || 'table').replace(/[\\/:*?"<>|]+/g, ' ').trim()} chat.txt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1_000);
+  }
+
+  return (
+    <form className="suggest-form" onSubmit={read}>
+      <strong>Read a table&apos;s chat</strong>
+      <span className="muted">
+        Paste a cash table&apos;s or a tournament&apos;s link. Works after it has closed. Each read is shown publicly on /transparency (not which table), as /fairness and /privacy
+        say.
+      </span>
+      <label>
+        Table or tournament link or id
+        <input value={link} spellCheck={false} autoCapitalize="none" required onChange={(e) => (setLink(e.target.value), setChat(null))} />
+      </label>
+      {error && <p className="error">{error}</p>}
+      {chat && (
+        <div className="suggest-thanks">
+          <pre className="admin-chat">{adminChatText(chat)}</pre>
+          <button type="button" onClick={() => download(chat)}>
+            Download as text
+          </button>
+        </div>
+      )}
+      <button disabled={busy || !link.trim()}>{busy ? 'Reading…' : 'Read the chat'}</button>
+    </form>
+  );
 }
 
 /** Test tables and mistakes: look a cash table up by its link, then delete it for good. */

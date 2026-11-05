@@ -37,6 +37,7 @@ How this file works:
 | [D24](#d24-claude-sessions-may-read-the-live-site) | Claude sessions may read the live site | 2026-11-05 | John |
 | [D25](#d25-full-and-light-changes) | Full and light changes | 2026-11-05 | John; the lists Claude |
 | [D26](#d26-a-game-night-recap-for-john-read-by-claude) | A game-night recap for John, read by Claude | 2026-11-05 | John asked; design Claude |
+| [D27](#d27-the-operator-can-read-table-chat) | The operator can read table chat | 2026-11-05 | John; design Claude |
 
 ---
 
@@ -274,6 +275,8 @@ How this file works:
 
 ## D26. A game-night recap for John, read by Claude
 
+**Replaced in part by [D27](#d27-the-operator-can-read-table-chat)** (the operator may now read table chat; the recap still reads none).
+
 - **Decided:** 2026-11-05. John asked for a short recap after each game night (errors, player feedback, anything odd) so he never has to go looking (issue #297). The design is Claude's and reversible.
 - **Decision:**
   - The server keeps its own error lines (and browser error reports) for 30 days in its database, and a line at each clean shutdown, so a restart without one reads as a crash. Fly's log forgets within days.
@@ -284,3 +287,17 @@ How this file works:
   - Posting recaps to GitHub: the repository is public.
   - Recording each read in the public record: like the admin page's lookups, reading changes nothing.
 - **Where:** `apps/server/src/recap.ts`, [DEPLOY.md](DEPLOY.md#game-night-recap).
+
+## D27. The operator can read table chat
+
+- **Decided:** 2026-11-05, by John: "I think the operator should be able to read table chat" (issue #300). The design is Claude's.
+- **Decision:**
+  - `GET /api/admin/chat/:id` returns the chat of one cash table, or of every table a tournament opened, by the table's or tournament's id. It works while the table is open and after it has closed. It sends only the words, the names players saw and the times: no player ids, no table log.
+  - The admin page has a "Read a table's chat" form for it, with a download as text.
+  - Only the admin key opens it. The read-only `REPORT_KEY` does not, so the scheduled recap can't read chat with the key it holds today.
+  - Every read goes in the public record as an admin action (`read-table-chat` or `read-tournament-chat`), with only a fingerprint of the table or tournament, before the chat is sent, the way a backup is recorded. [/transparency](https://rsdp-poker-live.fly.dev/transparency) shows each one as "Chat read".
+  - [/fairness](FAIRNESS.md#how-the-developer-could-cheat-you), [/privacy](PRIVACY.md) and /transparency say so.
+- **Why recorded:** John could already read chat in the database (PRIVACY.md said so). The admin page makes it easy, so each use is public, unlike the admin page's other lookups, which change nothing and aren't recorded (D26's reasoning for the recap).
+- **Not done, on purpose:** a GitHub workflow that downloads chat: the repository is public, and a workflow's files can be downloaded by others. Whether the game-night recap (D26) should use chat is a separate call for that work; if it does, its key, what it reads and the public record entry need their own decision.
+- **Replaces** D26's "No chat: whether the operator may read table chat is John's call (issue #300)" as far as the operator goes; the recap itself still reads no chat until a change says otherwise.
+- **Where:** `apps/server/src/app.ts` (`/api/admin/chat/:id`), `apps/web/src/roadmap/AdminPage.tsx`, [FAIRNESS.md](FAIRNESS.md), [PRIVACY.md](PRIVACY.md), `apps/web/src/fairness/TransparencyPage.tsx`.

@@ -31,6 +31,7 @@ _Send feedback from the table_
 - New at every table: Send feedback (in the table menu, or the ☰ menu on a phone). Tell John something is wrong, or share an idea, without leaving the game. Only John reads it (and Claude, without your name, for his morning recap).
 - Behind the scenes: small changes that can't affect a game, like wording, layout and help pages, can now go live as soon as they're ready. Anything that touches the game itself is still played through on a test copy of the site first. Nothing changes at the tables.
 - Behind the scenes: the morning after a night with games, John now gets a short recap of anything that went wrong (site errors, restarts, a tournament starting late). It holds no chat or names. The server keeps its error messages for 30 days for this. The Privacy page says exactly what the recap holds.
+- Table chat: John can now read any table's chat from the admin page, including after the table has closed, for example to read feedback or look into a complaint. Each time he does, the Checking John page shows it publicly (not which table). The Fair dealing and Privacy pages say so. Nothing changes at the tables.
 
 ## [2026.11.05.2] - 2026-11-05
 

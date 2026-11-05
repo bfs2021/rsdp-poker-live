@@ -33,7 +33,10 @@ public, so don't put anything private in one, just ask him to get in touch).
   your name, picture, notes and sign-in, but the hands you played stay in the
   other players' history under the name you used at the time.
 - **John can read everything in the database**, as whoever runs a server can.
-  That includes table chat and private notes. See [Fair dealing](/fairness) and
+  That includes table chat and private notes. He can also read any table's
+  chat from the site's admin page, even after the table has closed; each time
+  he does, the [public record](/transparency) shows that a chat was read
+  (not which one). See [Fair dealing](/fairness) and
   [Checking John](/transparency) for what he can and can't do at a table.
 
 ## What the site keeps
@@ -47,7 +50,7 @@ public, so don't put anything private in one, just ask him to get in touch).
 | Google's id for you (a long number) | Google, if you sign in with Google | Only the site. Google also shares your name, used once to make your starting username and table name. No email, no contacts, nothing else. |
 | Signed-in sessions (30 days) and one-time password reset codes | Made when you sign in or John gives you a code | Only the site, stored as fingerprints |
 | Hands: who was dealt in, the cards, every action, the board, who won | The game | Players at that table see what poker rules allow them to see. Shown and mucked cards follow the table's settings. |
-| Table chat and the table log (joins, rebuys, seat moves, host actions) | You and the game | Everyone at that table, and spectators if the host allows them. At a tournament table, also the tournament's host, co-hosts and players, who can download every table's chat and log once the tournament is over. |
+| Table chat and the table log (joins, rebuys, seat moves, host actions) | You and the game | Everyone at that table, and spectators if the host allows them. At a tournament table, also the tournament's host, co-hosts and players, who can download every table's chat and log once the tournament is over. John can read any table's chat from the admin page (with the admin key), open or closed, and each read is shown publicly on [/transparency](/transparency). |
 | Tournament lobby chat and log | You and the tournament | Everyone who opens that tournament |
 | Each table's ledger: buy-ins, rebuys, cash-outs | The game | Everyone at that table. Totals from real games also feed the public leaderboard and your profit graph. |
 | Private notes and colour tags you keep on other players | You | Only you (and John, who can read the database) |
@@ -87,7 +90,8 @@ no profiling. No money changes hands through the site.
 ## The public record
 
 To make cheating by John easy to spot, the site keeps a public, append-only
-record of fingerprints of every hand, admin actions and server starts, and
+record of fingerprints of every hand, admin actions (including each time John
+reads a table's chat) and server starts, and
 copies it to GitHub every few hours. It also lists each player's buy-ins and
 cash-outs at each table, as amounts. It holds **no names, no cards and no
 table links**: a table and each player at it appear only as fingerprints that
