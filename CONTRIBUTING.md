@@ -83,7 +83,7 @@ spoil a real game; a typo fix can't. So a change takes one of two paths,
 and its pull request says which (the
 [template](.github/pull_request_template.md) asks). John agreed to the two
 paths on 5 November 2026; the details below are Claude's
-([D24](docs/DECISIONS.md#d24-full-and-light-changes)).
+([D25](docs/DECISIONS.md#d25-full-and-light-changes)).
 
 | | Full | Light |
 | --- | --- | --- |
