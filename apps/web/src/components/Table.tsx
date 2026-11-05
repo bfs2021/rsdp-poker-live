@@ -99,7 +99,7 @@ function useSeatReach(felt: RefObject<HTMLElement>) {
 }
 
 /** A short badge for a seat that is not playing, or null when it is. */
-function seatBadge(s: SeatView): { text: string; kind: 'offline' | 'away' | 'info' } | null {
+function seatBadge(s: SeatView, tournament: boolean): { text: string; kind: 'offline' | 'away' | 'info' } | null {
   if (!s.online) return { text: s.sittingOut ? 'Away · offline' : 'Offline', kind: 'offline' };
   if (s.sittingOut) {
     if (s.sitOutReason === 'busted') return { text: 'Busted', kind: 'away' };
@@ -108,7 +108,8 @@ function seatBadge(s: SeatView): { text: string; kind: 'offline' | 'away' | 'inf
     return { text: 'Away', kind: 'away' };
   }
   if (s.leaving) return { text: 'Leaving', kind: 'info' };
-  if (s.waiting && !s.inHand) return { text: s.waitForBigBlind ? 'Waits for big blind' : 'Plays next hand', kind: 'info' };
+  // A newcomer to a tournament table may sit out one more hand on the button or small blind, so don't promise the next.
+  if (s.waiting && !s.inHand) return { text: s.waitForBigBlind ? 'Waits for big blind' : tournament ? 'Joining' : 'Plays next hand', kind: 'info' };
   return null;
 }
 
@@ -416,7 +417,7 @@ export function Table({
           timeFraction = Math.max(0, Math.min(1, (view.turn.deadline - now) / total));
           secondsLeft = Math.max(0, Math.ceil((view.turn.deadline - now) / 1000));
         }
-        const badge = seatBadge(s);
+        const badge = seatBadge(s, view.mode === 'tournament');
         const classes = [
           'seat',
           pos.x < w * 0.18 ? 'edge-left' : pos.x > w * 0.82 ? 'edge-right' : '',

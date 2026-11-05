@@ -96,18 +96,22 @@ export const planForcedBets: PlanForcedBets = (args) => {
   /** Seats from the button up to (not including) the big blind: a new player can't come in there. */
   const inBlindZone = (seat: SeatIndex) => headsUp || (seat !== bb && dist(button, seat) < dist(button, bb));
 
+  // Tournament players never post to play. Someone just seated here (late registration, re-entry or a table move)
+  // is dealt in at once, except on the button, the small blind or between them: there they wait one hand for the
+  // button to pass, so nobody gets a hand the blinds skipped. Never if that would leave only two playing: a hand
+  // laid out for three can't be dealt heads up, so then everyone plays.
+  const tournamentWaits =
+    mode === 'tournament' && !headsUp ? seats.filter((s) => s.isNew && inBlindZone(s.seat)).map((s) => s.seat) : [];
+  const tournamentWait = new Set(seats.length - tournamentWaits.length >= 3 ? tournamentWaits : []);
+
   for (const s of seats) {
+    if (mode === 'tournament') {
+      (tournamentWait.has(s.seat) ? waiting : dealtIn).push(s.seat);
+      continue;
+    }
     const owes = s.isNew || s.missedBigBlind || s.missedSmallBlind;
     // Heads up both players are in the blinds; waiting would stall the table.
     const inBlinds = s.seat === bb || (s.seat === sb && !s.isNew);
-    if (mode === 'tournament') {
-      // Tournament players never post to play. Someone just seated here (late registration, re-entry or a table
-      // move) is dealt in at once, except on the button, the small blind or between them: there they wait one
-      // hand for the button to pass, so nobody gets a hand the blinds skipped.
-      if (s.isNew && !headsUp && s.seat !== bb && inBlindZone(s.seat)) waiting.push(s.seat);
-      else dealtIn.push(s.seat);
-      continue;
-    }
     if (headsUp || inBlinds || !owes) {
       dealtIn.push(s.seat);
       continue;

@@ -192,8 +192,11 @@ describe('planForcedBets: new and returning players', () => {
       [2, 'small-blind'],
       [3, 'big-blind'],
     ]);
-    // Heads up nobody waits.
+    // Heads up nobody waits, and nor does anyone when waiting would leave only two to play a three-handed layout.
     expect(t([seat(1), seat(2, { isNew: true })]).waiting).toEqual([]);
+    const three = t([seat(1), seat(2, { isNew: true }), seat(3)]);
+    expect(three.dealtIn).toEqual([1, 2, 3]);
+    expect(three.waiting).toEqual([]);
   });
 
   it('marks players the big blind skipped while they sat out', () => {
