@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "id": "2026.11.05.5",
+      "date": "2026-11-05",
+      "title": "A bigger table on big screens",
+      "items": [
+        { "title": "The table fills your screen", "detail": "On a desktop monitor the table now grows into the space around it, and the seats, cards, chips and pot grow with it. It's the same felt, cards and sounds, just bigger. Chat sits in the bottom-left corner beside your buttons, and the log, ledger, hands and stats (and, for hosts, the host controls) slide out from the Log button in the top bar. Press Escape to close them again.", "suggestedBy": "Players at the 4 November game" }
+      ]
+    },
+    {
       "id": "2026.11.05.3",
       "date": "2026-11-05",
       "title": "Send feedback from the table",

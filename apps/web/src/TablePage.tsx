@@ -6,7 +6,7 @@ import { contributeSeed, liveSeedProblem, watchCommitments, watchNextSeen } from
 import { nextVolume, setVolume, sounds, useVolume, VOLUME_NAME } from './sound';
 import { badgeFavicon, buzz } from './alerts';
 import { closeNotifications, notify } from './notify';
-import { usePortrait } from './layout';
+import { usePortrait, useWide } from './layout';
 import { bbFormat, chipFormat, clock, gameLabel, stakesLabel } from './format';
 import { getPrefs, setPrefs, usePrefs } from './prefs';
 import { useWakeLock } from './wakeLock';
@@ -136,6 +136,9 @@ export function TablePage({ tableId }: { tableId: string }) {
   const [chatSeenAt, setChatSeenAt] = useState(0);
   const preQueued = useRef(false);
   const portrait = usePortrait();
+  // Big windows: chat in the bottom-left corner, and the records and host controls in a panel from the top bar (#317).
+  const wide = useWide(portrait);
+  const [drawerPick, setDrawer] = useState<boolean | null>(null);
   const chatMutes = useChatMutes();
   useTableEffects(view, skew, preQueued);
   const readyTable = useFollowSeat(tableId, view?.me.seat != null, view !== live);
@@ -211,7 +214,7 @@ export function TablePage({ tableId }: { tableId: string }) {
       if (e.key === 'Enter') {
         // Enter on a button presses it; anywhere else it starts a chat message.
         if (e.defaultPrevented || (e.target instanceof HTMLElement && e.target.closest('button, a, summary, [role=button]'))) return;
-        const box = document.querySelector<HTMLInputElement>('.side .chat-form input');
+        const box = document.querySelector<HTMLInputElement>('.side .chat-form input, .corner-chat .chat-form input');
         if (box && !document.querySelector('.modal-backdrop, .sheet-backdrop, .replayer-backdrop')) {
           e.preventDefault();
           box.focus();
@@ -274,6 +277,15 @@ export function TablePage({ tableId }: { tableId: string }) {
     if (chatOpen && lastChatAt > chatSeenAt) setChatSeenAt(lastChatAt);
   }, [chatOpen, lastChatAt]);
 
+  // Escape closes the records panel (a dialog on top closes first).
+  useEffect(() => {
+    if (!wide) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && document.querySelector('.side.drawer.open') && !document.querySelector('.modal-backdrop, .replayer-backdrop')) setDrawer(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [wide]);
   if (error) {
     // A tournament table closes when it breaks; the lobby knows the new seat.
     const tournament = error === 'table not found' ? tournamentOfTable(tableId) : null;
@@ -430,8 +442,12 @@ export function TablePage({ tableId }: { tableId: string }) {
     />
   );
 
+  // The panel starts open for a host whose game hasn't started, so Start game is in view; after that it's the player's pick.
+  const drawer = wide && (drawerPick ?? (!!hostPanel && !view.started));
+  const openDrawer = () => setDrawer(true);
+
   return (
-    <div className={`table-page ${portrait ? 'portrait' : ''}`}>
+    <div className={['table-page', portrait && 'portrait', wide && 'wide'].filter(Boolean).join(' ')}>
       <header className="topbar">
         <a className="logo small" href="/">
           {portrait ? (
@@ -485,6 +501,12 @@ export function TablePage({ tableId }: { tableId: string }) {
               {copied ? 'Link copied' : 'Invite'}
             </button>
             {seatButtons}
+            {wide && (
+              <button className={drawer ? 'drawer-button on' : 'drawer-button'} aria-expanded={drawer} onClick={() => setDrawer(!drawer)}>
+                {hostPanel ? 'Host & log' : 'Log'}
+                {pending > 0 && <span className="badge">{pending}</span>}
+              </button>
+            )}
             <TableMenu
               items={[
                 { label: 'People', hint: `${view.watchers.length} watching`, onClick: () => setDialog({ kind: 'people' }) },
@@ -534,22 +556,22 @@ export function TablePage({ tableId }: { tableId: string }) {
             </div>
           )}
           {cash && !view.started && (
-            <div className="banner">
+            <div className="banner" onClick={wide && view.powers.includes('run') ? openDrawer : undefined}>
               {view.history.length > 0
                 ? view.powers.includes('run')
-                  ? `The game is stopped. ${portrait ? 'Start it again from the ☰ menu' : 'Press Start game to deal again'}.`
+                  ? `The game is stopped. ${portrait ? 'Start it again from the ☰ menu' : wide ? 'Press Start game under Host & log to deal again' : 'Press Start game to deal again'}.`
                   : 'The game is stopped. Waiting for the host to start it again.'
                 : view.powers.includes('run')
                   ? portrait
                     ? 'Take a seat and invite friends, then start the game from the ☰ menu.'
-                    : 'Take a seat, send friends the invite link, then press Start game.'
+                    : `Take a seat, send friends the invite link, then press Start game${wide ? ' under Host & log' : ''}.`
                   : 'Waiting for the host to start the game.'}
             </div>
           )}
           {view.stopAfterHand && <div className="banner">The host is stopping the game after this hand.</div>}
           {pending > 0 && (
-            <div className="banner attention" onClick={portrait ? () => setSheet('menu') : undefined}>
-              {pending} {pending === 1 ? 'request is' : 'requests are'} waiting for you. {portrait ? 'Tap to see.' : 'See Host controls.'}
+            <div className="banner attention" onClick={portrait ? () => setSheet('menu') : wide ? openDrawer : undefined}>
+              {pending} {pending === 1 ? 'request is' : 'requests are'} waiting for you. {portrait ? 'Tap to see.' : wide ? 'Click to see.' : 'See Host controls.'}
             </div>
           )}
           {seatRequest && (
@@ -596,6 +618,8 @@ export function TablePage({ tableId }: { tableId: string }) {
             skew={skew}
             fmt={feltFmt}
             compact={portrait}
+            fill
+            wide={wide}
             onPickSeat={cash && !mySeat && !seatRequest ? (seat) => setDialog({ kind: 'seat', seat }) : undefined}
             onAddBot={canAddBot ? addBot : undefined}
             onSeatClick={(seat) => setDialog({ kind: 'player', seat })}
@@ -647,15 +671,24 @@ export function TablePage({ tableId }: { tableId: string }) {
           </Dock>
         </section>
         {!portrait && (
-          <aside className="side">
+          <aside className={wide ? `side drawer${drawer ? ' open' : ''}` : 'side'}>
             {hostPanel}
             <PartBoundary name="side panel">
               <SidePanel view={view} fmt={fmt} />
             </PartBoundary>
+            {!wide && (
+              <PartBoundary name="chat">
+                <ChatBox view={view} />
+              </PartBoundary>
+            )}
+          </aside>
+        )}
+        {wide && (
+          <div className="corner-chat">
             <PartBoundary name="chat">
               <ChatBox view={view} />
             </PartBoundary>
-          </aside>
+          </div>
         )}
       </div>
 

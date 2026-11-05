@@ -18,6 +18,18 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
+## [2026.11.05.5] - 2026-11-05
+
+_A bigger table on big screens_
+
+### New
+
+- **The table fills your screen.** On a desktop monitor the table now grows into the space around it, and the seats, cards, chips and pot grow with it. It's the same felt, cards and sounds, just bigger. Chat sits in the bottom-left corner beside your buttons, and the log, ledger, hands and stats (and, for hosts, the host controls) slide out from the Log button in the top bar. Press Escape to close them again. (Suggested by Players at the 4 November game.)
+
+### Fixed and changed
+
+- Big screens: on a window 1440 pixels wide or more, the table now fills the screen. The table, seats, cards, chips and pot all grow to use the space that used to be dark, while the felt, colours, cards and sounds stay the same. Chat moves to a box in the bottom-left corner beside your action buttons, and the log, ledger, hands, stats and host controls open from the new Log button (Host & log for hosts) in the top bar. Laptops and phones look as before.
+
 ## [2026.11.05.4] - 2026-11-05
 
 ### Fixed and changed
@@ -580,6 +592,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.05.5]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.5
 [2026.11.05.4]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.4
 [2026.11.05.3]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.3
 [2026.11.05.2]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.2

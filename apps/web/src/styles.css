@@ -899,3 +899,45 @@ dl.shortcuts dd { margin: 0; }
 
 /* Send feedback (FeedbackDialog.tsx) */
 .feedback-form textarea { font: inherit; resize: vertical; }
+
+/* ---- big windows (#317): the table grows into the room. --k is its scale (Table.tsx), --sk the seats' (k, or less when a
+   full table needs it). Below k = 1 none of this applies. */
+.table-page:not(.portrait) .felt-area > .felt.grown {
+  margin: calc(84px * var(--sk)) calc(var(--side-margin) * var(--sk)) calc(46px * var(--sk));
+  max-height: none;
+}
+.felt.grown .board .pots { zoom: var(--k); }
+.felt.grown .board .cards { gap: calc(6px * var(--k)); }
+.felt.grown .bet, .felt.grown .dealer { scale: var(--sk); }
+/* In the wide layout the cards grow a little more than the nameplates. */
+.felt.big-cards:not(.compact) {
+  .seat.has-cards:not(.long-hand) { --cw: 72px; --tuck: 144px; }
+  .seat.has-cards:not(.long-hand) .hole.n3 { --cw: 64px; }
+  .seat.has-cards:not(.long-hand) .hole.n4 { --cw: 60px; }
+  .seat.has-cards:not(.long-hand):has(.hole.n3) { --tuck: 176px; }
+  .seat.has-cards:not(.long-hand):has(.hole.n4) { --tuck: 204px; }
+  .seat.me.has-cards:not(.long-hand) { --cw: 84px; --tuck: 166px; }
+  .seat.me.has-cards:not(.long-hand):has(.hole.n4) { --tuck: 232px; }
+  .seat.me.has-cards:not(.long-hand) .hole.n4 { --cw: 68px; }
+}
+
+/* ---- the wide layout (windows 1440px and wider, #317): no side column. Chat sits in the bottom-left corner beside the
+   action bar, and the log, ledger, hands, stats and host controls slide out from the top bar's "Log" button. */
+.table-page.wide { --chat-h: 218px; --chat-w: clamp(260px, calc((100vw - 830px) / 2), 400px); }
+@media (max-height: 820px) { .table-page.wide { --chat-h: 186px; } }
+.table-page.wide .layout { grid-template-columns: minmax(0, 1fr); }
+/* The action bar keeps clear of the chat box on both sides, so it stays centred under your seat. */
+.table-page.wide .felt-area .dock { padding-inline: calc(var(--chat-w) + 12px); min-height: max(var(--chat-h), var(--held, 0px)); }
+.corner-chat { position: fixed; left: 12px; bottom: 12px; width: var(--chat-w); height: var(--chat-h); z-index: 6; display: flex; }
+.corner-chat > * { flex: 1; min-width: 0; }
+.corner-chat .chat-box { height: 100%; display: flex; flex-direction: column; background: rgba(29, 33, 39, 0.94); }
+.corner-chat .chat-scroll { flex: 1; overflow-y: auto; }
+.side.drawer {
+  position: fixed; top: 56px; right: 0; bottom: 0; width: 380px; padding: 12px; z-index: 30;
+  background: var(--bg); border-left: 1px solid var(--line); box-shadow: -18px 0 40px rgba(0, 0, 0, 0.45);
+  transform: translateX(100%); visibility: hidden; transition: transform 0.25s ease, visibility 0s 0.25s;
+}
+.side.drawer.open { transform: none; visibility: visible; transition: transform 0.25s ease; }
+.drawer-button.on { background: var(--panel-2); border-color: #fff; }
+.drawer-button .badge { margin-left: 6px; }
+@media (prefers-reduced-motion: reduce) { .side.drawer, .side.drawer.open { transition: none; } }
