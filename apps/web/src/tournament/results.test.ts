@@ -38,8 +38,17 @@ describe('table chat download', () => {
       (t) => `+${(t - T0) / 60_000}m`,
     );
     expect(text).toBe(
-      ['Friday/Night: table chat and log (2 tables, 2 chat messages)', '', '=== Table 1 (table 1 to open) ===', '+0m  Ana sat down', '+2m  [chat] Ana: gl all', '', '=== Table 2 (table 3 to open) ===', '+1m  [chat] Bo: blinds felt fast', '+3m  [chat] Bo wins', '', ''].join('\n'),
+      ['Friday/Night: table chat and log (2 tables, 2 chat messages)', '', '=== Table 1 ===', '+0m  Ana sat down', '+2m  [chat] Ana: gl all', '', '=== Table 2 ===', '+1m  [chat] Bo: blinds felt fast', '+3m  [chat] Bo wins', '', ''].join('\n'),
     );
+  });
+
+  it('tells apart two tables that had the same name', () => {
+    const text = tableChatText(field(['Ana', 'Bo']), [
+      { table: 2, name: 'Table 2', log: [{ at: T0, text: 'a' }], chat: [] },
+      { table: 4, name: 'Table 2', log: [{ at: T0, text: 'b' }], chat: [] },
+    ]);
+    expect(text).toContain('=== Table 2 (no. 2 in the order tables opened) ===');
+    expect(text).toContain('=== Table 2 (no. 4 in the order tables opened) ===');
   });
 
   it('says so when nothing was said', () => {
