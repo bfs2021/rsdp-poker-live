@@ -63,21 +63,25 @@ const digest = (s: string) => createHash('sha256').update(s).digest();
 /** Responds and returns false unless the request carries the admin key (header X-Admin-Key). */
 export type AdminCheck = (req: express.Request, res: express.Response) => boolean;
 
+/** Wrong keys counted per address. Give every gate on one server the same one, so they share one limit. */
+export const adminTries = (now: () => number) => limiter(ADMIN_TRIES, ADMIN_WINDOW_MS, now);
+
 /**
- * One check for a set of routes, so wrong keys count against one limit. Takes any of `keys`: the admin routes take
- * ADMIN_KEY alone; read-only reports also take REPORT_KEY, which can't change or download anything.
+ * A check for a set of routes. Takes any of `keys`: the admin routes take ADMIN_KEY alone; read-only reports also
+ * take REPORT_KEY, which can't change or download anything. Gates built with the same `tries` count wrong keys
+ * against one limit, so a second gate doesn't double the guesses an address may make at ADMIN_KEY.
  */
-export function adminGate(keys: string | undefined | (string | undefined)[], now: () => number): AdminCheck {
+export function adminGate(keys: string | undefined | (string | undefined)[], now: () => number, tries = adminTries(now)): AdminCheck {
   // A short key would be guessable; treat it as unset.
   const accepted = (Array.isArray(keys) ? keys : [keys]).filter((k): k is string => !!k && k.length >= 12).map(digest);
-  const tries = limiter(ADMIN_TRIES, ADMIN_WINDOW_MS, now);
   return (req, res) => {
     if (!accepted.length) return res.status(403).json({ error: 'The admin key is not set up on this server yet.' }), false;
     const ip = clientAddress(req);
     if (!tries(ip, false)) return res.status(429).json({ error: 'Too many wrong keys. Try again in a few minutes.' }), false;
     const given = req.get('x-admin-key') ?? '';
     // Every key compared, so the time taken doesn't say which one matched.
-    const match = given ? accepted.map((k) => timingSafeEqual(digest(given), k)).includes(true) : false;
+    const hashed = given ? digest(given) : null;
+    const match = hashed ? accepted.map((k) => timingSafeEqual(hashed, k)).includes(true) : false;
     if (match) return true;
     tries(ip);
     res.status(401).json({ error: 'That admin key is not right.' });

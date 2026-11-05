@@ -30,8 +30,11 @@ if (pgliteDir) await restoreIfWaiting(pgliteDir);
 const db = await createDb({ pgliteDir });
 const webDist = path.resolve(here, '../../web/dist');
 // The public record carries on from its last entry; a server start is its own entry.
-const audit = await AuditLog.open(dbAuditStore(db));
+// The record's own failures go through the server's log once it exists, so the game-night recap sees them too.
+let serverLog = (m: string, e?: unknown) => console.error(m, dbCause(e) ?? '');
+const audit = await AuditLog.open(dbAuditStore(db), { log: (m, e) => serverLog(m, e) });
 const server = createApp({ audit, fairLeadMs: FAIR_LEAD_MS, webDist, identity: dbIdentity(db), store: dbStore(db), tournaments: dbTournamentStore(db), notes: dbNotes(db), setups: dbSetups(db), lobby: dbLobbyStore(db), avatars: dbAvatars(db), shared: dbSharedHands(db), suggestions: dbSuggestions(db), accounts: db, google: googleFromEnv(), checkDb: () => db.execute(sql`select 1`) });
+serverLog = server.log;
 // Unfinished tournaments carry on, and scheduled ones keep their start time.
 await server.resume();
 

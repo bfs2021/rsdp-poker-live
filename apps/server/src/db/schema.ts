@@ -274,7 +274,8 @@ export const hands = pgTable(
     events: jsonb('events').$type<unknown[]>().notNull(),
     results: jsonb('results').$type<unknown>(),
   },
-  (t) => [uniqueIndex('hands_table_number_idx').on(t.tableId, t.number)],
+  // started_at: the game-night recap counts a night's hands.
+  (t) => [uniqueIndex('hands_table_number_idx').on(t.tableId, t.number), index('hands_started_at_idx').on(t.startedAt)],
 );
 
 /**
@@ -293,7 +294,8 @@ export const tableLog = pgTable(
     /** The rest of a TableLogEntry or ChatMessage (runtime/types.ts), without its time. */
     item: jsonb('item').$type<unknown>().notNull(),
   },
-  (t) => [index('table_log_table_idx').on(t.tableId, t.n)],
+  // at: the game-night recap reads a night's chat.
+  (t) => [index('table_log_table_idx').on(t.tableId, t.n), index('table_log_at_idx').on(t.at)],
 );
 
 // ---------------------------------------------------------------- tournaments
@@ -334,7 +336,7 @@ export const tournamentLog = pgTable(
     /** A LobbyItem from @rsdp/tournament, without its id and time. */
     item: jsonb('item').$type<unknown>().notNull(),
   },
-  (t) => [index('tournament_log_tournament_idx').on(t.tournamentId, t.n)],
+  (t) => [index('tournament_log_tournament_idx').on(t.tournamentId, t.n), index('tournament_log_at_idx').on(t.at)],
 );
 
 // ---------------------------------------------------------------- jobs

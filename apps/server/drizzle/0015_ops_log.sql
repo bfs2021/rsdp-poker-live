@@ -6,4 +6,7 @@ CREATE TABLE "ops_log" (
 	CONSTRAINT "ops_log_kind_check" CHECK ("ops_log"."kind" in ('server', 'browser', 'stop'))
 );
 --> statement-breakpoint
-CREATE INDEX "ops_log_at_idx" ON "ops_log" USING btree ("at");
+CREATE INDEX "ops_log_at_idx" ON "ops_log" USING btree ("at");--> statement-breakpoint
+CREATE INDEX "hands_started_at_idx" ON "hands" USING btree ("started_at");--> statement-breakpoint
+CREATE INDEX "table_log_at_idx" ON "table_log" USING btree ("at");--> statement-breakpoint
+CREATE INDEX "tournament_log_at_idx" ON "tournament_log" USING btree ("at");

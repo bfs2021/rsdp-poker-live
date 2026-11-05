@@ -1,5 +1,5 @@
 {
-  "id": "f31b2752-c60f-458f-955d-3fcb79fa9969",
+  "id": "00de983c-0fcd-453a-8f21-16055cfe8b3c",
   "prevId": "87b56b0a-d891-4742-8e1c-a0ffc026642b",
   "version": "7",
   "dialect": "postgresql",
@@ -493,6 +493,21 @@
             }
           ],
           "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "hands_started_at_idx": {
+          "name": "hands_started_at_idx",
+          "columns": [
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1717,6 +1732,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "table_log_at_idx": {
+          "name": "table_log_at_idx",
+          "columns": [
+            {
+              "expression": "at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1998,6 +2028,21 @@
             },
             {
               "expression": "n",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tournament_log_at_idx": {
+          "name": "tournament_log_at_idx",
+          "columns": [
+            {
+              "expression": "at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

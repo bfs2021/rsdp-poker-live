@@ -27,7 +27,7 @@ import { LobbyLog, memoryLobbyStore, type LobbyStore } from './tournament/lobby'
 import { memorySharedHands, type SharedHandStore } from './shared';
 import { memorySuggestions, suggestionRoutes, type SuggestionStore } from './suggestions';
 import { newId } from './db/ids';
-import { adminGate, limiter, sweepLimiters } from './admin';
+import { adminGate, adminTries, limiter, sweepLimiters } from './admin';
 import { accountRoutes, type AccountHooks } from './accounts';
 import { handSearchRoutes } from './handSearch';
 import { googleConfirmations, googleRoutes, type GoogleConfig } from './google';
@@ -446,8 +446,11 @@ export function createApp(deps: AppDeps = {}) {
   });
   auditRoutes(app, audit, build, startedAt, log);
   const adminKey = deps.adminKey ?? process.env.ADMIN_KEY;
-  const isAdmin = adminGate(adminKey, () => clock.now());
-  recapRoutes(app, { canRead: adminGate([adminKey, deps.reportKey ?? process.env.REPORT_KEY], () => clock.now()), db: deps.accounts, now: () => clock.now(), log });
+  // One count of wrong keys for both gates.
+  const keyTries = adminTries(() => clock.now());
+  const isAdmin = adminGate(adminKey, () => clock.now(), keyTries);
+  const canReadReports = adminGate([adminKey, deps.reportKey ?? process.env.REPORT_KEY], () => clock.now(), keyTries);
+  recapRoutes(app, { canRead: canReadReports, db: deps.accounts, now: () => clock.now(), log });
   suggestionRoutes(app, deps.suggestions ?? memorySuggestions(), { isAdmin, now: () => clock.now(), log, onAdmin: (action, id) => audit.admin(action, id) });
   const accountHooks: AccountHooks = {
     signedIn: (playerId) => avatars.delete(playerId),
