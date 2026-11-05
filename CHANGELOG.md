@@ -18,7 +18,7 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
-## [2026.11.05.6] - 2026-11-05
+## [2026.11.05.7] - 2026-11-05
 
 _A bigger table on big screens_
 
@@ -28,11 +28,16 @@ _A bigger table on big screens_
 
 ### Fixed and changed
 
+- Big screens: on a window 1440 pixels wide or more, the table now fills the screen. The table, seats, cards, chips and pot all grow to use the space that used to be dark, while the felt, colours, cards and sounds stay the same. Chat moves to a box in the bottom-left corner beside your action buttons, and the log, ledger, hands, stats and host controls open from the new Log button (Host & log for hosts) in the top bar. Laptops and phones look as before.
+
+## [2026.11.05.6] - 2026-11-05
+
+### Fixed and changed
+
 - On a computer: after you send a chat message, the cursor now leaves the chat box, so the keys you press next go to the game again (F, K, C, R, or a bet amount) instead of into chat. Press Enter to chat again. Clicking a quick reply (gg, nh...) lets go too.
 - On a computer: on your turn, typing a number starts your bet amount in the bet box, then Enter bets it. No need to click the box first.
 - Hosts on a computer: pressing Enter after clicking Start game or Pause no longer presses that button again (Start game turns into Stop game, so it asked whether to stop the game). Enter goes to the chat box, as it does elsewhere.
 - All-in run-outs have more build-up: the last card waits face down on the board for a moment, then turns over, and the result shows a beat later. In a tournament, a player knocked out by a run-out now has their cards face up the whole time (before, they flipped back face down until the result), and they stay in their seat, marked Knocked out, until the next hand, instead of vanishing the moment the result showed.
-- Big screens: on a window 1440 pixels wide or more, the table now fills the screen. The table, seats, cards, chips and pot all grow to use the space that used to be dark, while the felt, colours, cards and sounds stay the same. Chat moves to a box in the bottom-left corner beside your action buttons, and the log, ledger, hands, stats and host controls open from the new Log button (Host & log for hosts) in the top bar. Laptops and phones look as before.
 
 ## [2026.11.05.5] - 2026-11-05
 
@@ -603,6 +608,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.05.7]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.7
 [2026.11.05.6]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.6
 [2026.11.05.5]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.5
 [2026.11.05.4]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.4
