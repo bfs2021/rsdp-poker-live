@@ -25,11 +25,12 @@ What to do when something goes wrong is in [RUNBOOK.md](RUNBOOK.md).
 | `NODE_ENV` | `production` in the image | Turns off development CORS. |
 | `PUBLIC_URL` | unset; `fly.toml` sets the live address | The site's public address. Link previews use it, and Google sends people back to `PUBLIC_URL` + `/auth/google/callback`. Unset, the request's own address is used. |
 | `ADMIN_KEY` | unset (a secret) | Turns on the roadmap admin page and the backup download (`/api/admin/backup`). At least 12 characters, or the server ignores it. |
+| `REPORT_KEY` | unset (a secret) | A read-only key for the game-night recap (`/api/admin/recap`, see [Game-night recap](#game-night-recap)). It opens nothing else. At least 12 characters, or the server ignores it. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | unset (secrets) | Sign in with Google is on only when both are set. |
 | `BUILD_COMMIT` | set when the image is built | The commit the image came from. `deploy.yml` passes it as a build argument, and `/api/version` reports it. |
 | `FLY_IMAGE_REF`, `FLY_MACHINE_ID` | set by Fly | Reported by `/api/version`. `FLY_IMAGE_REF` also goes in the public record each time the server starts, with the commit. |
 
-On the live site, the plain settings live in `fly.toml` under `[env]`. The three secrets are copied to Fly by `deploy.yml` from GitHub's repository secrets, on every deploy.
+On the live site, the plain settings live in `fly.toml` under `[env]`. The secrets are copied to Fly by `deploy.yml` from GitHub's repository secrets, on every deploy.
 
 ### GitHub secrets
 
@@ -37,6 +38,7 @@ On the live site, the plain settings live in `fly.toml` under `[env]`. The three
 | --- | --- | --- |
 | `FLY_API_TOKEN` | `deploy.yml`, `fly-setup.yml`, `transparency.yml` | A Fly API token for the app (see [Fly.io](#flyio-production)). The watcher also uses it as its fingerprint key (`WATCH_KEY`), so a new token changes every published secret fingerprint once. The public record then says the app's secrets changed, which is expected. |
 | `ADMIN_KEY` | `deploy.yml` (copies it to Fly), `backup.yml` (downloads the daily backup) | The admin key above. Removing the secret turns the admin page off at the next deploy, and stops the backups too, because they need it. |
+| `REPORT_KEY` | `deploy.yml` (copies it to Fly) | The read-only recap key above. The same value goes in the Claude project's cloud environment as `RSDP_REPORT_KEY`, where the scheduled recap reads it. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | `deploy.yml` (copies them to Fly) | The Google sign-in client, from the Google Cloud console. |
 
 Only workflows on `main` should use these. GitHub never shows a secret's value again, so replacing one means making a new value at its source. The steps are in [RUNBOOK.md](RUNBOOK.md#a-key-may-have-leaked).
@@ -108,6 +110,18 @@ If the volume is gone, deploy first so a new one exists. Restoring takes the sit
 `.github/workflows/uptime.yml` asks `/api/health` whether the site is up and its database answers within a second. If not for about 3 minutes, and no deploy is running, it opens the issue "The site is down", mentioning John so GitHub emails him, and closes it when the site is fine again. It is scheduled every 5 minutes, but GitHub starts scheduled jobs late when it is busy: since 26 October 2026 it has run only every 3 to 7 hours. So it is a slow backstop, and an outage overnight or at a tournament's automatic start could go unnoticed for hours. GitHub also turns off scheduled workflows in a public repo after 60 days without a commit; re-enable them under Actions if that happens.
 
 **A quick alert needs an outside monitor** in John's own name (issue #180): a free monitor such as UptimeRobot, type Keyword, URL `https://rsdp-poker-live.fly.dev/api/health`, keyword `"ok":true`, every 5 minutes, alerting John's email and phone. That keyword only tells whether the server answers. `/api/health` always answers `ok: true` with status 200 while the server runs (Fly's own health check relies on that), plus `db`: `"ok"`, `"slow"` (no answer within a second) or `"error"`. Only the GitHub check reads `db`, counting anything but `"ok"` as down; a monitor on the keyword `"db":"ok"` would catch a stuck database too, but could also alert on a single slow moment.
+
+## Game-night recap
+
+The morning after a night with games, a scheduled Claude task in John's project sends him a short recap: anything that could have affected a real game first, then minor things. It reads `GET /api/admin/recap` (header `X-Admin-Key` with `REPORT_KEY` or `ADMIN_KEY`; `?hours=24` by default, or `?from=&to=` as ISO times, at most 7 days). The answer is JSON (`apps/server/src/recap.ts`):
+
+- `restarts`: each server start, and whether it followed a clean shutdown. A start with no clean shutdown in the 15 minutes before it was a crash or a machine restart.
+- `errors`: the server's error lines and browser error reports, grouped by text, with counts. The server keeps these in the `ops_log` table for 30 days, at most 2,000 lines an hour.
+- `activity` and `tournaments`: hands and tables by kind; each tournament that was due, started or finished in the window, with its entries and how late a scheduled one dealt.
+- `chat`: table and lobby chat lines that sound like a problem report, without names or table links, at most 200.
+- `quiet`: no hands were dealt, so the task sends nothing.
+
+Reading it changes nothing and isn't an admin action in the public record. The scheduled task needs the live site on the cloud environment's network allowlist and `RSDP_REPORT_KEY` in that environment.
 
 ## Before a release: testing on a copy
 

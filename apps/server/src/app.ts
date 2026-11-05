@@ -36,6 +36,7 @@ import { dbCause, StorageError } from './db/errors';
 import { writeBackup } from './db/backup';
 import { AuditLog, auditRoutes, buildFromEnv, memoryAuditStore, type BuildInfo } from './audit';
 import { clientErrorRoutes } from './clientErrors';
+import { opsRecorder, recapRoutes } from './recap';
 import { subjectRef } from '@rsdp/engine';
 
 export interface Session {
@@ -175,6 +176,8 @@ export interface AppDeps {
   google?: GoogleConfig | null;
   /** Lets the roadmap admin page change suggestions. Defaults to the ADMIN_KEY environment variable. */
   adminKey?: string;
+  /** A read-only key for the game-night recap (recap.ts). Defaults to the REPORT_KEY environment variable. */
+  reportKey?: string;
   /** Deck shuffles; tests pass a seeded one. */
   rng?: Rng;
   /** See RuntimeDeps.fairLeadMs; production passes FAIR_LEAD_MS. */
@@ -370,7 +373,13 @@ export function createApp(deps: AppDeps = {}) {
   const avatarStore = deps.avatars ?? memoryAvatars();
   const sharedStore = deps.shared ?? memorySharedHands();
   // A failed query's own error: drizzle's wrapper repeats every value the query carried (a whole table snapshot).
-  const log = deps.log ?? ((m, e) => console.error(m, dbCause(e) ?? ''));
+  const writeLog = deps.log ?? ((m, e) => console.error(m, dbCause(e) ?? ''));
+  // Every line is also kept 30 days for the operator's game-night recap (recap.ts).
+  const ops = opsRecorder(deps.accounts, () => clock.now());
+  const log = (message: string, err?: unknown) => {
+    writeLog(message, err);
+    ops.record(message.startsWith('browser error') ? 'browser' : 'server', message, err);
+  };
   const audit = deps.audit ?? AuditLog.after(memoryAuditStore(), null, { now: () => clock.now(), log });
   const build = deps.build ?? buildFromEnv();
   const startedAt = clock.now();
@@ -436,7 +445,9 @@ export function createApp(deps: AppDeps = {}) {
     res.json(dbHealth ? { ...body, db: await dbHealth() } : body);
   });
   auditRoutes(app, audit, build, startedAt, log);
-  const isAdmin = adminGate(deps.adminKey ?? process.env.ADMIN_KEY, () => clock.now());
+  const adminKey = deps.adminKey ?? process.env.ADMIN_KEY;
+  const isAdmin = adminGate(adminKey, () => clock.now());
+  recapRoutes(app, { canRead: adminGate([adminKey, deps.reportKey ?? process.env.REPORT_KEY], () => clock.now()), db: deps.accounts, now: () => clock.now(), log });
   suggestionRoutes(app, deps.suggestions ?? memorySuggestions(), { isAdmin, now: () => clock.now(), log, onAdmin: (action, id) => audit.admin(action, id) });
   const accountHooks: AccountHooks = {
     signedIn: (playerId) => avatars.delete(playerId),
@@ -1783,6 +1794,8 @@ export function createApp(deps: AppDeps = {}) {
     tables,
     tournaments,
     getTable,
+    /** The server's error log: one line to stderr, also kept for the game-night recap. */
+    log,
     /** Puts away idle cash tables now (the server also does this every few minutes); the ids put away. */
     unloadIdle,
     /** Brings back unfinished tournaments (and their tables) after a restart. */
@@ -1791,7 +1804,9 @@ export function createApp(deps: AppDeps = {}) {
     forgetOldAddresses,
     /** How many addresses the open-tournament limit remembers now. */
     openTournamentAddresses: () => openTournaments.addresses(),
-    async close() {
+    /** `crash`: the error the server is stopping for, kept so the recap shows the restart after it as a crash. */
+    async close(opts: { crash?: unknown } = {}) {
+      const stopped = 'crash' in opts ? ops.crashing(opts.crash) : ops.stopping();
       // Everything goes quiet before anything is saved, so tournaments and their tables are saved as of the same moment:
       // no more input, the director acts on every hand already reported, and no table deals, runs a clock or saves again.
       // The server going down is not players leaving, so their tables never see them drop (and time them out).
@@ -1811,6 +1826,7 @@ export function createApp(deps: AppDeps = {}) {
       await Promise.all(open.map((rt) => (created.get(rt.state.id) ?? Promise.resolve()).then(() => store.saveTable(rt.state)).catch(() => {})));
       await new Promise<void>((resolve) => http.close(() => resolve()));
       await audit.flush();
+      await stopped;
     },
   };
 }

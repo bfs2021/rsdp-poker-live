@@ -33,6 +33,7 @@ export async function fill(target: Db) {
   await q(`insert into tournaments (id, host_player_id, status, state) values ('tn1', 'p1', 'running', '{"level":3}')`);
   await q(`insert into tournament_log (tournament_id, item_id, at, item) values ('tn1', 'i1', now(), '{"k":"bust"}'), ('tn1', 'i2', now(), '{"k":"win"}')`);
   await q(`insert into audit_log (seq, at, kind, data, prev, hash) values (1, ${BIG}, 'boot', '{"commit":"abc"}', '0', 'h')`);
+  await q(`insert into ops_log (at, kind, message) values (now(), 'server', 'saving table failed: timeout')`);
 }
 
 /** Every row of every table, as Postgres prints it, so two databases can be compared whole. */

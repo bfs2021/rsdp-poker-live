@@ -517,3 +517,24 @@ export const auditLog = pgTable(
   },
   (t) => [index('audit_log_subject_idx').on(t.subject, t.seq), index('audit_log_kind_idx').on(t.kind, t.seq)],
 );
+
+// ---------------------------------------------------------------- operations log
+
+export const OPS_KINDS = ['server', 'browser', 'stop'] as const;
+export type OpsKind = (typeof OPS_KINDS)[number];
+
+/**
+ * The server's own error lines (and browser errors it was told about), kept 30 days for the operator's
+ * game-night recap (recap.ts), plus a line for each clean shutdown so a restart without one reads as a crash.
+ * Lines carry no address, account or table link (see clientErrors.ts and recap.ts).
+ */
+export const opsLog = pgTable(
+  'ops_log',
+  {
+    n: bigserial('n', { mode: 'number' }).primaryKey(),
+    at: at('at').notNull(),
+    kind: text('kind', { enum: OPS_KINDS }).notNull(),
+    message: text('message').notNull(),
+  },
+  (t) => [index('ops_log_at_idx').on(t.at), check('ops_log_kind_check', sql`${t.kind} in (${oneOf(OPS_KINDS)})`)],
+);

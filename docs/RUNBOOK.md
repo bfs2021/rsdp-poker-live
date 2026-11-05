@@ -75,6 +75,8 @@ If a key was pasted somewhere public, committed, or shown in a log, replace it. 
 - **Admin key (`ADMIN_KEY`), John.**
   - Replace the repository secret with a new random value of at least 12 characters, then run Deploy, which sets it on Fly. The old key stops working when the new release is up.
   - Then look at [/transparency](https://rsdp-poker-live.fly.dev/transparency) for admin actions nobody meant to take, such as backup downloads at odd times.
+- **Recap key (`REPORT_KEY`), John.** It can only read the game-night recap (error lines, activity counts, problem-sounding chat without names).
+  - Replace the repository secret with a new random value of at least 12 characters, run Deploy, and put the same value in the Claude project's cloud environment as `RSDP_REPORT_KEY`.
 - **Google sign-in secret, John.**
   - In the Google Cloud console, open the OAuth client and add a new client secret. Unverified: the console's exact wording. Google may show the new secret only once.
   - Replace `GOOGLE_CLIENT_SECRET` in GitHub and run Deploy.

@@ -34,6 +34,7 @@ How this file works:
 | [D21](#d21-look-and-feel) | Look and feel | 2026-10-25 to 2026-10-29 | John |
 | [D22](#d22-how-work-is-tracked-and-checked) | How work is tracked and checked | 2026-11-01 | John asked; details Claude |
 | [D23](#d23-the-code-is-under-the-mit-license) | The code is under the MIT license | 2026-11-01 | John |
+| [D24](#d24-a-game-night-recap-for-john-read-by-claude) | A game-night recap for John, read by Claude | 2026-11-05 | John asked; design Claude |
 
 ---
 
@@ -249,3 +250,16 @@ How this file works:
 - **Decided:** 2026-11-01, by John, choosing MIT over AGPL-3.0 or keeping all rights reserved (issue #202).
 - **Decision:** the code is open source under the MIT license. Anyone may use, copy, change and run their own copy, as long as the copyright notice and license go with it. Before this the repository had no license, so people could read the code but had no clear permission to copy it, though the fairness page encourages keeping a copy.
 - **Where:** [LICENSE](../LICENSE), the `license` field in every package.json, README, [CREDITS.md](CREDITS.md).
+
+## D24. A game-night recap for John, read by Claude
+
+- **Decided:** 2026-11-05. John asked for a short recap after each game night (errors, player feedback, anything odd) so he never has to go looking (issue #297). The design is Claude's and reversible.
+- **Decision:**
+  - The server keeps its own error lines (and browser error reports) for 30 days in its database, and a line at each clean shutdown, so a restart without one reads as a crash. Fly's log forgets within days.
+  - `GET /api/admin/recap` returns errors, restarts, activity counts, tournaments and problem-sounding chat lines without names, for a window of time. It takes a separate read-only key (`REPORT_KEY`), so the scheduled recap never holds the key that can delete tables or download the database.
+  - A scheduled Claude task reads it the morning after a night with games and writes John a summary in his private Claude project, split into "could affect a real game" and "minor". Quiet nights send nothing.
+- **Not done, on purpose:**
+  - An outside error-tracking service (D22 still stands). The recap sends Anthropic far less: no names, addresses, cards or chips, and only chat lines that look like problem reports. [PRIVACY.md](PRIVACY.md) says so.
+  - Posting recaps to GitHub: the repository is public.
+  - Recording each read in the public record: like the admin page's lookups, reading changes nothing.
+- **Where:** `apps/server/src/recap.ts`, [DEPLOY.md](DEPLOY.md#game-night-recap).

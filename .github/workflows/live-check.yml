@@ -29,3 +29,6 @@ jobs:
             code=$(curl -s -o /dev/null -w '%{http_code}' "$site/$path")
             echo "$path $code"; [ "$code" = 404 ] || exit 1
           done
+          # The game-night recap needs a key (401 without one; 403 while no key is set up).
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$site/api/admin/recap")
+          echo "api/admin/recap $code"; [ "$code" = 401 ] || [ "$code" = 403 ] || exit 1

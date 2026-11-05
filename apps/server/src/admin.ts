@@ -63,17 +63,22 @@ const digest = (s: string) => createHash('sha256').update(s).digest();
 /** Responds and returns false unless the request carries the admin key (header X-Admin-Key). */
 export type AdminCheck = (req: express.Request, res: express.Response) => boolean;
 
-/** One check for every admin route, so wrong keys count against one limit. */
-export function adminGate(key: string | undefined, now: () => number): AdminCheck {
+/**
+ * One check for a set of routes, so wrong keys count against one limit. Takes any of `keys`: the admin routes take
+ * ADMIN_KEY alone; read-only reports also take REPORT_KEY, which can't change or download anything.
+ */
+export function adminGate(keys: string | undefined | (string | undefined)[], now: () => number): AdminCheck {
   // A short key would be guessable; treat it as unset.
-  const adminKey = key && key.length >= 12 ? digest(key) : null;
+  const accepted = (Array.isArray(keys) ? keys : [keys]).filter((k): k is string => !!k && k.length >= 12).map(digest);
   const tries = limiter(ADMIN_TRIES, ADMIN_WINDOW_MS, now);
   return (req, res) => {
-    if (!adminKey) return res.status(403).json({ error: 'The admin key is not set up on this server yet.' }), false;
+    if (!accepted.length) return res.status(403).json({ error: 'The admin key is not set up on this server yet.' }), false;
     const ip = clientAddress(req);
     if (!tries(ip, false)) return res.status(429).json({ error: 'Too many wrong keys. Try again in a few minutes.' }), false;
     const given = req.get('x-admin-key') ?? '';
-    if (given && timingSafeEqual(digest(given), adminKey)) return true;
+    // Every key compared, so the time taken doesn't say which one matched.
+    const match = given ? accepted.map((k) => timingSafeEqual(digest(given), k)).includes(true) : false;
+    if (match) return true;
     tries(ip);
     res.status(401).json({ error: 'That admin key is not right.' });
     return false;

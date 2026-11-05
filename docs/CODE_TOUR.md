@@ -139,6 +139,8 @@ opens the connection and keeps your browser's secret.
   sends what broke to `POST /api/client-error`
   ([`clientErrors.ts`](../apps/server/src/clientErrors.ts)), which writes
   one line to the server log: the kind of page (`/t/:id`), never its link.
+  The server also keeps its log lines 30 days for John's game-night recap
+  ([`recap.ts`](../apps/server/src/recap.ts), `GET /api/admin/recap`).
 - [`src/fair.ts`](../apps/web/src/fair.ts) is your browser's half of fair
   dealing: it sends your seed for the next hand and watches that it was used.
   [`src/audit.ts`](../apps/web/src/audit.ts) checks the public record when

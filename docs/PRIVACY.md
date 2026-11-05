@@ -120,13 +120,25 @@ for how it works.
   while that tournament is open, so one address can't fill the home page with
   events; it is forgotten within a few minutes of the tournament ending. A
   server restart forgets them all. The server's own logs record errors, not
-  visitors, and they stay in Fly's log service, not in the site's database.
+  visitors. They go to Fly's log service, and the site's database also keeps
+  each error line for 30 days, for John's game-night recap (below).
   When something breaks on a page in your browser, the page sends the server
   a short note for those logs: the error and where in the site's code it
   happened, the kind of page (such as "a table", never its link) and which
   version of the site it was running. The server logs it without your IP
   address or who you are. The error's own text can show which kind of browser
   it came from (for example Chrome or Safari), but nothing more about it.
+- **Claude (Anthropic)**, the AI assistant that builds and runs this site for
+  John, reads a short recap the morning after a night with games, so John
+  hears about problems without going looking. The recap holds: the server's
+  error lines, when the server restarted, how many tables, hands and
+  tournaments there were (with each tournament's name, entry count and start
+  time), and the chat lines from tables and tournament lobbies that sound like
+  someone reporting a problem with the site (words like "froze", "stuck",
+  "lag" or "bug"). Chat lines go without the sender's name and with table
+  links removed. It holds no IP addresses, accounts, cards or chip counts.
+  Claude writes John a plain-English summary of it in John's private
+  workspace.
 - **GitHub** holds the code, the regular copy of the public record and the
   daily backups (below).
 - **Google**, only if you choose to sign in with Google. Google's own privacy
@@ -139,14 +151,15 @@ for how it works.
   including the Limited Use requirements.
 
 Fly.io and GitHub act as service providers ("processors"): they store and
-serve the data for the site and don't use it for their own purposes. Nobody
-else receives it, unless the law forces John to hand something over.
+serve the data for the site and don't use it for their own purposes.
+Anthropic receives only the recap described above. Nobody else receives
+anything, unless the law forces John to hand something over.
 
 **Data leaves Europe.** If you play from the EU or UK, your data goes to the
-USA, where Fly.io and GitHub keep it. Both companies publish data protection
-terms that cover this (such as the EU's standard contractual clauses or the
-EU-US Data Privacy Framework); you can read them on their websites. The USA's
-privacy laws are weaker than Europe's.
+USA, where Fly.io and GitHub keep it and Claude reads the recap. Fly.io and
+GitHub publish data protection terms that cover this (such as the EU's
+standard contractual clauses or the EU-US Data Privacy Framework); you can
+read them on their websites. The USA's privacy laws are weaker than Europe's.
 
 ## Backups
 
@@ -165,6 +178,7 @@ backup also shows up on [Checking John](/transparency).
   messages and 300 log lines, so lines that had already dropped off before
   this changed are gone.
 - Tournament lobby chat: for as long as the site runs.
+- The server's error lines: 30 days.
 - Practice tables you made and only you and bots played at: until you delete
   them from your profile.
 - Signed-in sessions: 30 days. Password reset codes: until used or expired.

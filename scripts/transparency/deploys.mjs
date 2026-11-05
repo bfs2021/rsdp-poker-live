@@ -26,7 +26,7 @@ import path from 'node:path';
 const REPO = 'jcolter11374/rsdp-poker-live';
 const SIGNER = `${REPO}/.github/workflows/deploy.yml`;
 /** The secrets the code reads. Any other one is an environment variable nobody can see the value of. */
-const SECRETS = ['ADMIN_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
+const SECRETS = ['ADMIN_KEY', 'REPORT_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
 /** Where fly.toml puts the data volume. */
 const DATA = '/data';
 const [machinesFile, versionFile, secretsFile, flyToml, dir] = process.argv.slice(2);
