@@ -15,6 +15,7 @@ Claude sessions write this project's code. Each session is short-lived, so the r
 - One issue per piece of work. One branch and one pull request into `develop`, which says `Closes #n` (or `Part of #n`).
 - Merge into `develop` once CI is green and a review pass is done. Post the review as a comment on the PR: what was checked, the findings, how each was resolved, and the commit reviewed. Call it "a separate review we ran ourselves", never "independent": it isn't an outside auditor.
 - Releases are pull requests from `develop` into `main`. A merge into `main` deploys.
+- **Full or light.** A change that touches the game, tournaments, who sees what, fairness, accounts, stored data or how the site runs is *full*: a review pass, a play-test on a copy, and a release at a quiet time. One that is only wording, layout, a download button for what people can already see, docs or tests is *light*: CI plus a short review pass, and it can go live as soon as it's ready. When unsure, full. A release takes the path of its riskiest change. The lists are in [CONTRIBUTING.md](CONTRIBUTING.md#full-or-light-how-much-checking-a-change-needs).
 - How a release is tested and checked: [docs/DEPLOY.md](docs/DEPLOY.md). What to do when something goes wrong: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ## Hard rules

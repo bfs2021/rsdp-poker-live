@@ -34,6 +34,7 @@ How this file works:
 | [D21](#d21-look-and-feel) | Look and feel | 2026-10-25 to 2026-10-29 | John |
 | [D22](#d22-how-work-is-tracked-and-checked) | How work is tracked and checked | 2026-11-01 | John asked; details Claude |
 | [D23](#d23-the-code-is-under-the-mit-license) | The code is under the MIT license | 2026-11-01 | John |
+| [D24](#d24-full-and-light-changes) | Full and light changes | 2026-11-05 | John; the lists Claude |
 
 ---
 
@@ -77,8 +78,8 @@ How this file works:
   - **2026-10-25, 21:12 UTC, on a choice card.** He picked "Yes, merge to develop": merge each fix into `develop` once CI is green and a review passes, and report afterwards. Merging into `main` still needed his OK then. (Minutes later he also wrote: "I'll leave all of this up to your discretion. Don't confuse my enthusiasm for impatience.")
   - **2026-10-26, 05:13 UTC.** "Feel free to push things as they are done without asking me." From then on, finished work may go live without asking him each time.
 - **Decision:** feature branch → `develop` → `main`, and a merge into `main` deploys. A review pass means one we run ourselves, recorded on the pull request (D22).
-- **Claude's own conditions** on the standing OK, not John's words: test each release on a copy first, prefer quiet times, and tell John after each release. Asking first about anything that costs money or changes the product is John's own rule (D04, D08).
-- **Open question:** on 2026-10-26 at 23:00 UTC John wrote "go ahead and push updates now. Don't worry about active tables". It's unclear whether that applies to every release or only to that one (PR #114 reads it as that one). It's been asked of John (#236). Until he answers, prefer quiet times.
+- **Claude's own conditions** on the standing OK, not John's words: test each release on a copy first, prefer quiet times, and tell John after each release. Asking first about anything that costs money or changes the product is John's own rule (D04, D08). **Partly replaced by D24** (2026-11-05): a release of only light changes skips the copy test and the wait for a quiet time.
+- **Answered 2026-11-05 (D24):** a release with any full change still prefers quiet times, and a release of only light changes goes out whenever it's ready. (The question, #236, was whether John's "go ahead and push updates now. Don't worry about active tables" of 2026-10-26, 23:00 UTC, applied to every release or only to that one.)
 - **Where:** [DEPLOY.md](DEPLOY.md#releasing), [CODE_TOUR.md](CODE_TOUR.md).
 
 ## D06. What's new and the changelog
@@ -249,3 +250,14 @@ How this file works:
 - **Decided:** 2026-11-01, by John, choosing MIT over AGPL-3.0 or keeping all rights reserved (issue #202).
 - **Decision:** the code is open source under the MIT license. Anyone may use, copy, change and run their own copy, as long as the copyright notice and license go with it. Before this the repository had no license, so people could read the code but had no clear permission to copy it, though the fairness page encourages keeping a copy.
 - **Where:** [LICENSE](../LICENSE), the `license` field in every package.json, README, [CREDITS.md](CREDITS.md).
+
+## D24. Full and light changes
+
+- **Decided:** 2026-11-05, 16:10 UTC, by John, on Claude's proposal. Claude set out what each shortcut would risk: skipping the review pass lets more bugs reach players, skipping the play-test means problems show up in a real game instead, and releasing at any time means a game can pause for a few seconds while the server restarts. The checks on GitHub can't be skipped. Claude recommended keeping every step for changes to the game itself and lightening them for low-risk fixes. John: "If you think it is reasonable yes. If you think it is reckless no." Claude judged it reasonable: the checks on GitHub still run on every change, and every change that could affect a game keeps every step.
+- **Decision:** a change takes one of two paths.
+  - **Full**, for anything that touches the game or players' data: dealing, chips and pots, timers, tournaments, hidden cards, privacy, fairness and the public record, sign-in, stored data, and how the site runs. CI, a separate review pass, a play-test on a copy, and a release at a quiet time.
+  - **Light**, for changes that can't affect a game, what anyone can see, or what's stored: wording, layout, download buttons for what people can already see, docs. CI and a shorter review pass, and live as soon as it's ready.
+  - When unsure, full. A release takes the path of its riskiest change.
+  - The exact lists and what a light review checks are Claude's, in CONTRIBUTING.md.
+- **Replaces** part of D05's conditions (the copy test and quiet times, for light changes), and answers D05's open question (#236).
+- **Where:** [CONTRIBUTING.md](../CONTRIBUTING.md#full-or-light-how-much-checking-a-change-needs), [DEPLOY.md](DEPLOY.md#releasing), [CLAUDE.md](../CLAUDE.md), the [pull request template](../.github/pull_request_template.md).

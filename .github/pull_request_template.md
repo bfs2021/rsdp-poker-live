@@ -9,6 +9,16 @@ A tiny change with no issue: add the "no issue needed" label instead.
 
 ## What changed
 
+## Full or light
+
+<!--
+Say which, and why. Light only if every part of the change is wording,
+layout, a download button for what people can already see, docs, tests or
+release notes. Anything that touches the game, tournaments, who sees what,
+fairness, accounts, stored data or how the site runs is full.
+When unsure, full. See CONTRIBUTING.md ("Full or light").
+-->
+
 ## How it was tested
 
 ## Review

@@ -76,6 +76,76 @@ applies it. To rename one, rename it on GitHub first (Issues → Labels →
 Edit) so its issues keep it, then change the file and any links that name
 it: changing only the file makes a new, empty label.
 
+## Full or light: how much checking a change needs
+
+Not every change carries the same risk. A change to how cards are dealt can
+spoil a real game; a typo fix can't. So a change takes one of two paths,
+and its pull request says which (the
+[template](.github/pull_request_template.md) asks). John agreed to this on
+5 November 2026 ([D24](docs/DECISIONS.md#d24-full-and-light-changes)).
+
+| | Full | Light |
+| --- | --- | --- |
+| For | Anything that touches the game or players' data | Changes that can't affect a game, what anyone can see, or what's stored |
+| The checks on GitHub (CI) | Must pass | Must pass |
+| Review | A separate review pass with another AI session | A short review pass with another AI session |
+| Play-test on a copy of the site | Yes, before the release | No |
+| When it goes live | At a quiet time | As soon as it's ready |
+
+**Full** if the change touches any of these, however little:
+
+- **The game:** dealing, cards, betting and the buttons that send actions,
+  chips and pots, timers and clocks, seating, practice bots, table and game
+  settings.
+- **Tournaments:** structures, payouts, breaks, rebuys, starting, moving
+  players, ending.
+- **Who sees what:** hole cards and the deck, and what spectators, replays,
+  hand histories, chat and downloads show, and to whom.
+- **Fairness and the public record:** seeds, hand proofs, the audit log,
+  signed builds, the transparency watcher, and what /fairness,
+  /transparency, /privacy and /terms promise.
+- **Accounts:** sign-in, sessions, passwords, profiles.
+- **Stored data:** the database and its migrations, backups, what's kept
+  and for how long.
+- **How the site runs:** the server's setup, the `Dockerfile`, `fly.toml`,
+  the workflows that deploy, back up or check the live site, and library
+  updates that ship in the site.
+
+**Light** only if every part of the change is one of these:
+
+- **Wording:** labels, messages, help text and how-to-play guides. Wording
+  on /fairness, /transparency, /privacy or /terms counts only when it says
+  the same thing more clearly; a changed promise is full.
+- **Layout and look:** spacing, sizes, colours, fonts, icons and
+  animations, as long as nothing is shown or hidden that wasn't before.
+- **Download buttons** for what the person can already see. A button that
+  lets someone download more than that is "who sees what", so it's full.
+- **Docs, code comments, tests and CI checks** that don't change what the
+  site runs.
+- **Release notes**, What's new and the roadmap page.
+
+**When unsure, it's full.** If the review finds that a light change touches
+anything on the full list, it becomes full.
+
+**A light review is shorter, not skipped.** It still runs in a separate AI
+session and is posted on the pull request like any review (step 3 below).
+It checks that:
+
+1. every part of the change fits the light list;
+2. the change does what its issue asks, with nothing else mixed in;
+3. the wording is true and plain, and on the public trust pages each
+   changed sentence matches the code;
+4. anything people see has been looked at on a phone-sized and a
+   desktop-sized screen, with screenshots in the pull request when the look
+   changes.
+
+**A release takes the path of its riskiest change.** If everything waiting
+on `develop` is light, the release can go out as soon as it's ready, with no
+play-test and no wait for a quiet time. If anything waiting is full, the
+whole release is full. A light change then goes out with that release, or,
+if it shouldn't wait (a public page saying something untrue, say), straight
+into `main` as a fix (see the end of the next section).
+
 ## The life of a change
 
 1. **Issue.** Open one with the bug or feature form (or a blank issue).
@@ -86,28 +156,33 @@ it: changing only the file makes a new, empty label.
    [template](.github/pull_request_template.md) has a place for it). The
    checks run: typecheck, every test, a production build, a browser smoke
    test against the real Docker image, a backup restore drill, and the PR
-   check for the issue link and release notes. We also run a separate review
-   pass with another AI session. That pass is ours, not an outside audit.
-   Its findings, and the commit it reviewed, go in a comment on the pull
-   request, so the review leaves a trace on GitHub. Anything left for later
-   gets its own issue, listed under "Left to do".
+   check for the issue link and release notes. The description also says
+   whether the change is
+   [full or light](#full-or-light-how-much-checking-a-change-needs). We
+   also run a separate review pass with another AI session (a short one for
+   a light change). That pass is ours, not an outside audit. Its findings,
+   and the commit it reviewed, go in a comment on the pull request, so the
+   review leaves a trace on GitHub. Anything left for later gets its own
+   issue, listed under "Left to do".
 4. **Merge into `develop`.** GitHub only closes issues for merges into the
    default branch (`main`), so a workflow labels each issue the pull request
    closes `status: on develop` and comments on it.
 5. **Release.** On release day, make sure the waiting changelog entry's
    version is today's (see [Releases](#releases)), then open a pull request
-   from `develop` into `main`. We play-test the release on a copy of the
-   site first, never on the live one. Merging it runs the checks again and
-   then deploys. After the deploy, the Release workflow tags the commit
-   (`v2026.11.01`), publishes a GitHub release with its notes and the
-   issues it closed, and closes those issues with a comment saying when
+   from `develop` into `main`. If the release holds any full change, we
+   play-test it on a copy of the site first, never on the live one, and
+   merge it at a quiet time ([DEPLOY.md](docs/DEPLOY.md#releasing)). A
+   release of only light changes skips both. Merging it runs the checks
+   again and then deploys. After the deploy, the Release workflow tags the
+   commit (`v2026.11.01`), publishes a GitHub release with its notes and
+   the issues it closed, and closes those issues with a comment saying when
    they went live.
 
 A fix that has to go straight into `main` follows the same rules: its pull
-request says "Closes #123" (GitHub closes the issue when it merges) and adds
-its own changelog entry with today's version. If the release waiting on
-`develop` already has today's version, the fix takes the next one
-(`2026.11.01.2`); the PR check says which. Merge `main` back into `develop`
+request says "Closes #123" (GitHub closes the issue when it merges), says
+whether it's full or light, and adds its own changelog entry with today's
+version. If the release waiting on `develop` already has today's version,
+the fix takes the next one (`2026.11.01.2`); the PR check says which. Merge `main` back into `develop`
 afterwards so the two don't drift, keeping the fix's entry exactly as it is
 on `main`.
 
