@@ -22,6 +22,7 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 
 ### Fixed and changed
 
+- Tournaments: a player who joins a table mid-game (late registration, re-entry or a table move) and lands on the button, the small blind or between them now waits one hand for the button to pass. Before, they were dealt straight in without paying a blind that orbit.
 - Table chat: John can now read any table's chat from the admin page, including after the table has closed, for example to read feedback or look into a complaint. Each time he does, the Checking John page shows it publicly, and players at that table can tell it was theirs. The Fair dealing and Privacy pages say so. Nothing changes at the tables.
 
 ## [2026.11.05.3] - 2026-11-05

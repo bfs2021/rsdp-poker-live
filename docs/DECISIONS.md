@@ -187,6 +187,7 @@ How this file works:
   - Auto-start seats players 60 seconds early, and waits up to 15 minutes when there are fewer than 2 entrants.
   - Players busted in the same hand finish in order of their starting stacks, with ties during hand-for-hand.
   - A busted player who doesn't take a rebuy offer is placed with the hand that busted them, not when the offer ends (PR #170).
+  - A player who joins a table mid-game is dealt in at once without posting, except on the button, the small blind or between them, where they wait one hand for the button to pass (the usual card-room rule; issue #311). Added 2026-11-05; John chose to keep this standard rule.
   - Bounties are shown per entry. A progressive knockout puts part of each bounty on the winner's head.
   - Invite codes are single-use, or one shared code. Invite-only events stay off the home page.
   - Season points: entrants minus place, plus one.
