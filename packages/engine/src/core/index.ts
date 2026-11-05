@@ -14,7 +14,7 @@ export { highAwardPortion, highRules } from './high';
 export { computePots, uncalledBet } from './pots';
 export { oddChipOrder, settle } from './settle';
 export { computeLegal } from './betting';
-export { RUN_TWICE_STEP_MS, RUNOUT_SETTLE_MS, RUNOUT_STEP_MS, runoutMs, runoutStepMs, runoutSteps } from './runout';
+export { RUN_TWICE_STEP_MS, RUNOUT_LAST_STEP_MS, RUNOUT_SETTLE_MS, RUNOUT_STEP_MS, runoutMs, runoutSteps, runoutWaits } from './runout';
 export { visibleEvents };
 
 export const engine: EngineApi = {

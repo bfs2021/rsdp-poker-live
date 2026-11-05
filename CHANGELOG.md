@@ -24,6 +24,7 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 
 - The bet amount box now takes only numbers (and a decimal point at tables that count in dollars and cents, or when amounts are shown in big blinds). Before, some browsers let you type letters into it.
 - Phones: in Omaha and other games with four or more cards, your own cards no longer cover the players sitting either side of you at a full table. When there isn't room, your cards sit a little closer together and a little smaller. Computers are unchanged.
+- All-in run-outs have more build-up: the last card waits face down on the board for a moment, then turns over, and the result shows a beat later. In a tournament, a player knocked out by a run-out now has their cards face up the whole time (before, they flipped back face down until the result), and they stay in their seat, marked Knocked out, until the next hand, instead of vanishing the moment the result showed.
 
 ## [2026.11.05.4] - 2026-11-05
 

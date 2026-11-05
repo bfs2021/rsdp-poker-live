@@ -7,13 +7,18 @@ import type { HandEvent } from './types';
  */
 export const RUNOUT_STEP_MS = 2000;
 /**
+ * The last card of a single run waits longer than the streets before it, so
+ * the table has a moment of build-up before the river (issue #308).
+ */
+export const RUNOUT_LAST_STEP_MS = 3000;
+/**
  * Run it twice deals slower, about as PokerNow does (some 4 s a street), so
  * each card of both runs has its moment: a turn all-in is otherwise two
  * quick rivers.
  */
 export const RUN_TWICE_STEP_MS = 3500;
-/** A beat after the last card before the result shows. */
-export const RUNOUT_SETTLE_MS = 700;
+/** A beat after the last card before the result shows, long enough to read the board first. */
+export const RUNOUT_SETTLE_MS = 1200;
 
 type BoardEvent = Extract<HandEvent, { t: 'board' }>;
 
@@ -43,13 +48,19 @@ export function runoutSteps(events: readonly HandEvent[]): BoardEvent[][] {
   return steps;
 }
 
-/** The pause before each street of this hand's runout is shown. */
-export function runoutStepMs(events: readonly HandEvent[]): number {
-  return events.some((e) => e.t === 'run-it' && e.times === 2) ? RUN_TWICE_STEP_MS : RUNOUT_STEP_MS;
+/**
+ * The pause before each step of this hand's runout (one per runoutSteps entry).
+ * Run it twice deals every street at its slower pace; a single run waits
+ * longer before its last card.
+ */
+export function runoutWaits(events: readonly HandEvent[]): number[] {
+  const n = runoutSteps(events).length;
+  if (events.some((e) => e.t === 'run-it' && e.times === 2)) return Array(n).fill(RUN_TWICE_STEP_MS);
+  return Array.from({ length: n }, (_, i) => (i === n - 1 ? RUNOUT_LAST_STEP_MS : RUNOUT_STEP_MS));
 }
 
 /** How long a table takes to show this hand's runout, or 0 with none. */
 export function runoutMs(events: readonly HandEvent[]): number {
-  const n = runoutSteps(events).length;
-  return n ? n * runoutStepMs(events) + RUNOUT_SETTLE_MS : 0;
+  const waits = runoutWaits(events);
+  return waits.length ? waits.reduce((a, b) => a + b, 0) + RUNOUT_SETTLE_MS : 0;
 }
