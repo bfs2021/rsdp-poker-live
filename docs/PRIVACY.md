@@ -195,7 +195,7 @@ authority (in the UK, the ICO).
 - **With an account:** open [your profile](/profile) and use **Delete account**.
   That removes your username, password, Google link, sessions, browser
   secrets, name, picture, notes, saved setups, hidden tables, practice graph
-  reset, shared hand links and feedback you sent straight away. Hands you already
+  reset, shared hand links and feedback you sent while signed in straight away. Hands you already
   played, and your messages in table chat, stay in other players' history,
   ledgers and table logs under the name you used at the time, because they
   are part of their games too. If you want your

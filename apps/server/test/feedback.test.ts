@@ -118,6 +118,23 @@ describe('feedback from the table', () => {
     expect((await fetch(`${url}/api/feedback/${first.id}`, { method: 'DELETE' })).status).toBe(401);
   });
 
+  it('limits one address, however many new guests it makes', async () => {
+    for (let i = 0; i < 2; i++) {
+      const { host } = await atTable(`feedback-guest-${i}-0123456789`);
+      for (let j = 0; j < 5; j++) await host.call('feedback:send', { kind: 'other', text: `note ${i}.${j}` });
+    }
+    const { host } = await atTable('feedback-guest-2-0123456789');
+    await expect(host.call('feedback:send', { kind: 'other', text: 'one more' })).rejects.toThrow('a lot of feedback');
+  });
+
+  it('stops showing feedback after a year, even with nothing new sent', async () => {
+    const { host } = await atTable();
+    await host.call('feedback:send', { kind: 'idea', text: 'old' });
+    clock.advance(FEEDBACK_KEEP_MS + 1);
+    expect(await list()).toEqual([]);
+    expect(await queryRows(db, sql`select id from feedback`)).toEqual([]);
+  });
+
   it('forgets feedback after a year', async () => {
     const { host } = await atTable();
     await host.call('feedback:send', { kind: 'idea', text: 'old' });

@@ -26,7 +26,7 @@ import { tablePreview, tournamentPreview, withPreview } from './preview';
 import { LobbyLog, memoryLobbyStore, type LobbyStore } from './tournament/lobby';
 import { memorySharedHands, type SharedHandStore } from './shared';
 import { memorySuggestions, suggestionRoutes, type SuggestionStore } from './suggestions';
-import { cleanFeedback, FEEDBACK_BURST, FEEDBACK_SITE_PER_HOUR, FEEDBACK_WINDOW_MS, feedbackRoutes, isFeedbackKind, memoryFeedback, type FeedbackStore } from './feedback';
+import { cleanFeedback, FEEDBACK_ADDRESS_BURST, FEEDBACK_BURST, FEEDBACK_SITE_PER_HOUR, FEEDBACK_WINDOW_MS, feedbackRoutes, isFeedbackKind, memoryFeedback, type FeedbackStore } from './feedback';
 import { newId } from './db/ids';
 import { adminGate, limiter, sweepLimiters } from './admin';
 import { accountRoutes, type AccountHooks } from './accounts';
@@ -445,6 +445,7 @@ export function createApp(deps: AppDeps = {}) {
   feedbackRoutes(app, feedback, { canRead: isAdmin, isAdmin, log });
   const feedbackPerPlayer = limiter(FEEDBACK_BURST, FEEDBACK_WINDOW_MS, () => clock.now());
   const feedbackSite = limiter(FEEDBACK_SITE_PER_HOUR, 60 * 60_000, () => clock.now());
+  const feedbackAddress = limiter(FEEDBACK_ADDRESS_BURST, FEEDBACK_WINDOW_MS, () => clock.now());
   const accountHooks: AccountHooks = {
     signedIn: (playerId) => avatars.delete(playerId),
     deleted: (playerIds) => {
@@ -1558,9 +1559,11 @@ export function createApp(deps: AppDeps = {}) {
           const kind = input?.kind;
           if (!isFeedbackKind(kind)) throw new ActionError('pick what kind of feedback it is');
           const text = cleanFeedback(input?.text);
-          if (text === null) throw new ActionError(String(input?.text ?? '').trim() ? 'keep it under 1000 characters' : 'write something first');
-          if (!feedbackSite('all', false) || !feedbackPerPlayer(me)) throw new ActionError('thanks! that is a lot of feedback at once; try again in a few minutes');
+          if (text === null) throw new ActionError(typeof input?.text === 'string' && input.text.length > 1000 ? 'keep it under 1000 characters' : 'write something first');
+          const address = socketAddress(socket);
+          if (!feedbackSite('all', false) || !feedbackAddress(address, false) || !feedbackPerPlayer(me)) throw new ActionError('thanks! that is a lot of feedback at once; try again in a few minutes');
           feedbackSite('all');
+          feedbackAddress(address);
           const { state } = rt;
           const seat = rt.seatOf(me);
           await feedback.create({

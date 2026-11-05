@@ -33,6 +33,8 @@ export const FEEDBACK_MAX = 1000;
 export const FEEDBACK_BURST = 5;
 export const FEEDBACK_WINDOW_MS = 10 * 60_000;
 export const FEEDBACK_SITE_PER_HOUR = 60;
+/** Feedback one address may send per window, so new guest ids can't use up the site's hour on their own. */
+export const FEEDBACK_ADDRESS_BURST = 10;
 
 export const isFeedbackKind = (k: unknown): k is FeedbackKind => typeof k === 'string' && (FEEDBACK_KINDS as readonly string[]).includes(k);
 
@@ -59,7 +61,7 @@ export function memoryFeedback(now: () => number = Date.now): FeedbackStore {
       return { ...row };
     },
     async list(opts = {}) {
-      const since = opts.since?.getTime() ?? -Infinity;
+      const since = Math.max(opts.since?.getTime() ?? -Infinity, now() - FEEDBACK_KEEP_MS);
       return [...rows.values()]
         .filter((r) => Date.parse(r.createdAt) >= since)
         .sort((a, b) => b.id - a.id)
@@ -81,11 +83,14 @@ export function dbFeedback(db: Db, now: () => number = Date.now): FeedbackStore 
   const view = (r: Awaited<ReturnType<typeof insertFeedback>>): Feedback => ({ ...r, kind: r.kind as FeedbackKind, createdAt: r.createdAt.toISOString() });
   return {
     create: async (input) => {
-      // Old feedback goes as new feedback comes: no timer needed, and nothing is sent once the site is quiet.
+      // Old feedback goes as new feedback comes and whenever it is read, so none is shown or kept past a year for long.
       await pruneFeedback(db, new Date(now() - FEEDBACK_KEEP_MS));
       return view(await insertFeedback(db, { ...input, createdAt: new Date(now()) }));
     },
-    list: async (opts) => (await listFeedback(db, opts)).map(view),
+    list: async (opts) => {
+      await pruneFeedback(db, new Date(now() - FEEDBACK_KEEP_MS));
+      return (await listFeedback(db, opts)).map(view);
+    },
     mark: async (id, done) => {
       const row = await markFeedback(db, id, done);
       return row ? view(row) : null;
