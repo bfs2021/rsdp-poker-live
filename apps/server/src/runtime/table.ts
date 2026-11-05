@@ -1650,7 +1650,8 @@ export class TableRuntime {
       stack: input.stack,
       sittingOut: false,
       sitOutReason: null,
-      isNew: false,
+      // Arriving at a table that has already dealt: the planner keeps them out of the button and small blind for a hand.
+      isNew: this.state.handNumber > 0,
       missedSmallBlind: false,
       missedBigBlind: false,
       waitForBigBlind: false,

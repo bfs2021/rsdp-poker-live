@@ -62,6 +62,58 @@ function foldDown(rt: TableRuntime) {
 }
 
 describe('tournament tables', () => {
+  /**
+   * Seats 0, 1, 3 and 4 play (seat 2 emptied after the first hand), and hands are played until one ends with the
+   * button on 0, the small blind on 1 and the big blind on 3. The next hand then has the button on 1, the small blind
+   * on 3 and the big blind on 4, so seat 2 sits between the button and the small blind.
+   */
+  function gapBetweenTheBlinds() {
+    const t = tournamentTable(5);
+    const { rt, clock } = t;
+    foldDown(rt);
+    rt.unseatPlayer('p3');
+    for (let i = 0; i < 20; i++) {
+      clock.advance(60_000);
+      foldDown(rt);
+      const p = rt.state.positions!;
+      if (p.button === 0 && p.smallBlind === 1 && p.bigBlind === 3) return t;
+    }
+    throw new Error('the blinds never reached 0, 1 and 3');
+  }
+
+  // #311: on 4 Nov a player who re-entered was seated between the button and the small blind and dealt straight
+  // into the next hand without paying a blind. Re-entry, late registration and table moves all take the first
+  // empty seat after the last button (seatToFill), which lands there whenever the last small blind sat right after it.
+  it('a player seated between the button and the small blind waits for the button to pass', () => {
+    const { rt, clock } = gapBetweenTheBlinds();
+    rt.connect('p9');
+    rt.placePlayer({ seat: 2, playerId: 'p9', name: 'P9', stack: 1000 });
+    clock.advance(60_000);
+    expect(live(rt)).toBe(true);
+    expect(rt.state.positions).toEqual({ button: 1, smallBlind: 3, bigBlind: 4 });
+    expect(rt.state.hand!.seats.map((x) => x.playerId)).not.toContain('p9');
+    expect(rt.seatOf('p9')!.stack).toBe(1000);
+    expect(tableView(rt, 'p9', 0).seats[2]!.waiting).toBe(true);
+    // The button moves on past them, and from the next hand they play, still without posting anything extra.
+    foldDown(rt);
+    clock.advance(60_000);
+    expect(rt.state.positions).toEqual({ button: 3, smallBlind: 4, bigBlind: 0 });
+    const hand = rt.state.hand!;
+    expect(hand.seats.map((x) => x.playerId)).toContain('p9');
+    expect(rt.seatOf('p9')!.stack).toBe(1000);
+  });
+
+  it('a player seated outside the blinds is dealt in at once, without posting', () => {
+    const { rt, clock } = gapBetweenTheBlinds();
+    rt.connect('p9');
+    // Seat 6 comes after the next big blind (seat 4): an ordinary seat.
+    rt.placePlayer({ seat: 6, playerId: 'p9', name: 'P9', stack: 1000 });
+    clock.advance(60_000);
+    expect(rt.state.positions).toEqual({ button: 1, smallBlind: 3, bigBlind: 4 });
+    expect(rt.state.hand!.seats.map((x) => x.playerId)).toContain('p9');
+    expect(rt.seatOf('p9')!.stack).toBe(1000);
+  });
+
   it('keeps the names of players who have left the table in the hand log and history', () => {
     const { rt, ids } = tournamentTable(3);
     foldDown(rt);
