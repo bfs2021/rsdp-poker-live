@@ -60,12 +60,8 @@ const STARTER_SPECS: Record<StarterId, { preset: PresetName | 'rsdp'; stack: num
   deep: { preset: 'deep', stack: 20_000, lateThrough: 6 },
 };
 
-/**
- * Puts a starter's stack, blind levels and late registration on `current`,
- * and for RSDP its table rules, keeping everything else (name, games, start, prizes). Rebuys and add-ons
- * that are on stay on, on the first four levels and the first break.
- */
-export function applyStarter(current: TournamentSettings, id: StarterId): TournamentSettings {
+/** What a starter sets on `current`: the stack, blind levels and late registration, and for RSDP the table rules. */
+function starterParts(current: TournamentSettings, id: StarterId): Pick<TournamentSettings, 'startingStack' | 'structure' | 'lateRegistration' | 'tableRules'> {
   const spec = STARTER_SPECS[id];
   const expectedEntrants = current.start.kind === 'sng' ? current.start.playersNeeded : Math.min(current.maxEntrants, 30);
   const rebuys = current.rebuy.max > 0 ? { rebuyThroughLevel: 4 } : {};
@@ -81,12 +77,61 @@ export function applyStarter(current: TournamentSettings, id: StarterId): Tourna
   // A short field, or RSDP's levels, can have no break; an add-on needs one, so add one after level 4.
   if (current.addOn.max > 0 && !structure.some((r) => r.kind === 'break')) structure = [...structure.slice(0, 4), { kind: 'break', minutes: 5, addOn: true }, ...structure.slice(4)];
   return {
-    ...structuredClone(current),
     startingStack: spec.stack,
     structure,
     lateRegistration: { enabled: true, throughLevel: spec.lateThrough },
-    rebuy: { ...current.rebuy, chips: spec.stack },
-    addOn: { ...current.addOn, chips: spec.stack },
     ...(id === 'rsdp' ? { tableRules: { ...RSDP_TABLE_RULES } } : {}),
   };
+}
+
+/**
+ * Puts a starter's stack, blind levels and late registration on `current`,
+ * and for RSDP its table rules, keeping everything else (name, games, start, prizes). Rebuys and add-ons
+ * that are on stay on, on the first four levels and the first break.
+ */
+export function applyStarter(current: TournamentSettings, id: StarterId): TournamentSettings {
+  const parts = starterParts(current, id);
+  return {
+    ...structuredClone(current),
+    ...parts,
+    rebuy: { ...current.rebuy, chips: parts.startingStack },
+    addOn: { ...current.addOn, chips: parts.startingStack },
+  };
+}
+
+/**
+ * One row as a string, so two structures can be compared row by row whatever order their fields were set in.
+ * Rebuy and add-on marks count only while rebuys or add-ons are on; ticking one off leaves its marks behind.
+ */
+const rowKey = (r: StructureRow, rebuys: boolean, addOns: boolean) =>
+  JSON.stringify(
+    r.kind === 'break'
+      ? ['break', r.minutes, addOns && !!r.addOn]
+      : ['level', r.sb, r.bb, r.ante, r.anteType, r.minutes, r.gameId ?? null, r.limit ? [r.limit.smallBet, r.limit.bigBet, r.limit.bringIn ?? null] : null, rebuys && !!r.rebuy],
+  );
+
+/**
+ * The starter these settings are on: the one that pressing again would change
+ * nothing it sets (stack, blind levels, late registration, and for RSDP the
+ * table rules). Null when the host has changed any of those since. Turbo,
+ * Standard and Deep stack build their levels for the expected field, so
+ * changing max players or a Sit & Go's size can un-pick them; RSDP's levels
+ * never depend on it.
+ */
+export function matchingStarter(settings: TournamentSettings): StarterId | null {
+  for (const { id } of STARTERS) {
+    const want = starterParts(settings, id);
+    if (settings.startingStack !== want.startingStack) continue;
+    const late = settings.lateRegistration;
+    if (late.enabled !== want.lateRegistration.enabled || late.throughLevel !== want.lateRegistration.throughLevel) continue;
+    const key = (r: StructureRow) => rowKey(r, settings.rebuy.max > 0, settings.addOn.max > 0);
+    if (settings.structure.length !== want.structure.length || settings.structure.some((r, i) => key(r) !== key(want.structure[i]))) continue;
+    if (want.tableRules) {
+      const have = settings.tableRules;
+      const rules = want.tableRules;
+      if (!have || (Object.keys(rules) as (keyof typeof rules)[]).some((k) => have[k] !== rules[k])) continue;
+    }
+    return id;
+  }
+  return null;
 }

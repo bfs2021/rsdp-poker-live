@@ -97,6 +97,9 @@
 .tn-request span { flex: 1 1 140px; }
 
 /* Structure editor: one card per level on phones */
+.tn-structure-summary { margin: 0; }
+.tn-replace[open] { background: var(--panel-2); border-radius: 10px; padding: 0 10px 10px; }
+.tn-replace > p { margin: 8px 0 0; font-size: 0.85rem; }
 .tn-preset-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
 .tn-preset-bar label:first-child { grid-column: 1 / -1; }
 .tn-rows { display: flex; flex-direction: column; gap: 6px; }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { applyStarter, savedStructureErrors, structureToSave, STARTERS, type TournamentSettings } from '@rsdp/tournament';
+import { applyStarter, matchingStarter, savedStructureErrors, structureToSave, STARTERS, type TournamentSettings } from '@rsdp/tournament';
 import { SETUP_NAME_MAX } from '@rsdp/engine/wire';
 import { SavedSetupRow } from '../components/SavedSetupRow';
 import { cleanSetupName } from '../savedSetups';
@@ -14,6 +14,8 @@ export function SavedStructures({ current, onLoad }: { current: TournamentSettin
   const onAccount = tournamentStructures.useOnAccount();
   const [name, setName] = useState('');
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  // The starter the form is on now, so the host can see it without opening the levels.
+  const onStarter = STARTERS.find((s) => s.id === matchingStarter(current));
   const say = (text: string, error?: boolean) => setMsg({ text, error });
   const fail = (e: unknown) => say(e instanceof Error ? e.message : String(e), true);
 
@@ -43,12 +45,26 @@ export function SavedStructures({ current, onLoad }: { current: TournamentSettin
       <h2>Start from</h2>
       <div className="tn-chips" role="group" aria-label="Starter structures">
         {STARTERS.map((s) => (
-          <button type="button" key={s.id} className="tn-chip" title={s.blurb} onClick={() => onLoad(applyStarter(current, s.id), `${s.name}: ${s.blurb}. Everything else stays as you had it.`)}>
+          <button
+            type="button"
+            key={s.id}
+            className={`tn-chip ${s === onStarter ? 'on' : ''}`}
+            aria-pressed={s === onStarter}
+            title={s.blurb}
+            onClick={() => onLoad(applyStarter(current, s.id), `${s.name}: ${s.blurb}. Everything else stays as you had it.`)}
+          >
+            {s === onStarter && <span aria-hidden="true">✓ </span>}
             {s.name}
           </button>
         ))}
       </div>
-      <p className="muted tn-saved-hint">Starters set the stack, blind levels and late registration. Your saved structures bring back everything.</p>
+      {onStarter ? (
+        <p className="tn-note tn-saved-hint">
+          Set to <b>{onStarter.name}</b>: {onStarter.blurb}. Your games, start time and everything else are up to you.
+        </p>
+      ) : (
+        <p className="muted tn-saved-hint">Starters set the stack, blind levels and late registration, and keep your games. Your saved structures bring back everything.</p>
+      )}
       {saved.length > 0 && (
         <div className="tn-saved-list">
           <h3>Your saved structures</h3>

@@ -3,6 +3,10 @@ import {
   applyStarter,
   curvePercents,
   defaultSettings,
+  isRsdpLevels,
+  matchingStarter,
+  presetStructure,
+  rsdpStructure,
   MAX_PAID_PLACES,
   MAX_PAYOUT_RANGES,
   MAX_SAVED_STRUCTURE_LENGTH,
@@ -124,5 +128,69 @@ describe('starters', () => {
     // A Sit & Go for two ends before the first break; the add-on still gets one.
     const tiny = applyStarter({ ...current, maxEntrants: 2, start: { kind: 'sng', playersNeeded: 2, startDelaySeconds: 0, autoSpawn: false } }, 'turbo');
     expect(validateSettings(tiny)).toEqual([]);
+  });
+});
+
+describe('which starter the form is on', () => {
+  const rsdp = applyStarter(defaultSettings({ name: 'Friday', games: ['nlhe', 'plo4', 'plo8'] }), 'rsdp');
+
+  it('is RSDP for a new tournament, mixed games and all', () => {
+    expect(matchingStarter(rsdp)).toBe('rsdp');
+    expect(matchingStarter({ ...rsdp, games: ['nlhe'], name: 'Other', maxEntrants: 12, start: { kind: 'manual' } })).toBe('rsdp');
+  });
+
+  it('is each starter just after it is loaded, on top of any other', () => {
+    for (const { id } of STARTERS) {
+      for (const { id: from } of STARTERS) expect(matchingStarter(applyStarter(applyStarter(rsdp, from), id))).toBe(id);
+    }
+  });
+
+  it('stays the same when rebuys or add-ons are ticked on the form afterwards', () => {
+    // As the form does it: the first four levels allow rebuys, and an add-on break goes in after level 4.
+    let n = 0;
+    const rebuys = { ...rsdp, rebuy: { ...rsdp.rebuy, max: 1 }, structure: rsdp.structure.map((r) => (r.kind === 'level' && n++ < 4 ? { ...r, rebuy: true } : r)) };
+    expect(matchingStarter(rebuys)).toBe('rsdp');
+    const addOns = { ...rsdp, addOn: { ...rsdp.addOn, max: 1 }, structure: [...rsdp.structure.slice(0, 4), { kind: 'break' as const, minutes: 5, addOn: true }, ...rsdp.structure.slice(4)] };
+    expect(matchingStarter(addOns)).toBe('rsdp');
+    // Ticked and then unticked again: the marks left on the levels do nothing, so it is still RSDP.
+    expect(matchingStarter({ ...rebuys, rebuy: { ...rebuys.rebuy, max: 0 } })).toBe('rsdp');
+  });
+
+  it('is none once the host changes the stack, a level, late registration or the clock', () => {
+    expect(matchingStarter({ ...rsdp, startingStack: 50_000 })).toBeNull();
+    expect(matchingStarter({ ...rsdp, structure: rsdp.structure.map((r, i) => (i === 3 && r.kind === 'level' ? { ...r, minutes: 10 } : r)) })).toBeNull();
+    expect(matchingStarter({ ...rsdp, structure: rsdp.structure.slice(0, 27) })).toBeNull();
+    expect(matchingStarter({ ...rsdp, lateRegistration: { enabled: true, throughLevel: 6 } })).toBeNull();
+    expect(matchingStarter({ ...rsdp, lateRegistration: { enabled: false, throughLevel: 5 } })).toBeNull();
+    expect(matchingStarter({ ...rsdp, tableRules: { ...rsdp.tableRules!, decisionSeconds: 20 } })).toBeNull();
+    const { tableRules: _t, ...noRules } = rsdp;
+    expect(matchingStarter(noRules)).toBeNull();
+  });
+
+  it("does not care in which order a row's fields were set", () => {
+    const reordered = rsdp.structure.map((r) => (r.kind === 'level' ? { minutes: r.minutes, anteType: r.anteType, ante: r.ante, bb: r.bb, sb: r.sb, kind: r.kind } : r));
+    expect(matchingStarter({ ...rsdp, structure: reordered })).toBe('rsdp');
+  });
+});
+
+describe('the RSDP blind levels', () => {
+  it('are recognised with breaks, rebuy marks or a game on a level added', () => {
+    expect(isRsdpLevels(rsdpStructure())).toBe(true);
+    const rows = rsdpStructure({ rebuyThroughLevel: 4 });
+    rows.splice(4, 0, { kind: 'break', minutes: 5, addOn: true });
+    rows[0] = { ...rows[0], kind: 'level', gameId: 'plo4' } as (typeof rows)[0];
+    expect(isRsdpLevels(rows)).toBe(true);
+  });
+
+  it('are not recognised once a blind, an ante, a length or the number of levels differs', () => {
+    const rows = rsdpStructure();
+    const change = (i: number, patch: object) => rows.map((r, j) => (j === i ? { ...r, ...patch } : r));
+    expect(isRsdpLevels(change(5, { bb: 900 }))).toBe(false);
+    expect(isRsdpLevels(change(5, { sb: 450 }))).toBe(false);
+    expect(isRsdpLevels(change(5, { ante: 100, anteType: 'per-player' }))).toBe(false);
+    expect(isRsdpLevels(change(27, { minutes: 15 }))).toBe(false);
+    expect(isRsdpLevels(rows.slice(1))).toBe(false);
+    expect(isRsdpLevels([])).toBe(false);
+    expect(isRsdpLevels(presetStructure('regular', { startingStack: 63_000 }))).toBe(false);
   });
 });
