@@ -100,7 +100,15 @@ export const planForcedBets: PlanForcedBets = (args) => {
     const owes = s.isNew || s.missedBigBlind || s.missedSmallBlind;
     // Heads up both players are in the blinds; waiting would stall the table.
     const inBlinds = s.seat === bb || (s.seat === sb && !s.isNew);
-    if (mode === 'tournament' || headsUp || inBlinds || !owes) {
+    if (mode === 'tournament') {
+      // Tournament players never post to play. Someone just seated here (late registration, re-entry or a table
+      // move) is dealt in at once, except on the button, the small blind or between them: there they wait one
+      // hand for the button to pass, so nobody gets a hand the blinds skipped.
+      if (s.isNew && !headsUp && s.seat !== bb && inBlindZone(s.seat)) waiting.push(s.seat);
+      else dealtIn.push(s.seat);
+      continue;
+    }
+    if (headsUp || inBlinds || !owes) {
       dealtIn.push(s.seat);
       continue;
     }

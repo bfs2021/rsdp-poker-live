@@ -168,10 +168,32 @@ describe('planForcedBets: new and returning players', () => {
     ]);
   });
 
-  it('tournaments deal everyone in and never wait', () => {
-    const plan = planForcedBets({ ...base, ...last, mode: 'tournament', seats: [seat(0), seat(1), seat(2, { isNew: true }), seat(3)] });
-    expect(plan.dealtIn).toEqual([0, 1, 2, 3]);
-    expect(plan.waiting).toEqual([]);
+  it('tournaments deal everyone in without posting, but a new arrival waits out the button and small blind', () => {
+    // Next hand: button 1, small blind 2, big blind 3.
+    const t = (seats: PlannerSeat[]) => planForcedBets({ ...base, ...last, mode: 'tournament', seats });
+    const settled = t([seat(0, { missedBigBlind: true, missedSmallBlind: true }), seat(1), seat(2), seat(3), seat(5, { waitForBigBlind: true })]);
+    expect(settled.dealtIn).toEqual([0, 1, 2, 3, 5]);
+    expect(settled.waiting).toEqual([]);
+    expect(settled.posts.map((p) => p.kind)).toEqual(['small-blind', 'big-blind']);
+    // New in the small blind: they wait and the small blind is dead (#311).
+    const inSmall = t([seat(0), seat(1), seat(2, { isNew: true }), seat(3)]);
+    expect(inSmall.dealtIn).toEqual([0, 1, 3]);
+    expect(inSmall.waiting).toEqual([2]);
+    expect(inSmall.posts).toEqual([{ seat: 3, kind: 'big-blind', amount: 2, live: true }]);
+    // New on the button, or new between the button and the small blind: they wait too.
+    expect(t([seat(0), seat(1, { isNew: true }), seat(2), seat(3)]).waiting).toEqual([1]);
+    const between = planForcedBets({ ...base, mode: 'tournament', lastButton: 0, lastSmallBlindSeat: 2, lastBigBlindSeat: 4, seats: [seat(0), seat(2), seat(3, { isNew: true }), seat(4), seat(6)] });
+    expect([between.button, between.smallBlindSeat, between.bigBlindSeat]).toEqual([2, 4, 6]);
+    expect(between.waiting).toEqual([3]);
+    // New in the big blind, or anywhere outside the blinds: dealt in at once, posting nothing extra.
+    const inBig = t([seat(0), seat(1), seat(2), seat(3, { isNew: true }), seat(5, { isNew: true })]);
+    expect(inBig.dealtIn).toEqual([0, 1, 2, 3, 5]);
+    expect(inBig.posts.map((p) => [p.seat, p.kind])).toEqual([
+      [2, 'small-blind'],
+      [3, 'big-blind'],
+    ]);
+    // Heads up nobody waits.
+    expect(t([seat(1), seat(2, { isNew: true })]).waiting).toEqual([]);
   });
 
   it('marks players the big blind skipped while they sat out', () => {

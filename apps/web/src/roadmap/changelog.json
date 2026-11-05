@@ -1,6 +1,13 @@
 {
   "releases": [
     {
+      "id": "2026.11.05.3",
+      "date": "2026-11-05",
+      "fixes": [
+        "Tournaments: a player who joins a table mid-game (late registration, re-entry or a table move) and lands on the button, the small blind or between them now waits one hand for the button to pass. Before, they were dealt straight in without paying a blind that orbit."
+      ]
+    },
+    {
       "id": "2026.11.05.2",
       "date": "2026-11-05",
       "fixes": [
