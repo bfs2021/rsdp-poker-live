@@ -899,6 +899,10 @@ dl.shortcuts dd { margin: 0; }
 
 /* Send feedback (FeedbackDialog.tsx) */
 .feedback-form textarea { font: inherit; resize: vertical; }
+/* Phones: a hand of four or more cards too wide for the gap between your neighbours is bunched up and made
+   smaller to fit, so it doesn't cover their nameplates (#304). Table.tsx works out the size. Last, to win over the rules above. */
+.felt.compact.hand-fit .seat.me .hole .playing-card { --cw: var(--fit-cw); }
+.felt.compact.hand-fit .seat.me .hole .playing-card + .playing-card { margin-left: var(--fit-overlap); }
 
 /* ---- big windows (#317): the table grows into the room. --k is its scale (Table.tsx), --sk the seats' (k, or less when a
    full table needs it). Below k = 1 none of this applies. */

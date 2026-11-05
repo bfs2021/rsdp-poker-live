@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { besideBet, clearSideBands, inFront, seatFractions, stadiumPoint } from './geometry';
+import { besideBet, clearSideBands, fitHand, handRoom, inFront, seatFractions, stadiumPoint } from './geometry';
 
 const seats = (n: number, taken: number[]) => Array.from({ length: n }, (_, i) => taken.includes(i));
 
@@ -126,5 +126,40 @@ describe('besideBet', () => {
 
   it('puts the button above a left seat\'s bet when the seat is above the middle', () => {
     expect(besideBet({ x: 176, y: 290 }, { x: 0, y: 280 }, { x: 600, y: 300 }, { w: 30, h: 12 }, 20)).toEqual({ x: 176, y: 258 });
+  });
+});
+
+describe('handRoom and fitHand (#304: your cards covering a neighbour on a phone)', () => {
+  const box = (left: number, right: number, top: number, bottom: number) => ({ left, right, top, bottom });
+  // A 390px phone, nine players: your nameplate in the middle, Bea and Host either side and a little higher, Cal far above.
+  const mine = box(155, 235, 530, 578);
+  const others = [box(66, 141, 495, 543), box(248, 327, 495, 543), box(23, 98, 408, 456)];
+
+  it('upright: twice the gap to the nearer neighbour level with your cards, less a margin', () => {
+    expect(handRoom(mine, others, false, 84)).toBe(2 * (248 - 195 - 6));
+  });
+  it('ignores plates far above your cards, and has no limit when nobody is beside you', () => {
+    expect(handRoom(mine, [box(23, 98, 300, 348)], false, 84)).toBe(Infinity);
+  });
+  it('sideways: the gap to the nearest plate on your left', () => {
+    expect(handRoom(box(380, 460, 265, 313), [box(205, 275, 265, 313), box(565, 640, 265, 313)], true, 56)).toBe(380 - 6 - 275 - 6);
+  });
+
+  it('leaves a hand that fits as it is', () => {
+    expect(fitHand(4, 200, { cw: 60, overlap: 24 })).toBeNull();
+    expect(fitHand(4, Infinity, { cw: 60, overlap: 24 })).toBeNull();
+  });
+  it('bunches the cards first, then shrinks them, never past the floor', () => {
+    const natural = { cw: 60, overlap: 24 };
+    const width = (f: { cw: number; overlap: number }) => f.cw + 3 * (f.cw - f.overlap);
+    const bunched = fitHand(4, 150, natural)!;
+    expect(bunched.cw).toBe(60);
+    expect(width(bunched)).toBeLessThanOrEqual(150);
+    const smaller = fitHand(4, 96, natural)!;
+    expect(smaller.cw).toBeLessThan(60);
+    expect(width(smaller)).toBeLessThanOrEqual(97);
+    // At least 45% of each card still shows, enough for its rank and suit.
+    expect(smaller.cw - smaller.overlap).toBeGreaterThanOrEqual(Math.floor(smaller.cw * 0.45));
+    expect(fitHand(4, 20, natural)!.cw).toBe(30);
   });
 });

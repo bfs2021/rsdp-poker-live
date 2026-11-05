@@ -28,6 +28,8 @@ _A bigger table on big screens_
 
 ### Fixed and changed
 
+- The bet amount box now takes only numbers (and a decimal point at tables that count in dollars and cents, or when amounts are shown in big blinds). Before, some browsers let you type letters into it.
+- Phones: in Omaha and other games with four or more cards, your own cards no longer cover the players sitting either side of you at a full table. When there isn't room, your cards sit a little closer together and a little smaller. Computers are unchanged.
 - Big screens: on a window 1440 pixels wide or more, the table now fills the screen. The table, seats, cards, chips and pot all grow to use the space that used to be dark, while the felt, colours, cards and sounds stay the same. Chat moves to a box in the bottom-left corner beside your action buttons, and the log, ledger, hands, stats and host controls open from the new Log button (Host & log for hosts) in the top bar. Laptops and phones look as before.
 
 ## [2026.11.05.4] - 2026-11-05
