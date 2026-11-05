@@ -96,7 +96,7 @@ Handle it privately, as [SECURITY.md](../.github/SECURITY.md) says. Not in a pub
 3. **Keep its changelog line plain**, for example "Fixed a security problem".
 4. **Once the fix is live,** John edits that release on GitHub (Releases → the tag → Edit) to say what was fixed, and thanks the reporter if they'd like that. This is the one time a release's notes are edited by hand. The Release workflow never rewrites a release that already exists.
 
-If a public issue only says someone found a security problem, don't ask for details there. John switches on private reporting if it's still off (Settings → Code security → Private vulnerability reporting, #179 step 4), then replies asking them to use Security → Report a vulnerability.
+If a public issue only says someone found a security problem, don't ask for details there. John replies asking them to use Security → Report a vulnerability (private reporting has been on since 5 November 2026; if it's ever off, it's under Settings → Code security → Private vulnerability reporting).
 
 ## Someone asks about their data
 
