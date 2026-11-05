@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { StatusPill } from './Suggestions';
 import { ApiError, checkAdminKey, deleteSuggestion, fetchSuggestions, logOrder, shortDate, STATUS_LABEL, STATUSES, updateSuggestion, type Suggestion } from './suggestions';
+import { deleteFeedback, feedbackOrder, fetchFeedback, KIND_LABEL, markFeedback, type Feedback } from './feedback';
 import { adminDeleteTable, adminLookUpTable, issueResetCode, type AdminTable } from '../account/api';
 import './roadmap.css';
 import { SiteHeader } from '../components/SiteHeader';
@@ -89,8 +90,9 @@ export function RoadmapAdminPage() {
         ) : (
           <>
             <p className="muted">
-              Changes show on the public log right away. <button onClick={signOut}>Sign out</button>
+              Suggestion changes show on the public roadmap right away. <button onClick={signOut}>Sign out</button>
             </p>
+            <FeedbackList adminKey={key} />
             <ResetCodeForm adminKey={key} />
             <DeleteTableForm adminKey={key} />
             <h2>Suggestions</h2>
@@ -288,5 +290,80 @@ function DeleteTableForm({ adminKey }: { adminKey: string }) {
       )}
       <button disabled={busy || !link.trim()}>Look it up</button>
     </form>
+  );
+}
+
+/** Feedback players sent from tables: private, so only here. */
+function FeedbackList({ adminKey }: { adminKey: string }) {
+  const [list, setList] = useState<Feedback[] | null>(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    fetchFeedback(adminKey)
+      .then(setList)
+      .catch((e: Error) => setError(e.message));
+  }, [adminKey]);
+
+  async function run(fn: () => Promise<void>) {
+    setBusy(true);
+    setError('');
+    try {
+      await fn();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const open = list?.filter((f) => !f.done).length ?? 0;
+  return (
+    <section className="feedback-admin">
+      <h2>
+        Feedback from tables{open > 0 && <span className="suggest-status in_progress">{open} new</span>}
+      </h2>
+      <p className="muted">Private: only the admin sees this. Kept for a year, and deleted with the sender's account.</p>
+      {error && <p className="error">{error}</p>}
+      {list?.length === 0 && <p className="muted">No feedback yet.</p>}
+      <ul className="admin-list">
+        {feedbackOrder(list ?? []).map((f) => (
+          <li key={f.id} className={f.done ? 'done' : ''}>
+            <div className="suggest-head">
+              <strong>{f.name}</strong>
+              <span className={`suggest-status ${f.kind === 'problem' ? 'declined' : f.kind === 'idea' ? 'approved' : ''}`}>{KIND_LABEL[f.kind]}</span>
+              {f.done && <span className="suggest-status shipped">Done</span>}
+            </div>
+            <span className="feedback-text">{f.text}</span>
+            <span className="suggest-meta">
+              #{f.id} · {new Date(f.createdAt).toLocaleString()} · <a href={`/t/${f.tableId}`}>{f.tableName || 'Table'}</a> ({f.mode}
+              {f.game && `, ${f.game}`}) · {f.handNumber > 0 ? `hand ${f.handNumber}` : 'before the first hand'} · {f.seated ? 'seated' : 'not seated'}
+              {f.screen && ` · ${f.screen}`}
+              {f.commit && ` · build ${f.commit.slice(0, 7)}`}
+            </span>
+            <div className="admin-buttons">
+              <button disabled={busy} onClick={() => run(async () => {
+                const saved = await markFeedback(adminKey, f.id, !f.done);
+                setList((l) => l && l.map((x) => (x.id === saved.id ? saved : x)));
+              })}>
+                {f.done ? 'Mark not done' : 'Mark done'}
+              </button>
+              <button
+                disabled={busy}
+                onClick={() =>
+                  confirm(`Delete feedback #${f.id} from ${f.name} for good?`) &&
+                  run(async () => {
+                    await deleteFeedback(adminKey, f.id);
+                    setList((l) => l && l.filter((x) => x.id !== f.id));
+                  })
+                }
+              >
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

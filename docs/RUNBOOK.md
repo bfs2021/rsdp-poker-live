@@ -5,7 +5,7 @@ Plain steps for the likely emergencies, in the order to try them. Background on 
 Who can do what:
 
 - **John** owns the GitHub, Fly.io and Google accounts. Only he can open the Fly dashboard, change repository settings or secrets, or use his backup key.
-- **Claude sessions** can read GitHub, open pull requests and run workflows from the Actions tab. They can't reach the live site or Fly directly, so anything on the machine itself goes through a workflow or through John.
+- **Claude sessions** can read GitHub, open pull requests and run workflows from the Actions tab. They can read the live site directly (read-only, D24 in [DECISIONS.md](DECISIONS.md)), but can't reach Fly, so anything on the machine itself goes through a workflow or through John.
 
 To see what's live: `https://rsdp-poker-live.fly.dev/api/version` reports the commit the server runs, and the newest green Deploy run on `main` shows when it went out. The newest [release](https://github.com/jcolter11374/rsdp-poker-live/releases) normally names the same commit.
 
@@ -75,6 +75,8 @@ If a key was pasted somewhere public, committed, or shown in a log, replace it. 
 - **Admin key (`ADMIN_KEY`), John.**
   - Replace the repository secret with a new random value of at least 12 characters, then run Deploy, which sets it on Fly. The old key stops working when the new release is up.
   - Then look at [/transparency](https://rsdp-poker-live.fly.dev/transparency) for admin actions nobody meant to take, such as backup downloads at odd times.
+- **Recap key (`REPORT_KEY`), John.** It can only read the game-night recap (error lines, restarts, activity counts; no chat or names).
+  - Replace the repository secret with a new random value of at least 12 characters, run Deploy, and put the same value in the Claude project's cloud environment as `RSDP_REPORT_KEY`.
 - **Google sign-in secret, John.**
   - In the Google Cloud console, open the OAuth client and add a new client secret. Unverified: the console's exact wording. Google may show the new secret only once.
   - Replace `GOOGLE_CLIENT_SECRET` in GitHub and run Deploy.

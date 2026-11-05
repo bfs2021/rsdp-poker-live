@@ -139,6 +139,14 @@ opens the connection and keeps your browser's secret.
   sends what broke to `POST /api/client-error`
   ([`clientErrors.ts`](../apps/server/src/clientErrors.ts)), which writes
   one line to the server log: the kind of page (`/t/:id`), never its link.
+  The server also keeps its log lines 30 days for John's game-night recap
+  ([`recap.ts`](../apps/server/src/recap.ts), `GET /api/admin/recap`).
+- [`components/FeedbackDialog.tsx`](../apps/web/src/components/FeedbackDialog.tsx)
+  is Send feedback in the table menu. It goes over the socket
+  (`feedback:send`) to [`feedback.ts`](../apps/server/src/feedback.ts),
+  which saves it with the table and hand number in the `feedback` table.
+  It is private: only the admin reads it, on `/roadmap/admin` or from
+  `GET /api/feedback`.
 - [`src/fair.ts`](../apps/web/src/fair.ts) is your browser's half of fair
   dealing: it sends your seed for the next hand and watches that it was used.
   [`src/audit.ts`](../apps/web/src/audit.ts) checks the public record when
@@ -265,7 +273,7 @@ The same production image the live site runs can be built with Docker; see
 
 | Step | Where |
 | --- | --- |
-| Every piece of work starts as a GitHub issue. Work happens on branches whose pull requests name their issue ("Closes #123") and are merged into `develop`; releases then go from `develop` to `main`. A fix that can't wait goes straight into `main` the same way. | [CONTRIBUTING.md](../CONTRIBUTING.md) |
+| Every piece of work starts as a GitHub issue. Work happens on branches whose pull requests name their issue ("Closes #123") and are merged into `develop`; releases then go from `develop` to `main`. A fix that can't wait goes straight into `main` the same way. A change that touches the game or players' data is play-tested on a copy and released at a quiet time; a light one (wording, layout, docs) can go live as soon as it's ready. | [CONTRIBUTING.md](../CONTRIBUTING.md) |
 | Every pull request, and every push to `main` or `develop`, runs the checks: typecheck, all tests (including fuzz tests that deal up to 3,000 random hands across every game through the engine and random games through whole tables), a production build, the browser smoke test against the Docker image, and a backup restore drill. | [`ci.yml`](../.github/workflows/ci.yml) |
 | Every pull request is also checked for a linked issue, and a release into `main` for exactly one new changelog entry with a version. When a pull request is merged into `develop`, the issues it closes are labelled `status: on develop`. | [`pr-checks.yml`](../.github/workflows/pr-checks.yml), [`issue-status.yml`](../.github/workflows/issue-status.yml), [`scripts/release/`](../scripts/release) |
 | A pull request into `main` (a release) also rehearses the upgrade: `main`'s image makes data, the new image starts on it and must give the same leaderboard and public record and read back every saved table and tournament, and `main`'s image must do the same on the upgraded data (a rollback). | [`upgrade.yml`](../.github/workflows/upgrade.yml), [`scripts/upgrade/`](../scripts/upgrade) |

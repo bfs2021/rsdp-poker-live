@@ -170,7 +170,10 @@ when they deal at a home game.
 - **Use admin powers, or a shell on the server.** The admin page can remove
   test tables and answer suggestions; each use now goes in the public record
   and on [/transparency](/transparency). Looking is not recorded: the admin
-  page can list tables and who is at them without leaving an entry. Once a
+  page can list tables and who is at them without leaving an entry, and the
+  game-night recap John gets (errors, restarts, how much was played; see
+  [Privacy](/privacy)) isn't recorded either. It holds no chat, cards or chip
+  counts. Once a
   day (lately around midday in New York, since GitHub starts the job hours
   after its 5 am slot) GitHub downloads a backup of the whole database with the admin key,
   locked with a key only John holds. It includes any hand being played at that
