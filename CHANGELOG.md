@@ -26,6 +26,7 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 - Phones: in Omaha and other games with four or more cards, your own cards no longer cover the players sitting either side of you at a full table. When there isn't room, your cards sit a little closer together and a little smaller. Computers are unchanged.
 - On a computer: after you send a chat message, the cursor now leaves the chat box, so the keys you press next go to the game again (F, K, C, R, or a bet amount) instead of into chat. Press Enter to chat again. Clicking a quick reply (gg, nh...) lets go too.
 - On a computer: on your turn, typing a number starts your bet amount in the bet box, then Enter bets it. No need to click the box first.
+- Hosts on a computer: pressing Enter after clicking Start game or Pause no longer presses that button again (Start game turns into Stop game, so it asked whether to stop the game). Enter goes to the chat box, as it does elsewhere.
 
 ## [2026.11.05.4] - 2026-11-05
 
