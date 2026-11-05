@@ -142,7 +142,17 @@ export function TournamentLobby({ id }: { id: string }) {
         <section className="tn-card">
           {tab === 'players' && <Players state={state} me={session?.playerId} />}
           {tab === 'tables' && <Tables state={state} me={session?.playerId} />}
-          {tab === 'chat' && <LobbyChat id={id} items={log} session={session} />}
+          {tab === 'chat' && (
+            <>
+              {mayDownloadTableChat(state, session?.playerId) && (
+                <>
+                  <p className="muted">This is the lobby chat. What was said at the tables is in this download:</p>
+                  <TableChatDownload state={state} />
+                </>
+              )}
+              <LobbyChat id={id} items={log} session={session} />
+            </>
+          )}
           {tab === 'activity' && <Activity items={log} />}
           {tab === 'structure' && (
             <>
@@ -478,8 +488,7 @@ function Players({ state, me }: { state: TournamentState; me?: string }) {
 function Tables({ state, me }: { state: TournamentState; me?: string }) {
   const over = state.status === 'finished' || state.status === 'cancelled';
   const played = state.counters.table > 0;
-  // A closed table can't be opened again, so once it is over its chat comes from here (host, co-hosts and players).
-  const chat = over && played && (isTournamentStaff(state, me) || state.entries.some((e) => e.playerId === me)) ? <TableChatDownload state={state} /> : null;
+  const chat = mayDownloadTableChat(state, me) ? <TableChatDownload state={state} /> : null;
   if (!state.tables.length)
     return over ? (
       <>
@@ -514,6 +523,12 @@ function Tables({ state, me }: { state: TournamentState; me?: string }) {
       </div>
     </>
   );
+}
+
+/** A closed table can't be opened again, so once it is over its chat comes from the lobby (host, co-hosts and players). */
+function mayDownloadTableChat(state: TournamentState, me?: string) {
+  const over = state.status === 'finished' || state.status === 'cancelled';
+  return over && state.counters.table > 0 && (isTournamentStaff(state, me) || state.entries.some((e) => e.playerId === me));
 }
 
 function TableChatDownload({ state }: { state: TournamentState }) {
