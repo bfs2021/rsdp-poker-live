@@ -34,6 +34,7 @@ How this file works:
 | [D21](#d21-look-and-feel) | Look and feel | 2026-10-25 to 2026-10-29 | John |
 | [D22](#d22-how-work-is-tracked-and-checked) | How work is tracked and checked | 2026-11-01 | John asked; details Claude |
 | [D23](#d23-the-code-is-under-the-mit-license) | The code is under the MIT license | 2026-11-01 | John |
+| [D24](#d24-claude-sessions-may-read-the-live-site) | Claude sessions may read the live site | 2026-11-05 | John |
 
 ---
 
@@ -90,7 +91,7 @@ How this file works:
 ## D07. Never test against the live site
 
 - **Decided:** 2026-10-25, by John, after test data reached the live site (the "Smoke Cup", PR #35).
-- **Decision:** never run bots, test tables or test games against the live site; test on a copy. Only read-only checks touch the live site, from GitHub Actions. Removing something from the live site needs John's OK. Practice bots are only ever seated by hand by a player or host: seats are never filled with bots automatically, and tournaments refuse bots.
+- **Decision:** never run bots, test tables or test games against the live site; test on a copy. Only read-only checks touch the live site, from GitHub Actions. **Replaced in part by [D24](#d24-claude-sessions-may-read-the-live-site)** (sessions may now also read it directly). Removing something from the live site needs John's OK. Practice bots are only ever seated by hand by a player or host: seats are never filled with bots automatically, and tournaments refuse bots.
 - **Where:** `e2e/smoke.mjs` (refuses the live address), `deploy.yml` (read-only checks), `apps/server/src/runtime/table.ts` (no bots in tournaments), [RUNBOOK.md](RUNBOOK.md#incident-log).
 
 ## D08. Hosting: one always-on machine on Fly.io
@@ -249,3 +250,10 @@ How this file works:
 - **Decided:** 2026-11-01, by John, choosing MIT over AGPL-3.0 or keeping all rights reserved (issue #202).
 - **Decision:** the code is open source under the MIT license. Anyone may use, copy, change and run their own copy, as long as the copyright notice and license go with it. Before this the repository had no license, so people could read the code but had no clear permission to copy it, though the fairness page encourages keeping a copy.
 - **Where:** [LICENSE](../LICENSE), the `license` field in every package.json, README, [CREDITS.md](CREDITS.md).
+
+## D24. Claude sessions may read the live site
+
+- **Decided:** 2026-11-05, by John, saying yes to letting Claude's sessions read the live site (issue #298). Replaces the "from GitHub Actions" part of D07; the rest of D07 stands.
+- **Decision:** Claude's cloud environment allows one extra host, `rsdp-poker-live.fly.dev`, so a session can read the live site directly to check a release or read feedback. Only reads: GET requests to public pages and read-only endpoints such as `/api/version` and `/api/health`. Still never bots, test tables, test tournaments, sign-ups or anything else that writes (D07). Fly itself (`fly.io`, `flyctl`, deploys, secrets) is not on the list and still goes only through `main`'s workflows.
+- **Why:** routing every read through a workflow made release checks and reading feedback slow.
+- **Where:** the cloud environment's network settings (John's Claude account, not this repo), [CLAUDE.md](../CLAUDE.md), [RUNBOOK.md](RUNBOOK.md).

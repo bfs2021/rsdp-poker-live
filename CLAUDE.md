@@ -19,7 +19,7 @@ Claude sessions write this project's code. Each session is short-lived, so the r
 
 ## Hard rules
 
-- **Never send test traffic to the live site** (`rsdp-poker-live.fly.dev`): no bots, test tables, test tournaments or sign-ups. Test on a local copy. Only read-only checks run against the live site, from GitHub Actions.
+- **Never send test traffic to the live site** (`rsdp-poker-live.fly.dev`): no bots, test tables, test tournaments or sign-ups. Test on a local copy. Only read-only checks touch the live site: from GitHub Actions, or plain reads (GET requests to public pages and read-only endpoints like `/api/version` and `/api/health`) from a Claude session, which can reach that one host since 2026-11-05 (D24). Fly itself still goes only through `main`'s workflows.
 - **Deploy only through `deploy.yml` on `main`.** Never from a laptop or a branch: the transparency watcher opens a public issue when it finds the live machine running an image `deploy.yml` didn't build and sign. It checks after each GitHub deploy and on a schedule that GitHub runs every few hours.
 - **New secrets or settings:** add a new Fly secret to `SECRETS` in `scripts/transparency/deploys.mjs`, or a new plain setting to `[env]` in `fly.toml`, in the same PR, *before* it is set on Fly. Otherwise the watcher reports, in a public issue, an unknown secret or a setting that `fly.toml` on main doesn't have. See "Adding a setting or secret" in docs/DEPLOY.md.
 - **Never handle John's backup private key.** Only John holds it. Don't ask for it.
