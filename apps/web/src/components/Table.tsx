@@ -283,7 +283,7 @@ export function Table({
   const estW = room.w - 2 * sideMargin * k;
   const estH = room.h - 130 * k;
   const estPerimeter = 2 * Math.abs(estW - estH) + Math.PI * Math.min(estW, estH);
-  const grownScale = Math.round(Math.max(1, Math.min(k, (estPerimeter * 0.92) / (players * podWidth + (n - players) * 130))) * 100) / 100;
+  const grownScale = Math.round(Math.max(0.72, Math.min(k, (estPerimeter * 0.92) / (players * podWidth + (n - players) * 130))) * 100) / 100;
   const seatScale = compact ? 1 : grown ? grownScale : Math.round(Math.max(0.72, roomy) * 100) / 100;
   // Board cards grow with the felt, so a big window doesn't leave a small board in a sea of green.
   const boardCard = compact

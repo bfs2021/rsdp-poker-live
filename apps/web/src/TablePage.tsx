@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { getVariant } from '@rsdp/engine/variants';
 import type { SeatView, TableView } from '@rsdp/engine/wire';
 import { call, NoAnswerError, socket } from './socket';
@@ -295,11 +295,35 @@ export function TablePage({ tableId }: { tableId: string }) {
   useEffect(() => {
     if (!wide) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && document.querySelector('.side.drawer.open') && !document.querySelector('.modal-backdrop, .replayer-backdrop')) setDrawer(false);
+      if (e.key !== 'Escape' || e.defaultPrevented || !document.querySelector('.side.drawer.open')) return;
+      // Escape in a text box only leaves the box; a dialog or replay on top closes first.
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable]')) return;
+      if (document.querySelector('.modal-backdrop, .replayer-backdrop')) return;
+      const inside = document.activeElement?.closest('.side.drawer');
+      setDrawer(false);
+      if (inside) document.querySelector<HTMLElement>('.drawer-button')?.focus();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [wide]);
+  // The panel only starts open until the game first starts; after that it stays as the player leaves it, so it
+  // doesn't close by itself over an open replay, or pop open over the table when the host stops the game.
+  const started = !!view?.started;
+  useEffect(() => {
+    if (started && drawerPick === null) setDrawer(false);
+  }, [started, drawerPick]);
+  // The records panel sits just under the top bar, however tall it is.
+  const pageRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const page = pageRef.current;
+    const bar = page?.querySelector<HTMLElement>('.topbar');
+    if (!wide || !page || !bar) return;
+    const measure = () => page.style.setProperty('--topbar-h', `${bar.offsetHeight}px`);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, [wide, !!view]);
   if (error) {
     // A tournament table closes when it breaks; the lobby knows the new seat.
     const tournament = error === 'table not found' ? tournamentOfTable(tableId) : null;
@@ -461,7 +485,7 @@ export function TablePage({ tableId }: { tableId: string }) {
   const openDrawer = () => setDrawer(true);
 
   return (
-    <div className={['table-page', portrait && 'portrait', wide && 'wide'].filter(Boolean).join(' ')}>
+    <div ref={pageRef} className={['table-page', portrait && 'portrait', wide && 'wide'].filter(Boolean).join(' ')}>
       <header className="topbar">
         <a className="logo small" href="/">
           {portrait ? (
@@ -516,9 +540,13 @@ export function TablePage({ tableId }: { tableId: string }) {
             </button>
             {seatButtons}
             {wide && (
-              <button className={drawer ? 'drawer-button on' : 'drawer-button'} aria-expanded={drawer} onClick={() => setDrawer(!drawer)}>
+              <button className={drawer ? 'drawer-button on' : 'drawer-button'} aria-expanded={drawer} aria-controls="records-panel" onClick={() => setDrawer(!drawer)}>
                 {hostPanel ? 'Host & log' : 'Log'}
-                {pending > 0 && <span className="badge">{pending}</span>}
+                {pending > 0 && (
+                  <span className="badge" aria-label={`, ${pending} ${pending === 1 ? 'request' : 'requests'} waiting`}>
+                    {pending}
+                  </span>
+                )}
               </button>
             )}
             <TableMenu
@@ -685,7 +713,7 @@ export function TablePage({ tableId }: { tableId: string }) {
           </Dock>
         </section>
         {!portrait && (
-          <aside className={wide ? `side drawer${drawer ? ' open' : ''}` : 'side'}>
+          <aside id="records-panel" className={wide ? `side drawer${drawer ? ' open' : ''}` : 'side'}>
             {hostPanel}
             <PartBoundary name="side panel">
               <SidePanel view={view} fmt={fmt} />
