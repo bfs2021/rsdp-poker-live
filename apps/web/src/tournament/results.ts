@@ -56,7 +56,9 @@ export function tableChatText(s: TournamentState, tables: TournamentTableChat[],
   const out = [`${s.settings.name}: table chat and log (${tables.length} ${tables.length === 1 ? 'table' : 'tables'}, ${chats} chat ${chats === 1 ? 'message' : 'messages'})`, ''];
   if (!tables.length) out.push('Nothing was said or logged at the tables.');
   for (const t of tables) {
-    out.push(`=== ${t.name} (table ${t.table} to open) ===`);
+    // Tables are named by their place when they open, so a later one can share a name with one that broke.
+    const shared = tables.filter((x) => x.name === t.name).length > 1;
+    out.push(`=== ${t.name}${shared ? ` (no. ${t.table} in the order tables opened)` : ''} ===`);
     // No hands: each table's hand history is its own download while it is open.
     for (const l of fullLogLines(t.log, t.chat, [], '', String)) out.push(`${when(l.at)}  ${l.kind === 'chat' ? '[chat] ' : ''}${l.text}`);
     out.push('');
