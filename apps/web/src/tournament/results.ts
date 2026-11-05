@@ -1,4 +1,5 @@
-import { standings, type TournamentState } from '@rsdp/tournament';
+import { standings, type TournamentState, type TournamentTableChat } from '@rsdp/tournament';
+import { download, fullLogLines } from '../records';
 
 /** A spreadsheet cell: quoted when needed, and never read as a formula. */
 function cell(v: string | number): string {
@@ -47,4 +48,24 @@ export function downloadResults(s: TournamentState) {
   a.download = resultsFileName(s);
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/** Every table's chat and log of a finished tournament as one text file, table by table, each in time order. */
+export function tableChatText(s: TournamentState, tables: TournamentTableChat[], when: (at: number) => string = (at) => new Date(at).toLocaleString()): string {
+  const chats = tables.reduce((n, t) => n + t.chat.filter((c) => c.playerId).length, 0);
+  const out = [`${s.settings.name}: table chat and log (${tables.length} ${tables.length === 1 ? 'table' : 'tables'}, ${chats} chat ${chats === 1 ? 'message' : 'messages'})`, ''];
+  if (!tables.length) out.push('Nothing was said or logged at the tables.');
+  for (const t of tables) {
+    // Tables are named by their place when they open, so a later one can share a name with one that broke.
+    const shared = tables.filter((x) => x.name === t.name).length > 1;
+    out.push(`=== ${t.name}${shared ? ` (no. ${t.table} in the order tables opened)` : ''} ===`);
+    // No hands: each table's hand history is its own download while it is open.
+    for (const l of fullLogLines(t.log, t.chat, [], '', String)) out.push(`${when(l.at)}  ${l.kind === 'chat' ? '[chat] ' : ''}${l.text}`);
+    out.push('');
+  }
+  return out.join('\n') + '\n';
+}
+
+export function downloadTableChat(s: TournamentState, tables: TournamentTableChat[]) {
+  download(resultsFileName(s).replace(/\.csv$/, ' table chat.txt'), tableChatText(s, tables));
 }

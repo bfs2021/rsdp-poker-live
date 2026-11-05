@@ -16,6 +16,7 @@ import {
   type TournamentListing,
   type TournamentSettings,
   type TournamentState,
+  type TournamentTableChat,
   type TournamentView,
 } from '@rsdp/tournament';
 import { call, currentSession, NoAnswerError, onSession, setName, socket, type Session } from '../socket';
@@ -42,6 +43,8 @@ export interface TournamentClient {
   /** Lobby chat and events of a tournament being followed (see subscribe): now and on every change. */
   onLog(id: string, cb: (items: LobbyItem[]) => void): () => void;
   chat(id: string, text: string): Promise<void>;
+  /** Once the tournament is over: every table's chat and log (host, co-hosts and players only). */
+  tableChat(id: string): Promise<TournamentTableChat[]>;
 }
 
 /** Tournaments run on the server; this tab follows the ones on screen. */
@@ -139,6 +142,10 @@ export class SocketTournamentClient implements TournamentClient {
 
   async chat(id: string, text: string) {
     await call('tournament:chat', { id, text });
+  }
+
+  async tableChat(id: string) {
+    return (await call<{ tables: TournamentTableChat[] }>('tournament:tableChat', { id })).tables;
   }
 
   private follow(id: string) {
@@ -307,6 +314,10 @@ export class LocalTournamentClient implements TournamentClient {
 
   async chat() {
     throw new Error('Chat needs the server');
+  }
+
+  async tableChat(): Promise<TournamentTableChat[]> {
+    throw new Error('Table chat needs the server');
   }
 
   async list(): Promise<TournamentList> {
