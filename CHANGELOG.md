@@ -18,6 +18,13 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
+## [2026.11.05.5] - 2026-11-05
+
+### Fixed and changed
+
+- The bet amount box now takes only numbers (and a decimal point at tables that count in dollars and cents, or when amounts are shown in big blinds). Before, some browsers let you type letters into it.
+- Phones: in Omaha and other games with four or more cards, your own cards no longer cover the players sitting either side of you at a full table. When there isn't room, your cards sit a little closer together and a little smaller. Computers are unchanged.
+
 ## [2026.11.05.4] - 2026-11-05
 
 ### Fixed and changed
@@ -580,6 +587,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.05.5]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.5
 [2026.11.05.4]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.4
 [2026.11.05.3]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.3
 [2026.11.05.2]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.2
