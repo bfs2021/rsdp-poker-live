@@ -205,17 +205,27 @@ export function TablePage({ tableId }: { tableId: string }) {
   useWakeLock(prefs.wakeLock && view?.me.seat != null);
   // B switches between chips and big blinds; ? lists every shortcut.
   useEffect(() => {
+    // The control last pressed with a mouse or finger, until Tab moves on from it.
+    let clicked: Element | null = null;
+    const onPointer = (e: PointerEvent) => {
+      clicked = e.target instanceof Element ? e.target.closest('button, a, summary, [role=button]') : null;
+    };
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') clicked = null;
       if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
       if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable]')) return;
       if (e.key === 'Enter') {
-        // Enter on a button presses it; anywhere else it starts a chat message.
-        if (e.defaultPrevented || (e.target instanceof HTMLElement && e.target.closest('button, a, summary, [role=button]'))) return;
+        // Enter on a button reached with the keyboard (Tab) presses it; anywhere else it starts a chat message. A button
+        // last clicked with the mouse keeps focus, so Enter there goes to chat too: otherwise Enter after clicking
+        // Start game pressed the Stop game button that took its place, and Pause flipped to Resume (#320).
+        if (e.defaultPrevented) return;
+        const control = e.target instanceof HTMLElement ? e.target.closest('button, a, summary, [role=button]') : null;
+        if (control && control !== clicked) return;
+        if (document.querySelector('.modal-backdrop, .sheet-backdrop, .replayer-backdrop')) return;
         const box = document.querySelector<HTMLInputElement>('.side .chat-form input');
-        if (box && !document.querySelector('.modal-backdrop, .sheet-backdrop, .replayer-backdrop')) {
-          e.preventDefault();
-          box.focus();
-        }
+        // With no chat box to go to (muted, say), a clicked button still isn't pressed again.
+        if (box || control) e.preventDefault();
+        box?.focus();
         return;
       }
       if (e.key === '?') {
@@ -225,8 +235,12 @@ export function TablePage({ tableId }: { tableId: string }) {
       if (e.key.toLowerCase() !== 'b' || !bigBlindRef.current) return;
       setPrefs({ units: getPrefs().units === 'bb' ? 'chips' : 'bb' });
     };
+    window.addEventListener('pointerdown', onPointer, true);
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointerdown', onPointer, true);
+      window.removeEventListener('keydown', onKey);
+    };
   }, []);
   // A one-time tip about the keyboard shortcuts, for seated players on a computer.
   const [keysTipSeen, setKeysTipSeen] = useState(() => {
@@ -653,7 +667,7 @@ export function TablePage({ tableId }: { tableId: string }) {
               <SidePanel view={view} fmt={fmt} />
             </PartBoundary>
             <PartBoundary name="chat">
-              <ChatBox view={view} />
+              <ChatBox view={view} letGo={hasKeyboard()} />
             </PartBoundary>
           </aside>
         )}
