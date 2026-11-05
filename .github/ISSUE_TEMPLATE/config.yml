@@ -3,3 +3,6 @@ contact_links:
   - name: Suggest an idea without a GitHub account
     url: https://rsdp-poker-live.fly.dev/roadmap
     about: The site's suggestion box. Anyone can send an idea and follow it in the suggestion log.
+  - name: Report a security problem privately
+    url: https://github.com/jcolter11374/rsdp-poker-live/security/advisories/new
+    about: Only John can see it. Please don't post security details in a public issue.

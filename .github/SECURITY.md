@@ -18,7 +18,7 @@ Some things John could do as the operator are listed openly on [/fairness](https
 
 ## How to report
 
-- **Best: GitHub's private report.** On this repository, open **Security → Report a vulnerability**. Only John can see it, along with the Claude sessions that write the code for him through his GitHub account. It is never made public unless John publishes it. (If the button isn't there yet, it hasn't been switched on. Use the next option.)
+- **Best: GitHub's private report.** On this repository, open **Security → Report a vulnerability**. Only John can see it, along with the Claude sessions that write the code for him through his GitHub account. It is never made public unless John publishes it.
 - **Or message John directly**, if you know him.
 - **Don't post the details in a public issue, the table chat or the group chat.** If neither route works for you, open an issue that only says you found a security problem and would like John to get in touch, with no details. John will reply there with a private way to send them.
 
