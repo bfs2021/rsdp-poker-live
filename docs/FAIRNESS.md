@@ -217,8 +217,11 @@ the repository (and pulling the `transparency` branch now and then).
   code on `main` (`.github/workflows/deploy.yml`). GitHub signs a record of the
   image and the commit it came from (build provenance), and Fly runs that
   exact image. The site's footer shows the commit the server says it runs.
-  `main` isn't locked against rewriting, so the watcher also checks that the
-  commit an image was built from is still on `main`.
+  Since 5 November 2026 a GitHub rule protects `main`: its history can't be
+  rewritten, the branch can't be deleted, and changes reach it only through a
+  pull request whose tests pass. John owns the repository, so he could switch
+  that rule off. That's why the watcher also checks that the commit an image
+  was built from is still on `main`.
 - **The deploy watcher.** Right after each release GitHub deploys (since 1
   November 2026), and on a schedule set to every hour, GitHub asks Fly which
   image the live machine runs, its settings and secret names, and the starts and stops Fly
