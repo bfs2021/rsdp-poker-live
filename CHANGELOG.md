@@ -18,6 +18,12 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
+## [2026.11.05.4] - 2026-11-05
+
+### Fixed and changed
+
+- Table chat: John can now read any table's chat from the admin page, including after the table has closed, for example to read feedback or look into a complaint. Each time he does, the Checking John page shows it publicly, and players at that table can tell it was theirs. The Fair dealing and Privacy pages say so. Nothing changes at the tables.
+
 ## [2026.11.05.3] - 2026-11-05
 
 _Send feedback from the table_
@@ -573,6 +579,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.05.4]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.4
 [2026.11.05.3]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.3
 [2026.11.05.2]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.2
 [2026.11.05]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05
