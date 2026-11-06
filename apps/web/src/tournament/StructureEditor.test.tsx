@@ -2,7 +2,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MAX_CHIPS, isRsdpLevels, rsdpStructure, validateStructure, type LevelRow, type StructureRow } from '@rsdp/tournament';
-import { StructureEditor } from './StructureEditor';
+import type { BettingKind } from '@rsdp/engine/core';
+import { StructureEditor, StructureTable } from './StructureEditor';
 
 afterEach(cleanup);
 
@@ -94,5 +95,35 @@ describe('Replace levels keeps add-ons', () => {
     const out = onChange.mock.lastCall![0];
     expect(isRsdpLevels(out)).toBe(true);
     expect(out[2]).toEqual({ kind: 'break', minutes: 5, addOn: true });
+  });
+});
+
+describe('a big-blind ante in the stud games', () => {
+  const horse = { games: ['nlhe', 'plo8', 'razz', 'stud', 'stud8'], gameBetting: Array<BettingKind>(5).fill('fixed-limit') };
+  const bbAnte = (n: number): LevelRow => ({ kind: 'level', sb: 50 * n, bb: 100 * n, ante: 100 * n, anteType: 'big-blind', minutes: 10 });
+  const rows: StructureRow[] = [bbAnte(1), bbAnte(2), bbAnte(3), bbAnte(4)];
+  const note = /^In stud games a big-blind ante is paid by everyone as a smaller ante: about an eighth of it \(300 becomes 40 each\)\.$/;
+
+  it('tells the host what the stud levels post, from the first stud level with one', () => {
+    render(<StructureEditor rows={rows} onChange={vi.fn()} startingStack={10_000} expectedEntrants={9} maxRebuys={0} rotation={horse} />);
+    expect(screen.getByText(note)).toBeTruthy();
+  });
+
+  it('says nothing without a stud game, or without a big-blind ante', () => {
+    render(<StructureEditor rows={rows} onChange={vi.fn()} startingStack={10_000} expectedEntrants={9} maxRebuys={0} rotation={{ games: ['nlhe', 'plo4'] }} />);
+    render(<StructureEditor rows={[level]} onChange={vi.fn()} startingStack={10_000} expectedEntrants={9} maxRebuys={0} rotation={horse} />);
+    expect(screen.queryByText(/big-blind ante is paid by everyone/)).toBeNull();
+  });
+
+  it('the structure table shows each level\'s game and the ante it deals', () => {
+    render(<StructureTable rows={rows} rotation={horse} />);
+    const cells = screen.getAllByRole('row').slice(1).map((r) => [...r.querySelectorAll('td')].slice(1, 3).map((td) => td.textContent));
+    expect(cells).toEqual([
+      // In a mix with stud the blind games post no ante (D29).
+      ["50 / 100 · Limit Hold'em", '–'],
+      ['100 / 200 · Limit Omaha Hi-Lo (8 or better)', '–'],
+      ['150 / 300 · Razz', '40'],
+      ['200 / 400 · Seven Card Stud', '50'],
+    ]);
   });
 });

@@ -1,6 +1,6 @@
 import type { TableSettings } from '@rsdp/engine/settings';
 import { bombPotSchema, bounty72Schema, doubleBoardSchema, nitSchema, rakeSchema } from '@rsdp/engine/modifiers';
-import { getVariant } from '@rsdp/engine/variants';
+import { getVariant, studAnteForBigBlindAnte } from '@rsdp/engine/variants';
 import { RSDP_TABLE_RULES } from '@rsdp/tournament';
 import type { CardList } from './guides';
 
@@ -123,7 +123,7 @@ export const EXTRAS: ExtraGuide[] = [
       "8-Game plays 2-7 Triple Draw, Limit Hold'em, Omaha Hi-Lo, Razz, Seven Card Stud, Stud Hi-Lo, No-Limit Hold'em and Pot-Limit Omaha.",
       'Each game lasts one orbit to start with: once the button has gone all the way round, the next game starts. The table log says when the game changes, and the table shows the game being played.',
       "The blind games (hold'em, Omaha and Triple Draw) use the table's blinds. The stud games have no blinds: everyone antes, and the lowest up card (the highest in Razz) brings in.",
-      'Only the stud games ante. The ante you set is the stud ante; the blind games are played without it.',
+      `Only the stud games ante. The ante you set is the stud ante; the blind games are played without it. Stud has no big blind, so a big-blind ante is paid there by everyone, at about an eighth of it each (300 becomes ${studAnteForBigBlindAnte(300)}).`,
       'In the Limit games every bet and raise is a fixed size: the small bet on the early rounds and the big bet, twice as much, on the later ones.',
       'Seats are capped by the smallest game: 8 for HORSE (stud deals up to seven cards each) and 6 for 8-Game (Triple Draw needs cards to draw from).',
     ],
@@ -140,7 +140,7 @@ export const EXTRAS: ExtraGuide[] = [
       'Start a cash game: pick HORSE or 8-Game under Mixed games in the Game list.',
       "Host a tournament: tap HORSE or 8-Game next to Mixed under Game. The game changes every level; each level's blinds, and its ante for the stud games, come from the structure.",
       'At a table: Table settings > Game, then tap HORSE or 8-Game. You can then change how long each game lasts, drop games or add others.',
-      'Table settings > Stakes sets the blinds, the Limit small and big bets, the stud ante and the bring-in.',
+      'Table settings > Stakes sets the blinds, the Limit small and big bets, the stud ante and the bring-in. With "Raise the blinds on a schedule", the Limit bets and the bring-in rise with the blinds, keeping their size to the big blind.',
     ],
     elsewhere: [
       'Card rooms often switch games every orbit or every 8 hands online; change the lengths to match the game you know.',

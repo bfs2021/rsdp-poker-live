@@ -1,7 +1,7 @@
 // Read-only views for lobby pages and table overlays: the live clock, field
 // stats, and what a given player may do right now.
 
-import { addOnsOpen, aliveEntries, currentPrizePool, paidPlaces, reEntryOpen, rebuysOpen, registrationOpen } from './director';
+import { addOnsOpen, aliveEntries, currentPrizePool, levelDeal, paidPlaces, reEntryOpen, rebuysOpen, registrationOpen } from './director';
 import { checkInActive, checkInGroupOf, checkInScheduledAt, checkedInCount, groupOpensAt, mayCheckIn } from './formats';
 import { clockAt, type LevelRow } from './structure';
 import type { Entry, PendingRequest, PlayerId, TournamentState } from './types';
@@ -9,7 +9,7 @@ import type { Entry, PendingRequest, PlayerId, TournamentState } from './types';
 export interface ClockSummary {
   levelNumber: number;
   onBreak: boolean;
-  /** Blinds in force (during a break, the level after it). */
+  /** Blinds in force (during a break, the level after it), with the ante its game posts (see levelDeal). */
   level: LevelRow;
   nextLevel: LevelRow | null;
   /** Null when the last level runs with no end. */
@@ -58,6 +58,12 @@ export interface TournamentSummary {
   bountiesInPlay: number;
 }
 
+/** A level row with the ante its game posts, so the clock shows what the tables deal. */
+function levelAsDealt(s: TournamentState, levelNumber: number, row: LevelRow): LevelRow {
+  const { ante, anteType } = levelDeal(s.settings, levelNumber, row);
+  return ante === row.ante && anteType === row.anteType ? row : { ...row, ante, anteType };
+}
+
 /** Elapsed running time on the tournament clock at `now`. */
 export function clockElapsed(s: TournamentState, now: number): number {
   return s.clock.elapsedMs + (s.clock.runningSince === null ? 0 : now - s.clock.runningSince);
@@ -72,11 +78,13 @@ export function summarize(s: TournamentState, now: number): TournamentSummary {
   let clock: ClockSummary | null = null;
   if (started || s.status === 'finished') {
     const p = clockAt(s.settings.structure, clockElapsed(s, now));
+    // During a break both are the level after it.
+    const n = p.onBreak ? p.levelNumber + 1 : p.levelNumber;
     clock = {
       levelNumber: p.levelNumber,
       onBreak: p.onBreak,
-      level: p.level,
-      nextLevel: p.nextLevel,
+      level: levelAsDealt(s, n, p.level),
+      nextLevel: p.nextLevel && levelAsDealt(s, p.onBreak ? n : n + 1, p.nextLevel),
       msLeft: p.msLeft,
       msToBreak: p.msToBreak,
       rowIndex: p.rowIndex,

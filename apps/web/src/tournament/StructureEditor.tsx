@@ -3,6 +3,7 @@ import {
   MAX_LEVELS,
   generateStructure,
   isRsdpLevels,
+  levelDeal,
   plannedMinutes,
   presetStructure,
   rsdpStructure,
@@ -13,8 +14,8 @@ import {
   type PresetName,
   type StructureRow,
 } from '@rsdp/tournament';
-import { GAMES, chips } from './format';
-import { canAddStructureLevel, keepRebuysAndAddOns, nextStructureLevel } from './structureRows';
+import { GAMES, chips, gameName } from './format';
+import { canAddStructureLevel, keepRebuysAndAddOns, nextStructureLevel, studBigBlindAnteNote, type Rotation } from './structureRows';
 
 interface Props {
   rows: StructureRow[];
@@ -28,6 +29,8 @@ interface Props {
   currentRow?: number;
   /** Show the per-level game column (mixed games). */
   showGames?: boolean;
+  /** The tournament's games, to say how a big-blind ante works in the stud games. */
+  rotation?: Rotation;
 }
 
 const PRESET_LABELS: Record<PresetName | 'rsdp', string> = {
@@ -43,7 +46,7 @@ const num = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
 const chipNum = (v: string) => Math.min(MAX_CHIPS, num(v));
 
 /** Edit blind levels and breaks. Cards on phones, a grid on wider screens. */
-export function StructureEditor({ rows, onChange, startingStack, expectedEntrants, maxRebuys, lockedThrough = -1, currentRow, showGames }: Props) {
+export function StructureEditor({ rows, onChange, startingStack, expectedEntrants, maxRebuys, lockedThrough = -1, currentRow, showGames, rotation }: Props) {
   const rsdp = isRsdpLevels(rows);
   // What "Use different blind levels" offers first: something other than what's there now.
   const [preset, setPreset] = useState<PresetName | 'rsdp' | 'target'>(() => (rsdp ? 'regular' : 'rsdp'));
@@ -53,6 +56,7 @@ export function StructureEditor({ rows, onChange, startingStack, expectedEntrant
   // Closed to start with: the summary line above says what's in it, and 20-odd rows make the form very long.
   const [open, setOpen] = useState(false);
   const { errors, warnings } = validateStructure(rows, { maxRebuys });
+  const studNote = rotation ? studBigBlindAnteNote(rows, rotation) : null;
   const editable = (i: number) => i > lockedThrough;
   const levelCount = rows.filter((r) => r.kind === 'level').length;
   const breakCount = rows.length - levelCount;
@@ -244,13 +248,20 @@ export function StructureEditor({ rows, onChange, startingStack, expectedEntrant
           {w}
         </p>
       ))}
+      {studNote && <p className="muted">{studNote}</p>}
       <p className="muted">Starting stack {chips(startingStack)} = {Math.round(startingStack / ((rows.find((r) => r.kind === 'level') as LevelRow | undefined)?.bb || 1))} big blinds at level 1.</p>
     </div>
   );
 }
 
-/** Read-only structure table with the current level highlighted. */
-export function StructureTable({ rows, currentRow }: { rows: StructureRow[]; currentRow?: number }) {
+/**
+ * Read-only structure table with the current level highlighted. Given the rotation, each level shows its game
+ * when there is more than one, and the ante that game posts, as the tables deal it.
+ */
+export function StructureTable({ rows, currentRow, rotation }: { rows: StructureRow[]; currentRow?: number; rotation?: Rotation }) {
+  let n = 0;
+  const dealt = rows.map((r) => (r.kind === 'level' && rotation ? levelDeal(rotation, ++n, r) : null));
+  const mixed = !!rotation && rotation.games.length > 1;
   let levelNo = 0;
   return (
     <table className="tn-table">
@@ -277,9 +288,9 @@ export function StructureTable({ rows, currentRow }: { rows: StructureRow[]; cur
               </td>
               <td>
                 {chips(r.sb)} / {chips(r.bb)}
-                {r.gameId ? <span className="muted"> · {r.gameId}</span> : null}
+                {mixed || r.gameId ? <span className="muted"> · {dealt[i] ? gameName(dealt[i].gameId, dealt[i].betting) : r.gameId}</span> : null}
               </td>
-              <td>{r.anteType === 'none' ? '–' : `${chips(r.ante)}${r.anteType === 'big-blind' ? ' BB' : ''}`}</td>
+              <td>{anteText(dealt[i] ?? r)}</td>
               <td>{i === rows.map((x) => x.kind).lastIndexOf('level') ? '∞' : r.minutes}</td>
             </tr>
           ),
@@ -288,3 +299,5 @@ export function StructureTable({ rows, currentRow }: { rows: StructureRow[]; cur
     </table>
   );
 }
+
+const anteText = (a: { ante: number; anteType: AnteType }) => (a.anteType === 'none' || a.ante === 0 ? '–' : `${chips(a.ante)}${a.anteType === 'big-blind' ? ' BB' : ''}`);

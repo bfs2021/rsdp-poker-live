@@ -11,7 +11,7 @@ import { BettingNudge } from './BettingNudge';
 import { Field } from './settings/fields';
 import { SideGamesTab } from './settings/SideGamesTab';
 import { PresetsTab } from './settings/PresetsTab';
-import { canAddGame, canAddLevel, nextBlindLevel } from './settings/lists';
+import { canAddGame, canAddLevel, nextBlindLevel, scheduleBetsNote } from './settings/lists';
 
 type Tab = 'game' | 'stakes' | 'clock' | 'seats' | 'rules' | 'side' | 'chat' | 'presets';
 const TABS: { id: Tab; label: string }[] = [
@@ -350,6 +350,7 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
                     </div>
                   );
                 })}
+                {scheduleBetsNote(draft.game) && <p className="muted">{scheduleBetsNote(draft.game)}</p>}
                 <button
                   type="button"
                   disabled={!canAddLevel(sched.levels)}

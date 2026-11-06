@@ -482,7 +482,7 @@ export function TournamentCreate({
 
           <section className="tn-card">
             <h2>Blind levels</h2>
-            <StructureEditor rows={structure} onChange={setStructure} startingStack={startingStack} expectedEntrants={expectedEntrants} maxRebuys={rebuy.max} showGames={games.length > 1} />
+            <StructureEditor rows={structure} onChange={setStructure} startingStack={startingStack} expectedEntrants={expectedEntrants} maxRebuys={rebuy.max} showGames={games.length > 1} rotation={settings} />
           </section>
 
           <section className="tn-card">

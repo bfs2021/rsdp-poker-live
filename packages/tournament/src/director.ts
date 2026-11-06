@@ -15,8 +15,9 @@
 // must wake at nextWakeAt (a 1 s tick is a fine fallback).
 
 import { handOver, RoleError, withCoHost, withoutCoHost } from '@rsdp/engine/roles';
+import type { BettingKind } from '@rsdp/engine/core';
 import { BETTING_KINDS } from '@rsdp/engine/settings';
-import { skipsMixedGameAnte } from '@rsdp/engine/variants';
+import { anteForGame, skipsMixedGameAnte } from '@rsdp/engine/variants';
 import {
   checkInActive,
   checkInGroupOf,
@@ -37,7 +38,7 @@ import {
 import { MAX_PRIZE_AMOUNT, placePrizes, prizePool, prizesForPlaces, rangeFor, validatePayoutStructure, type PrizeMoney } from './payouts';
 import { nextOccurrence, validateSchedule } from './recurrence';
 import { drawSeats, nextBalanceStep, seatToFill, seatToMove, type TableLoad } from './seating';
-import { clockAt, levelEndMs, MAX_CHIPS, presetStructure, rowStartMs, validateStructure, type LevelRow, type StructureRow } from './structure';
+import { clockAt, levelEndMs, MAX_CHIPS, presetStructure, rowStartMs, validateStructure, type AnteType, type LevelRow, type StructureRow } from './structure';
 import { cleanText, hasUnstorableText, isId } from './text';
 import {
   STATE_VERSION,
@@ -538,17 +539,34 @@ function skipsAnte(gameId: string, games: readonly string[]): boolean {
   }
 }
 
+/**
+ * What level number `levelNumber` deals: its game and betting, and its ante as a hand of that game posts it.
+ * The lobby's clock and structure use it too, so they show what the tables deal.
+ */
+export function levelDeal(
+  settings: Pick<TournamentSettings, 'games' | 'gameBetting' | 'stopRotationAtLevel'>,
+  levelNumber: number,
+  level: LevelRow,
+): { gameId: string; betting?: BettingKind; ante: number; anteType: AnteType } {
+  const { games, stopRotationAtLevel } = settings;
+  const rotationLevel = stopRotationAtLevel ? Math.min(levelNumber, stopRotationAtLevel) : levelNumber;
+  const slot = (rotationLevel - 1) % games.length;
+  const gameId = level.gameId ?? games[slot];
+  // A level that names its own game plays it with its usual betting.
+  const betting = level.gameId === undefined ? (settings.gameBetting?.[slot] ?? undefined) : undefined;
+  // In a mix with stud, only the stud games ante (D29).
+  // Once the rotation has stopped, one game is left and keeps its antes.
+  if (skipsAnte(gameId, stopRotationAtLevel && levelNumber >= stopRotationAtLevel ? [gameId] : games)) return { gameId, betting, ante: 0, anteType: level.anteType };
+  // Stud has no big blind: a big-blind ante is everyone's smaller ante there.
+  return { gameId, betting, ...anteForGame(gameId, level.ante, level.anteType) };
+}
+
 /** Game and stakes for the next hand (during a break, the level after it). */
 export function levelFor(s: TournamentState, _tableId: TableId): LevelStakes {
   const p = position(s);
   const level = p.level;
   const levelNumber = p.onBreak ? p.levelNumber + 1 : p.levelNumber;
-  const { games, stopRotationAtLevel } = s.settings;
-  const rotationLevel = stopRotationAtLevel ? Math.min(levelNumber, stopRotationAtLevel) : levelNumber;
-  const slot = (rotationLevel - 1) % games.length;
-  const gameId = level.gameId ?? games[slot];
-  // A level that names its own game plays it with its usual betting.
-  const betting = level.gameId === undefined ? (s.settings.gameBetting?.[slot] ?? undefined) : undefined;
+  const { gameId, betting, ante, anteType } = levelDeal(s.settings, levelNumber, level);
   const smallBet = level.limit?.smallBet ?? level.bb;
   return {
     levelNumber,
@@ -556,10 +574,8 @@ export function levelFor(s: TournamentState, _tableId: TableId): LevelStakes {
     ...(betting ? { betting } : {}),
     sb: level.sb,
     bb: level.bb,
-    // In a mix with stud, only the stud games ante (D29).
-    // Once the rotation has stopped, one game is left and keeps its antes.
-    ante: skipsAnte(gameId, stopRotationAtLevel && levelNumber >= stopRotationAtLevel ? [gameId] : games) ? 0 : level.ante,
-    anteType: level.anteType,
+    ante,
+    anteType,
     smallBet,
     bigBet: level.limit?.bigBet ?? smallBet * 2,
     bringIn: level.limit?.bringIn ?? Math.max(1, Math.floor(smallBet / 3)),

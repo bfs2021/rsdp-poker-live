@@ -33,7 +33,7 @@ import {
   type TableSettings,
 } from '@rsdp/engine/settings';
 import { bombPotDue, bombPotSchema, bounty72Schema, nitClears, nitSchema, sevenDeuceWinners } from '@rsdp/engine/modifiers';
-import { gameTitle, skipsMixedGameAnte } from '@rsdp/engine/variants';
+import { gameTitle, skipsMixedGameAnte, studAnteForBigBlindAnte } from '@rsdp/engine/variants';
 import { BOT_LEVELS, BOT_LOOKS, type BotLevel, type BotNote, type CoachTip, type TurnKey } from '@rsdp/engine/wire';
 import {
   RUNTIME_VERSION,
@@ -2543,17 +2543,9 @@ export class TableRuntime {
       betting = step.betting;
     }
     const game = variants.get(gameId).spec;
-    const { centsMode: _cents, ...base } = settings.stakes;
-    const stakes: Stakes = { ...base };
-    if (settings.blindSchedule.enabled && settings.blindSchedule.levels.length) {
-      const level = settings.blindSchedule.levels[this.currentLevelIndex()];
-      stakes.smallBlind = level.smallBlind;
-      stakes.bigBlind = level.bigBlind;
-      stakes.ante = level.ante;
-    }
-    // In a mix with stud, only the stud games ante; the blind games play on the blinds alone.
-    if (rotation.enabled && rotation.steps.length && skipsMixedGameAnte(gameId, rotation.steps.map((st) => st.gameId))) stakes.ante = 0;
-    return { game, betting, stakes: fillStakes(stakes, game) };
+    // Only a schedule in use moves the level on.
+    const levelIndex = settings.blindSchedule.enabled && settings.blindSchedule.levels.length ? this.currentLevelIndex() : 0;
+    return { game, betting, stakes: cashHandStakes(settings, levelIndex, game) };
   }
 
   /** Blind schedule: moves up a level when its time or hand count is used up. */
@@ -2919,8 +2911,34 @@ export function fillStakes(stakes: Stakes, game: GameSpec): Stakes {
   if (out.smallBet <= 0) out.smallBet = Math.max(1, out.bigBlind);
   if (out.bigBet <= 0) out.bigBet = out.smallBet * 2;
   if (game.family === 'stud' && out.bringIn <= 0) out.bringIn = Math.max(1, Math.floor(out.smallBet / 3));
-  if (game.forcedBets === 'ante-bring-in' && out.anteType === 'big-blind') out.anteType = 'per-player';
+  // Stud has no big blind: a big-blind ante is paid by everyone there, at about an eighth of it.
+  if (game.forcedBets === 'ante-bring-in' && out.anteType === 'big-blind') Object.assign(out, { ante: studAnteForBigBlindAnte(out.ante), anteType: 'per-player' });
   return out;
+}
+
+/**
+ * Stakes for a cash hand of `game`: the Stakes tab, or with a blind schedule the level's blinds and ante.
+ * The Limit bets and the bring-in rise with the level, keeping their size to the table's own big blind;
+ * at a table with no big blind they follow the level's, as in tournaments. In a mix with stud only the
+ * stud games ante (D29). The next hand and the preview of it both come from here.
+ */
+export function cashHandStakes(settings: TableSettings, levelIndex: number, game: GameSpec): Stakes {
+  const { centsMode: _cents, ...base } = settings.stakes;
+  const stakes: Stakes = { ...base };
+  const sched = settings.blindSchedule;
+  const level = sched.enabled ? sched.levels[levelIndex] : undefined;
+  if (level) {
+    Object.assign(stakes, { smallBlind: level.smallBlind, bigBlind: level.bigBlind, ante: level.ante });
+    const ratio = base.bigBlind > 0 ? level.bigBlind / base.bigBlind : null;
+    // 0 means "work it out" (fillStakes): it stays 0, and so does everything without a ratio.
+    const scale = (n: number) => (ratio !== null && n > 0 ? Math.max(1, Math.round(n * ratio)) : 0);
+    stakes.smallBet = scale(base.smallBet);
+    stakes.bigBet = scale(base.bigBet);
+    stakes.bringIn = scale(base.bringIn);
+  }
+  const rotation = settings.game.rotation;
+  if (rotation.enabled && rotation.steps.length && skipsMixedGameAnte(game.id, rotation.steps.map((st) => st.gameId))) stakes.ante = 0;
+  return fillStakes(stakes, game);
 }
 
 /**

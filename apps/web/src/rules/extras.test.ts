@@ -3,7 +3,7 @@ import { engine, planForcedBets, settle, variants, type HandInput, type HandStat
 import { bounty72Schema, nitClears, nitSchema, rakeFor, rakeSchema } from '@rsdp/engine/modifiers';
 import { defaultSettings, SETTINGS_LIMITS } from '@rsdp/engine/settings';
 import { RSDP_TABLE_RULES } from '@rsdp/tournament';
-import { MIXED_GAMES, registerAllVariants } from '@rsdp/engine/variants';
+import { MIXED_GAMES, registerAllVariants, studAnteForBigBlindAnte } from '@rsdp/engine/variants';
 import { studBringIn } from '../format';
 import { describe, expect, it } from 'vitest';
 import { BOMB_EX, BOUNTY_EX, DOUBLE_EX, EXTRAS, NIT_EX, RAKE_EX, RIT_EX, STRADDLE_EX, TIME_EX, extraFor, extrasOn } from './extras';
@@ -89,6 +89,13 @@ describe('side game guides', () => {
   it("the HORSE example's bring-in is what a new HORSE table at $0.25/$0.50 gets", () => {
     expect(studBringIn(50, true)).toBe(15);
     expect(extraFor('mixed-games')!.examples[0].lines[1]).toContain('bring-in is $0.15');
+  });
+
+  it('the Mixed games guide says what a big-blind ante is in stud, and that a blind schedule raises the Limit bets', () => {
+    const g = extraFor('mixed-games')!;
+    expect(studAnteForBigBlindAnte(300)).toBe(40);
+    expect(g.steps.join('\n')).toContain('a big-blind ante is paid there by everyone, at about an eighth of it each (300 becomes 40)');
+    expect(g.settings.join('\n')).toContain('the Limit bets and the bring-in rise with the blinds');
   });
 
   it('list the side games switched on at a table', () => {

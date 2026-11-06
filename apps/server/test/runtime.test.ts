@@ -428,6 +428,116 @@ describe('host settings', () => {
     expect(bbs).toEqual([2, 2, 4, 4]);
   });
 
+  /** Levels of one hand each, the last one lasting. */
+  const oneHandLevels = (levels: [sb: number, bb: number, ante: number][]) =>
+    levels.map(([smallBlind, bigBlind, ante], i) => ({ smallBlind, bigBlind, ante, minutes: 10, hands: i === levels.length - 1 ? 100 : 1 }));
+  const bets = (rt: TableRuntime) => {
+    const { smallBlind, bigBlind, smallBet, bigBet, bringIn, ante } = hand(rt).input.stakes;
+    return { smallBlind, bigBlind, smallBet, bigBet, bringIn, ante };
+  };
+
+  it('a blind schedule raises the Limit bets with the blinds, keeping their size to the big blind', () => {
+    const { rt, clock } = table((s) => {
+      s.game = { ...s.game, gameId: 'nlhe', betting: 'fixed-limit' };
+      s.stakes = { ...s.stakes, smallBlind: 25, bigBlind: 50, smallBet: 50, bigBet: 100, centsMode: true };
+      s.blindSchedule = { enabled: true, countdown: 'hands', levels: oneHandLevels([[25, 50, 0], [100, 200, 0], [400, 800, 0]]) };
+    });
+    seatPlayers(rt, 3, 100_000);
+    rt.start('host');
+    const seen = [];
+    for (let i = 0; i < 3; i++) {
+      seen.push(bets(rt));
+      checkDown(rt);
+      clock.advance(10_000);
+    }
+    expect(seen).toEqual([
+      // Level 1 is the Stakes tab, so nothing changes there.
+      { smallBlind: 25, bigBlind: 50, smallBet: 50, bigBet: 100, bringIn: 0, ante: 0 },
+      { smallBlind: 100, bigBlind: 200, smallBet: 200, bigBet: 400, bringIn: 0, ante: 0 },
+      { smallBlind: 400, bigBlind: 800, smallBet: 800, bigBet: 1600, bringIn: 0, ante: 0 },
+    ]);
+  });
+
+  it('HORSE on a blind schedule: the Limit bets and the bring-in rise, and only the stud games ante', () => {
+    const { rt, clock } = table((s) => {
+      s.table.maxSeats = 8;
+      s.stakes = { ...s.stakes, smallBlind: 25, bigBlind: 50, ante: 10, anteType: 'per-player', bringIn: 15, smallBet: 50, bigBet: 100, centsMode: true };
+      s.game.rotation = { enabled: true, steps: MIXED_GAMES[0].steps.map((st) => ({ ...st, length: 1, unit: 'hands' as const })) };
+      s.blindSchedule = { enabled: true, countdown: 'hands', levels: oneHandLevels([[25, 50, 10], [100, 200, 40]]) };
+    });
+    seatPlayers(rt, 3, 100_000);
+    rt.start('host');
+    const seen: Record<string, ReturnType<typeof bets>> = {};
+    for (let i = 0; i < 6; i++) {
+      // The first hand is level 1; the next five are level 2, one of each game.
+      if (i > 0) seen[hand(rt).input.game.id] = bets(rt);
+      checkDown(rt);
+      clock.advance(10_000);
+    }
+    // The bring-in was 15 at 25/50; the blind games carry it unused.
+    const blindGame = { smallBlind: 100, bigBlind: 200, smallBet: 200, bigBet: 400, bringIn: 60, ante: 0 };
+    const studGame = { ...blindGame, ante: 40 };
+    expect(seen).toEqual({ nlhe: blindGame, plo8: blindGame, razz: studGame, stud: studGame, stud8: studGame });
+  });
+
+  it('on a blind schedule a table with no big blind bets the level\'s big blind and twice it, as tournaments do', () => {
+    const { rt } = table((s) => {
+      s.table.maxSeats = 8;
+      s.game = { ...s.game, gameId: 'stud', betting: 'fixed-limit' };
+      s.stakes = { ...s.stakes, smallBlind: 0, bigBlind: 0, ante: 5, anteType: 'per-player', bringIn: 10, smallBet: 20, bigBet: 40 };
+      s.blindSchedule = { enabled: true, countdown: 'hands', levels: oneHandLevels([[0, 30, 5]]) };
+    });
+    seatPlayers(rt, 3, 1000);
+    rt.start('host');
+    expect(bets(rt)).toEqual({ smallBlind: 0, bigBlind: 30, smallBet: 30, bigBet: 60, bringIn: 10, ante: 5 });
+  });
+
+  it('a Limit table without a blind schedule bets the Stakes tab amounts', () => {
+    const { rt } = table((s) => {
+      s.game = { ...s.game, gameId: 'nlhe', betting: 'fixed-limit' };
+      s.stakes = { ...s.stakes, smallBlind: 25, bigBlind: 50, smallBet: 75, bigBet: 150, centsMode: true };
+      // A schedule that is switched off changes nothing.
+      s.blindSchedule = { enabled: false, countdown: 'hands', levels: oneHandLevels([[100, 200, 0]]) };
+    });
+    seatPlayers(rt, 3, 100_000);
+    rt.start('host');
+    expect(bets(rt)).toEqual({ smallBlind: 25, bigBlind: 50, smallBet: 75, bigBet: 150, bringIn: 0, ante: 0 });
+  });
+
+  it('a big-blind ante at a stud table is a small ante for everyone, and the blind games of a mix skip it', () => {
+    const { rt, clock } = table((s) => {
+      s.table.maxSeats = 8;
+      s.stakes = { ...s.stakes, smallBlind: 25, bigBlind: 50, ante: 50, anteType: 'big-blind', bringIn: 15, smallBet: 50, bigBet: 100, centsMode: true };
+      s.game.rotation = { enabled: true, steps: MIXED_GAMES[0].steps.map((st) => ({ ...st, length: 1, unit: 'hands' as const })) };
+    });
+    seatPlayers(rt, 3, 100_000);
+    rt.start('host');
+    const antes: Record<string, [string, number][]> = {};
+    for (let i = 0; i < 5; i++) {
+      const h = hand(rt);
+      antes[h.input.game.id] = h.events.flatMap((e) => (e.t === 'post' && e.kind.endsWith('ante') ? [[e.kind, e.amount] as [string, number]] : []));
+      checkDown(rt);
+      clock.advance(10_000);
+    }
+    // A 50-cent big-blind ante: 6 cents each in stud (about an eighth), nothing in hold'em and Omaha (D29).
+    const each: [string, number][] = [['ante', 6], ['ante', 6], ['ante', 6]];
+    expect(antes).toEqual({ nlhe: [], plo8: [], razz: each, stud: each, stud8: each });
+  });
+
+  it("before a HORSE table's first hand, the next hand shown is the one dealt: no ante in Hold'em", () => {
+    const { rt } = table((s) => {
+      s.table.maxSeats = 8;
+      s.stakes = { ...s.stakes, smallBlind: 1, bigBlind: 2, ante: 1, anteType: 'per-player', bringIn: 1, smallBet: 2, bigBet: 4 };
+      s.game.rotation = { enabled: true, steps: MIXED_GAMES[0].steps.map((st) => ({ ...st, length: 1, unit: 'orbits' as const })) };
+    });
+    seatPlayers(rt, 3, 1000);
+    const upcoming = tableView(rt, 'host', 0).upcoming!;
+    expect(upcoming).toMatchObject({ gameId: 'nlhe', betting: 'fixed-limit', stakes: { ante: 0, smallBet: 2, bigBet: 4 } });
+    rt.start('host');
+    const dealt = hand(rt).input;
+    expect({ gameId: upcoming.gameId, betting: upcoming.betting, stakes: upcoming.stakes }).toEqual({ gameId: dealt.game.id, betting: dealt.betting, stakes: dealt.stakes });
+  });
+
   it('game rotation switches games every N hands', () => {
     const { rt, clock } = table((s) => {
       s.table.maxSeats = 6;

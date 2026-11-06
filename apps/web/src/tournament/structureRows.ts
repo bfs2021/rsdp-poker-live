@@ -1,4 +1,24 @@
-import { MAX_CHIPS, MAX_LEVELS, type LevelRow, type StructureRow } from '@rsdp/tournament';
+import { levelDeal, MAX_CHIPS, MAX_LEVELS, type LevelRow, type StructureRow, type TournamentSettings } from '@rsdp/tournament';
+import { chips } from './format';
+
+/** What decides each level's game: the tournament's rotation. */
+export type Rotation = Pick<TournamentSettings, 'games' | 'gameBetting' | 'stopRotationAtLevel'>;
+
+/**
+ * For the host: a level with a big-blind ante that deals a stud game, where it becomes everyone's smaller ante.
+ * The example is the first such level's own amounts. Null when no level does that.
+ */
+export function studBigBlindAnteNote(rows: readonly StructureRow[], rotation: Rotation): string | null {
+  let n = 0;
+  for (const r of rows) {
+    if (r.kind !== 'level') continue;
+    n++;
+    if (r.anteType !== 'big-blind' || r.ante <= 0) continue;
+    const dealt = levelDeal(rotation, n, r);
+    if (dealt.anteType === 'per-player') return `In stud games a big-blind ante is paid by everyone as a smaller ante: about an eighth of it (${chips(r.ante)} becomes ${chips(dealt.ante)} each).`;
+  }
+  return null;
+}
 
 /** Whether "+ Add level" may add another level: the server takes at most MAX_LEVELS levels (breaks don't count). */
 export const canAddStructureLevel = (rows: readonly StructureRow[]) => rows.filter((r) => r.kind === 'level').length < MAX_LEVELS;

@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { variants } from '@rsdp/engine/core';
-import { registerAllVariants } from '@rsdp/engine/variants';
-import { defaultSettings, MAX_PAYOUT_RANGES, standings, type TournamentSettings } from '@rsdp/tournament';
+import { MIXED_GAMES, registerAllVariants, studAnteForBigBlindAnte } from '@rsdp/engine/variants';
+import { defaultSettings, MAX_PAYOUT_RANGES, standings, summarize, type StructureRow, type TournamentSettings } from '@rsdp/tournament';
 import { players, playUntil, setup } from './tournament-helpers';
 
 beforeAll(() => registerAllVariants(variants));
@@ -219,6 +219,47 @@ describe('tournaments on the server', () => {
     expect(standings(state())[0].stack).toBe(25 * 600);
     expect([...seen].sort(), `levels reached: ${levels}`).toEqual([...games].sort());
   }, 120_000);
+
+  it("HORSE with big-blind antes: the stud levels ante about an eighth each, Hold'em and Omaha none", async () => {
+    const env = setup();
+    const horse = MIXED_GAMES.find((m) => m.id === 'horse')!;
+    const blinds: [number, number][] = [[100, 200], [150, 300], [150, 300], [200, 400], [250, 500], [300, 600]];
+    const structure: StructureRow[] = blinds.map(([sb, bb]) => ({ kind: 'level', sb, bb, ante: bb, anteType: 'big-blind', minutes: 5 }));
+    const id = await env.manager.create(
+      'host',
+      defaultSettings({ name: 'HORSE', games: horse.steps.map((st) => st.gameId), gameBetting: horse.steps.map((st) => st.betting), structure, startingStack: 100_000, seatsPerTable: 6, lateRegistration: { enabled: false, throughLevel: null } }),
+    );
+    for (const p of players(6)) await env.manager.command(id, p.id, p.name, { type: 'register', playerId: p.id, displayName: p.name });
+    await env.manager.command(id, 'host', '', { type: 'startNow', by: 'host' });
+    const antes = new Map<string, { bb: number; posts: [string, number][]; shown: string }>();
+    const watch = () => {
+      for (const rt of env.tables.values()) {
+        const h = rt.state.hand;
+        if (!h || antes.has(h.input.game.id)) continue;
+        const posts = h.events.flatMap((e) => (e.t === 'post' && e.kind.endsWith('ante') ? [[e.kind, e.amount] as [string, number]] : []));
+        const c = summarize(env.manager.view(id)!.state, env.clock.now()).clock!;
+        antes.set(h.input.game.id, { bb: h.input.stakes.bigBlind, posts, shown: `${c.level.anteType} ${c.level.ante}` });
+      }
+      return antes.size === 5;
+    };
+    playUntil(env, watch, { shove: 0, thinkMs: 4000 });
+    expect(env.errors).toEqual([]);
+    const razz = antes.get('razz')!;
+    const stud = antes.get('stud')!;
+    expect([razz.bb, stud.bb]).toEqual([300, 400]);
+    // Everyone antes, about an eighth of the big-blind ante: never a full big blind each.
+    for (const { bb, posts } of [razz, stud]) expect(posts).toEqual(Array(6).fill(['ante', studAnteForBigBlindAnte(bb)]));
+    const [razzEach, studEach] = [razz.posts[0][1], stud.posts[0][1]];
+    expect(razzEach).toBeGreaterThanOrEqual(30);
+    expect(razzEach).toBeLessThanOrEqual(50);
+    expect(studEach).toBeGreaterThanOrEqual(40);
+    expect(studEach).toBeLessThanOrEqual(60);
+    // The lobby's clock says what is dealt.
+    expect([razz.shown, stud.shown]).toEqual(['per-player 40', 'per-player 50']);
+    // In a mix with stud the blind games post no ante of either kind (D29).
+    expect(antes.get('nlhe')!.posts).toEqual([]);
+    expect(antes.get('plo8')!.posts).toEqual([]);
+  }, 60_000);
 
   it('only lets the host run the tournament, and never takes hand reports from browsers', async () => {
     const env = setup();

@@ -22,6 +22,7 @@ import { CoHostPanel, EventPanel, PlayerManager, RequestRow } from './HostPanels
 import { InvitesPanel } from './InvitesPanel';
 import { PrizeList } from './PayoutEditor';
 import { StructureEditor, StructureTable } from './StructureEditor';
+import { studBigBlindAnteNote } from './structureRows';
 import { TableRulesEditor } from './TableRules';
 import { AlertsToggle } from './TournamentAlerts';
 import { downloadResults, downloadTableChat } from './results';
@@ -81,6 +82,7 @@ export function TournamentLobby({ id }: { id: string }) {
   const isHost = isTournamentStaff(state, session?.playerId);
   const powers = tournamentPowers(state, session?.playerId);
   const sum = summarize(state, now);
+  const studNote = studBigBlindAnteNote(state.settings.structure, state.settings);
   const tabs: [Tab, string][] = [
     ['players', `Players (${sum.entrants})`],
     ['tables', `Tables${sum.tables ? ` (${sum.tables})` : ''}`],
@@ -159,7 +161,8 @@ export function TournamentLobby({ id }: { id: string }) {
               <p>
                 <strong>At the tables:</strong> {tableRulesText(tableRulesOf(state.settings))}
               </p>
-              <StructureTable rows={state.settings.structure} currentRow={sum.clock && state.status !== 'finished' ? state.clock.rowIndex : undefined} />
+              <StructureTable rows={state.settings.structure} currentRow={sum.clock && state.status !== 'finished' ? state.clock.rowIndex : undefined} rotation={state.settings} />
+              {studNote && <p className="muted">{studNote}</p>}
               <p className="muted">
                 <a href={`/tn/new?from=${state.id}`}>Copy these settings into a new tournament</a>
               </p>
@@ -663,6 +666,7 @@ function HostTools({ state, me, powers, send }: { state: TournamentState; me: st
             lockedThrough={started ? state.clock.rowIndex : -1}
             currentRow={started ? state.clock.rowIndex : undefined}
             showGames={s.games.length > 1}
+            rotation={s}
           />
           {dirty && (
             <div className="tn-actions">

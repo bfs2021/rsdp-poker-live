@@ -8,6 +8,7 @@ export * from './types';
 export * from './specs';
 export * from './advice';
 export * from './mixes';
+export * from './antes';
 export * from './evaluators';
 export { awardPortion } from './showdown';
 export { bringInSeat, firstToActSeat, studOddChipOrder } from './stud';

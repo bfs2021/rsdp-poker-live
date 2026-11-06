@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultSettings, parseSettings, SETTINGS_LIMITS, type BlindLevel, type RotationStep } from '@rsdp/engine/settings';
-import { canAddGame, canAddLevel, nextBlindLevel } from './lists';
+import { MIXED_GAMES } from '@rsdp/engine/variants';
+import { canAddGame, canAddLevel, nextBlindLevel, scheduleBetsNote } from './lists';
 
 /** Presses "Add game" until the dialog stops offering it (or well past the limit, should it never stop). */
 function addAllGames(first: RotationStep) {
@@ -35,5 +36,16 @@ describe('the settings dialog list editors', () => {
 
   it('doubles the blinds and ante of the last level and keeps its length', () => {
     expect(nextBlindLevel({ smallBlind: 50, bigBlind: 100, ante: 0, minutes: 15, hands: 25 })).toEqual({ smallBlind: 100, bigBlind: 200, ante: 0, minutes: 15, hands: 25 });
+  });
+});
+
+describe('the blind schedule note', () => {
+  it('says the Limit bets and the bring-in rise with the blinds, only where a game has them', () => {
+    const game = defaultSettings('cash').game;
+    expect(scheduleBetsNote(game)).toBeNull();
+    expect(scheduleBetsNote({ ...game, betting: 'fixed-limit' })).toBe('The Limit bets rise with the blinds, keeping their size to the big blind.');
+    expect(scheduleBetsNote({ ...game, gameId: 'razz', betting: 'no-limit' })).toBe('The stud bring-in rises with the blinds, keeping their size to the big blind.');
+    const horse = { ...game, rotation: { enabled: true, steps: MIXED_GAMES[0].steps.map((st) => ({ ...st, length: 1, unit: 'orbits' as const })) } };
+    expect(scheduleBetsNote(horse)).toBe('The Limit bets and the stud bring-in rise with the blinds, keeping their size to the big blind.');
   });
 });
