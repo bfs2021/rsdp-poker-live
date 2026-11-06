@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-11-05",
+  "lastUpdated": "2026-11-06",
   "intro": "What's live, what's coming next, and what's further out. Everything here is free for everyone at the table, with no paid tiers.",
   "sections": [
     {
@@ -17,13 +17,13 @@
         { "title": "Tournaments the RSDP way", "detail": "New tournaments start on the group's own blinds (63,000 chips, 28 eight-minute levels, no antes, late registration through level 5) and pay out the way our results sheet does, with a $20 buy-in to start. RSDP sits next to Turbo, Standard and Deep stack as a starter, and you can save your own setups." },
         { "title": "Tournament table rules", "detail": "New tournaments give you 10 seconds to act and a 20-second time bank that refills every 30 hands, with no rabbit hunting. The tournament's page shows these rules to everyone, and the host can change them until the first table opens. Straddles are never on in tournaments." },
         { "title": "Finding games", "detail": "The home page lists upcoming and running tournaments. Optional browser alerts, lobby chat, and links that show a nice preview when pasted in WhatsApp." },
-        { "title": "An easy-to-read table", "detail": "Bigger cards in each nameplate, casino chip colours, a clean middle and fewer lines on the felt. On computers the seats and cards are bigger; on phones your own cards are bigger and players spread evenly round the table." },
+        { "title": "An easy-to-read table", "detail": "Bigger cards in each nameplate, casino chip colours, a clean middle and fewer lines on the felt. On computers the seats and cards are bigger, and on a big monitor the whole table grows to fill the screen, with chat in the corner and the log in a slide-out; on phones your own cards are bigger and players spread evenly round the table." },
         { "title": "A calm, steady table", "detail": "Seats stay put when your turn comes, the turn clock is a thin line under the acting player's name that glides down (red at the end), the bet slider stops on round amounts, and chips clack like clay." },
-        { "title": "A table with some spark", "detail": "A lit felt, cards and chips that move, big moments at showdown and all in, and our own crest and card back. Turn off Table motion to keep it still." },
+        { "title": "A table with some spark", "detail": "A lit felt, cards and chips that move, big moments at showdown and all in, all-in run-outs where the last card waits face down for a moment before it turns, and our own crest and card back. Turn off Table motion to keep it still." },
         { "title": "Table extras", "detail": "Table chat with one-tap replies, pre-moves like Check / Fold, keyboard shortcuts, a switch to show everything in big blinds, avatars, emotes, all-in odds, keep-screen-awake, and install it on your phone like an app." },
         { "title": "Practice bots", "detail": "Add a bot to an empty cash seat to practice any game risk-free, at Easy, Normal or Hard. A player's bot needs the host's OK, and bots never play in tournaments. Practice games get their own graph you can reset, and you can clear them off your profile." },
         { "title": "Coach tips", "detail": "In a hand where everyone else is a bot, tap Tip on your turn for a rough guide to your chances and what to do, and after the hand each bot says why it played as it did. Tips never show when another person is in the hand, or at a table where people have played each other, or in tournaments." },
-        { "title": "Records and stats", "detail": "The ledger with settle-up, a hand replayer and hand search, your stats and profit graph, a group leaderboard with a running profit chart, player notes, hand highlights, shareable hand links and hand downloads. Practice games never count." },
+        { "title": "Records and stats", "detail": "The ledger with settle-up, a hand replayer and hand search, your stats and profit graph, a group leaderboard with a running profit chart, player notes, hand highlights, shareable hand links, hand downloads and a full table log with every chat line. After a tournament, its host and players can download what was said at every table. Practice games never count." },
         { "title": "No HUDs at the table", "detail": "While you're seated in a running game, hand downloads are switched off so HUD software can't use them. They come back when you leave your seat or the game stops, and the Fairness page says what this can and can't stop." },
         { "title": "Fair dealing you can check", "detail": "Every deck is sealed before the deal and mixed with a seed from each player's browser, and your browser warns you if a sealed deck is swapped without being dealt. Press \"Check this hand\" in the replayer to verify any hand, and read how it works on the Fairness page." },
         { "title": "Checking John", "detail": "Every hand, buy-in, cash-out and admin action goes into a public record, each entry locked to the one before, and GitHub keeps copies. GitHub builds each release from the public code and checks, after each release and every few hours, that the live site runs that build. The Checking John page shows what it found and what these checks can't catch." },
@@ -40,9 +40,7 @@
       "title": "Coming in the next release",
       "blurb": "Done, or being finished now.",
       "items": [
-        { "title": "The whole table log", "detail": "\"Download full log\" includes every chat line and table event since the table started, not just the latest ones." },
-        { "title": "Clearer guides and settings", "detail": "The time bank and rabbit hunt guides follow each tournament's own rules, and the settings dialog stops at what the site accepts." },
-        { "title": "More fixes", "detail": "Fixes found in testing: Stud bring-ins for away players, a finished tournament's last table, and saved setups with long names." }
+        { "title": "Nothing waiting right now", "detail": "Everything finished so far is already live. When the next pieces of work are done, they'll show here until they go live." }
       ]
     },
     {

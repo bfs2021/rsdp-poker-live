@@ -18,6 +18,12 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
+## [2026.11.06] - 2026-11-06
+
+### Fixed and changed
+
+- The Roadmap page is up to date again: what it listed as coming next is already live, so it's been moved to Live now, along with the bigger table on big screens and the new all-in run-outs.
+
 ## [2026.11.05.7] - 2026-11-05
 
 _A bigger table on big screens_
@@ -608,6 +614,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.06]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.06
 [2026.11.05.7]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.7
 [2026.11.05.6]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.6
 [2026.11.05.5]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.05.5
