@@ -31,4 +31,6 @@ Claude sessions write this project's code. Each session is short-lived, so the r
 
 ## Before a session stops
 
+Don't call work done until the whole ask is done and checked on the live site (by looking only; games are tested on a copy), and every follow-up issue you opened has someone working on it or a "waiting on" label with the reason: see [Definition of done](CONTRIBUTING.md#definition-of-done) (D30). Opening an issue doesn't hand the work to anyone.
+
 Leave nothing only in chat or memory. Open or update the issue, push the branch, and put what's left in the PR's "Left to do" section. A bug you found but didn't fix becomes a new issue. The exception is a security hole: tell John privately, and keep the record in a draft security advisory (Security → Advisories → New draft security advisory), which only he and sessions working through his account can see. If you can't create one, ask John to. Then follow [docs/RUNBOOK.md](docs/RUNBOOK.md#someone-reports-a-security-problem).

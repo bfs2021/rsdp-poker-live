@@ -39,6 +39,8 @@ How this file works:
 | [D26](#d26-a-game-night-recap-for-john-read-by-claude) | A game-night recap for John, read by Claude | 2026-11-05 | John asked; design Claude |
 | [D27](#d27-the-operator-can-read-table-chat) | The operator can read table chat | 2026-11-05 | John; design Claude |
 | [D28](#d28-one-comparison-page-may-name-pokernow) | One comparison page may name PokerNow | 2026-11-06 | John |
+| [D29](#d29-in-a-mix-with-stud-only-the-stud-games-ante) | In a mix with stud, only the stud games ante | 2026-11-06 | Claude |
+| [D30](#d30-a-definition-of-done) | A definition of done | 2026-11-06 | John asked; wording Claude |
 
 ---
 
@@ -324,3 +326,10 @@ How this file works:
 - **Not done, on purpose:** separate stakes for each game in a rotation (for example different blinds for 8-Game's No-Limit and Pot-Limit rounds). One set of stakes keeps the Stakes tab simple; the Mixed games guide says so.
 - **Tournaments too** (added 2026-11-06, issue #338): in a tournament whose rotation includes a stud game, the levels that deal a blind game post no ante; the stud levels post the level's ante. A tournament's rotation can give each game its own betting (`gameBetting`), so HORSE and 8-Game tournaments play Limit Hold'em and Limit Omaha Hi-Lo.
 - **Where:** `packages/engine/src/variants/mixes.ts` (`MIXED_GAMES`, `skipsMixedGameAnte`), `handSetup` in `apps/server/src/runtime/table.ts`, `levelFor` in `packages/tournament/src/director.ts`.
+
+## D30. A definition of done
+
+- **Decided:** 2026-11-06. John asked how to stop work being reported done when only part of it was, and why it kept happening (issue #344). The wording is Claude's.
+- **Decision:** work is done only when the whole original ask is finished and checked on the live site, by looking only (D07, D24; anything that needs a game is tested on a local copy). Merged but not released is "on develop", not done. Before anyone reports done or closes a thread, every follow-up issue it opened is either being actively worked on or labelled `status: waiting on John` / `status: waiting on others` with the reason in a comment. The steps are in [CONTRIBUTING.md](../CONTRIBUTING.md#definition-of-done).
+- **Why:** twice on 2026-11-05/06 a session shipped part of an ask, opened an issue for the rest and stopped: HORSE and 8-Game reached cash tables but tournaments (#338) sat untouched, and bigger cards reached only some games (#317, then #331). The old rules allowed it: "done" meant the issue was closed, and leftovers only had to become new issues. Sessions are short-lived and nothing picks up a new issue by itself, so an issue with no owner was work nobody was doing.
+- **Where:** [CONTRIBUTING.md](../CONTRIBUTING.md#definition-of-done), [CLAUDE.md](../CLAUDE.md), the [pull request template](../.github/pull_request_template.md).
