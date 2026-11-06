@@ -1,34 +1,34 @@
 {
-  "checked": "2026-11-06T17:58:42.658Z",
+  "checked": "2026-11-06T18:08:31.751Z",
   "machines": [
     {
       "id": "8e3145c7e00e38",
       "state": "started",
-      "image": "registry.fly.io/rsdp-poker-live@sha256:c04d9c5d4852939f1110fa4dd5c1404ea7c3bd5c4ff2248c23b611ed93f3be3e",
-      "digest": "sha256:c04d9c5d4852939f1110fa4dd5c1404ea7c3bd5c4ff2248c23b611ed93f3be3e",
-      "lastStart": "2026-11-06T09:02:35.442Z",
+      "image": "registry.fly.io/rsdp-poker-live@sha256:1b8a72866a3774b7814510dc38be78ff29d7bfe1454a26368c75ad8cd9bf44ec",
+      "digest": "sha256:1b8a72866a3774b7814510dc38be78ff29d7bfe1454a26368c75ad8cd9bf44ec",
+      "lastStart": "2026-11-06T18:07:45.620Z",
       "starts": [
         {
           "type": "launch",
           "status": "pending",
-          "at": "2026-11-06T09:02:25.417Z"
+          "at": "2026-11-06T18:07:35.165Z"
         },
         {
           "type": "launch",
           "status": "created",
-          "at": "2026-11-06T09:02:25.436Z"
+          "at": "2026-11-06T18:07:35.188Z"
         },
         {
           "type": "start",
           "status": "started",
-          "at": "2026-11-06T09:02:35.442Z"
+          "at": "2026-11-06T18:07:45.620Z"
         }
       ],
       "settings": "318a0bfd9683f028",
       "signed": {
-        "commit": "68dfe029d4a6d365067026892e4460c92c137c6f",
+        "commit": "0351452f79e6cede4513f741ac168fe2c87b1065",
         "ref": "refs/heads/main",
-        "run": "https://github.com/jcolter11374/rsdp-poker-live/actions/runs/42191883916/attempts/1"
+        "run": "https://github.com/jcolter11374/rsdp-poker-live/actions/runs/42267683879/attempts/1"
       }
     }
   ],
@@ -47,14 +47,17 @@
     },
     {
       "name": "REPORT_KEY",
-      "fingerprint": "9f845441fea1ff8e"
+      "fingerprint": "9657af1de4b03643"
     }
   ],
   "site": {
-    "commit": "68dfe029d4a6d365067026892e4460c92c137c6f",
-    "image": "registry.fly.io/rsdp-poker-live@sha256:c04d9c5d4852939f1110fa4dd5c1404ea7c3bd5c4ff2248c23b611ed93f3be3e",
+    "commit": "0351452f79e6cede4513f741ac168fe2c87b1065",
+    "image": "registry.fly.io/rsdp-poker-live@sha256:1b8a72866a3774b7814510dc38be78ff29d7bfe1454a26368c75ad8cd9bf44ec",
     "machine": "8e3145c7e00e38",
-    "startedAt": "2026-11-06T09:02:42.165Z"
+    "startedAt": "2026-11-06T18:07:52.646Z"
   },
-  "problems": []
+  "problems": [],
+  "notes": [
+    "The app's secrets changed."
+  ]
 }
