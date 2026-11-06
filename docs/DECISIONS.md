@@ -41,6 +41,7 @@ How this file works:
 | [D28](#d28-one-comparison-page-may-name-pokernow) | One comparison page may name PokerNow | 2026-11-06 | John |
 | [D29](#d29-in-a-mix-with-stud-only-the-stud-games-ante) | In a mix with stud, only the stud games ante | 2026-11-06 | Claude |
 | [D30](#d30-a-definition-of-done) | A definition of done | 2026-11-06 | John asked; wording Claude |
+| [D31](#d31-mixed-game-details-settled-while-fixing-its-bugs) | Mixed-game details settled while fixing its bugs | 2026-11-06 | Claude |
 
 ---
 
@@ -333,3 +334,15 @@ How this file works:
 - **Decision:** work is done only when the whole original ask is finished and checked on the live site, by looking only (D07, D24; anything that needs a game is tested on a local copy). Merged but not released is "on develop", not done. Before anyone reports done or closes a thread, every follow-up issue it opened is either being actively worked on or labelled `status: waiting on John` / `status: waiting on others` with the reason in a comment. The steps are in [CONTRIBUTING.md](../CONTRIBUTING.md#definition-of-done).
 - **Why:** twice on 2026-11-05/06 a session shipped part of an ask, opened an issue for the rest and stopped: HORSE and 8-Game reached cash tables but tournaments (#338) sat untouched, and bigger cards reached only some games (#317, then #331). The old rules allowed it: "done" meant the issue was closed, and leftovers only had to become new issues. Sessions are short-lived and nothing picks up a new issue by itself, so an issue with no owner was work nobody was doing.
 - **Where:** [CONTRIBUTING.md](../CONTRIBUTING.md#definition-of-done), [CLAUDE.md](../CLAUDE.md), the [pull request template](../.github/pull_request_template.md).
+
+## D31. Mixed-game details settled while fixing its bugs
+
+- **Decided:** 2026-11-06, by Claude, fixing the mixed-game bugs found while planning Dealer's choice (issues #354 to #361). All reversible.
+- **Decision:**
+  - **A big-blind ante in a stud game** (a tournament level or a cash table) is paid by everyone as a per-player ante of about an eighth of it, rounded to the presets' tidy ante amounts, at least 1 and never more than the big-blind ante: 300 becomes 40 (#354). The lobby clock and structure table show the ante each level's game really deals, and the structure editor tells the host.
+  - **A cash blind schedule raises the Limit bets and the stud bring-in** with the blinds, keeping the table's own size of each to its big blind: a table set to 0.25/0.50 with bets of 0.50/1 bets 8/16 at blinds of 4/8 (#358). A table with no big blind of its own bets the level's big blind and twice it, as tournaments do.
+  - **A bomb pot during a stud game** is dealt from the button the stud hand would have had, so it takes one hand of the orbit, as a bomb pot does in hold'em (#355).
+  - **A deal that can't go ahead** (for example a game in the rotation that can't seat everyone) leaves the rotation where it was, so no game is skipped or cut short (#357).
+  - **A cash hand the usual rules would deal to fewer than two players** (new players and missed blinds waiting for the button to pass, which it can't while no hand is dealt) deals everyone in free instead, as when a game starts (#357). Before, the table sat still until someone sat down, sat out or left; the nightly deep fuzz caught it too (#286).
+- **Why:** each is what a card room does, or the plainest rule that keeps every game its full length. A big-blind ante of 300 at a full stud table of 8 puts about what 8 antes of 40 put in, and matches what the per-player presets give at that big blind.
+- **Where:** `packages/engine/src/variants/antes.ts` (`studAnteForBigBlindAnte`, `anteForGame`), `levelDeal` in `packages/tournament/src/director.ts`, and in `apps/server/src/runtime/table.ts`: `fillStakes`, `cashHandStakes`, `nextRotation` and `dealHand`.

@@ -18,6 +18,20 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
+## [2026.11.06.6] - 2026-11-06
+
+### Fixed and changed
+
+- Tournaments with stud games (HORSE, 8-Game, or a stud event) set to a big-blind ante: in the stud games everyone now antes about an eighth of it (300 becomes 40 each), instead of every player putting in a full big blind. The lobby clock and the structure table show the ante each level really deals, and the structure editor says how it works.
+- Mixed games: a bomb pot dealt during a stud game no longer cuts the rest of that stud game short. It takes the place of one hand of the orbit, as it does in hold'em.
+- Mixed games: making the table smaller in the middle of a game no longer ends that game early or makes it run long.
+- Mixed games: if a hand can't be dealt just as the game changes, the next game is no longer skipped when play carries on.
+- Cash tables: a table no longer gets stuck when the blind rules would deal a hand to just one player (for example a new player in the small blind and a returning player on the button, with only three at the table). Everyone is dealt in free instead, as at the start of a game.
+- Cash games with "Raise the blinds on a schedule": the Limit bets and the stud bring-in now rise with the blinds, instead of staying at the starting amounts.
+- HORSE and 8-Game tables: before the first hand the top bar no longer shows an ante for Limit Hold'em, which posts none, and between hands it names the game that comes next.
+- Hand search: Limit and No-Limit Hold'em are now separate choices in the Game list, with their own hand counts, and so is any other game you've played with more than one kind of betting.
+- Hosts: a saved preset with more seats than one of its games deals (2-7 Triple Draw and Badugi deal at most 6) now starts a table with seats that fit, instead of a table that stops when it reaches that game.
+
 ## [2026.11.06.5] - 2026-11-06
 
 ### Fixed and changed
@@ -653,6 +667,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.06.6]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.06.6
 [2026.11.06.5]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.06.5
 [2026.11.06.4]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.06.4
 [2026.11.06.3]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.06.3
