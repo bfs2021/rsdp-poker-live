@@ -224,6 +224,11 @@ function nearestNice(v: number, next: (min: number) => number): number {
   return v - below <= above - v ? below : above;
 }
 
+/** The per-player ante the presets would give for this big blind (about bb/8, at least 1). */
+export function perPlayerPresetAnte(bb: number): number {
+  return Math.min(bb, nearestNice(bb / 8, nextAnte));
+}
+
 export type PresetName = 'hyper' | 'turbo' | 'regular' | 'deep';
 
 export interface PresetSpec {
@@ -273,7 +278,7 @@ export function buildStructure(spec: PresetSpec, opts: BuildOptions): StructureR
     const bb = sb * 2;
     let ante = 0;
     if (anteType !== 'none' && level >= spec.anteFromLevel) {
-      ante = anteType === 'big-blind' ? bb : Math.min(bb, nearestNice(bb / 8, nextAnte));
+      ante = anteType === 'big-blind' ? bb : perPlayerPresetAnte(bb);
     }
     rows.push({
       kind: 'level',

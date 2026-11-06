@@ -54,6 +54,7 @@ import {
 } from './types';
 import { cleanName as cleanDisplayName } from '../names';
 import { handOver, hasPower, isStaff, powersOf, RoleError, withCoHost, withoutCoHost, type HostPower } from '@rsdp/engine/roles';
+import { perPlayerPresetAnte } from '@rsdp/tournament';
 import { maskProfanity } from './profanity';
 import { explainMove, readPlayers, seededRand, seenBy, type MoveWhy } from '../bots/strategy';
 import { coachTip as buildCoachTip } from '../bots/coach';
@@ -2833,7 +2834,12 @@ export function fillStakes(stakes: Stakes, game: GameSpec): Stakes {
   if (out.smallBet <= 0) out.smallBet = Math.max(1, out.bigBlind);
   if (out.bigBet <= 0) out.bigBet = out.smallBet * 2;
   if (game.family === 'stud' && out.bringIn <= 0) out.bringIn = Math.max(1, Math.floor(out.smallBet / 3));
-  if (game.forcedBets === 'ante-bring-in' && out.anteType === 'big-blind') out.anteType = 'per-player';
+  if (game.forcedBets === 'ante-bring-in' && out.anteType === 'big-blind') {
+    // A big-blind ante posts a full big blind from every player on a stud hand; stud games use
+    // modest per-player antes, so convert the amount along with the type (issue #354).
+    out.anteType = 'per-player';
+    out.ante = perPlayerPresetAnte(out.bigBlind);
+  }
   return out;
 }
 
