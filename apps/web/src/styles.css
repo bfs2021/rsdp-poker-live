@@ -940,6 +940,9 @@ dl.shortcuts dd { margin: 0; }
   .seat.long-hand.me .hole .playing-card + .playing-card { margin-left: -26px; }
   .seat.long-hand.me .nameplate { min-width: 260px; }
 }
+/* A short, very wide window (#347): your own row of five or more cards stays a little lower, so it clears the board. */
+.felt.big-cards.short:not(.compact) .seat.long-hand.me .playing-card.small { --cw: 56px; }
+.felt.big-cards.short:not(.compact) .seat.long-hand.me .hole .playing-card + .playing-card { margin-left: -20px; }
 
 /* ---- the wide layout (windows 1440px and wider, #317): no side column. Chat sits in the bottom-left corner beside the
    action bar, and the log, ledger, hands, stats and host controls slide out from the top bar's "Log" button. */

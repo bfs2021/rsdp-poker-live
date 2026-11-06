@@ -29,6 +29,7 @@ _HORSE and 8-Game tournaments_
 ### Fixed and changed
 
 - Mixed-game tournaments with stud in them: only the stud levels post the level's ante, as at cash tables. A tournament without stud games keeps its antes as before.
+- Wide but short screens (an ultrawide monitor, or a big screen with tall browser bars): the bigger table and bigger cards now switch on there too, in every game. Before, a window like that fell back to the laptop layout and the seats and cards shrank, which looked tiny on the long table.
 
 ## [2026.11.06.3] - 2026-11-06
 
