@@ -1,6 +1,13 @@
 {
   "releases": [
     {
+      "id": "2026.11.06",
+      "date": "2026-11-06",
+      "fixes": [
+        "The Roadmap page is up to date again: what it listed as coming next is already live, so it's been moved to Live now, along with the bigger table on big screens and the new all-in run-outs."
+      ]
+    },
+    {
       "id": "2026.11.05.7",
       "date": "2026-11-05",
       "fixes": [
