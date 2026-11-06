@@ -24,6 +24,8 @@ export {
   TABLE_MODES,
   TableSettingsSchema,
   type BlindLevel,
+  type ChoiceGame,
+  type DealersChoiceSettings,
   type RotationStep,
   type TableMode,
   type TableSettings,

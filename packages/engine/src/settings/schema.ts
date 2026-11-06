@@ -29,6 +29,12 @@ export const SETTINGS_LIMITS = {
   gameId: { min: 1, max: 40 },
   rotationSteps: { min: 1, max: 20 },
   rotationLength: { min: 1, max: 1000 },
+  /** Dealer's choice: games on the menu. */
+  choiceGames: { min: 2, max: 20 },
+  /** Dealer's choice: hands each pick lasts; 0 means one orbit. */
+  choiceHands: { min: 0, max: 100 },
+  /** Dealer's choice: seconds the chooser has to pick. */
+  pickSeconds: { min: 10, max: 60 },
   blindLevels: { min: 1, max: 100 },
   levelMinutes: { min: 2, max: 240 },
   levelHands: { min: 1, max: 1000 },
@@ -116,6 +122,36 @@ const RotationStepSchema = z
   })
   .strict();
 
+/** A game on a Dealer's choice menu: the chooser picks the game with this betting. */
+const ChoiceGameSchema = z
+  .object({
+    gameId,
+    betting: z.enum(BETTING_KINDS),
+  })
+  .strict();
+
+const DealersChoiceSchema = z
+  .object({
+    /** Players take turns choosing the game (cash tables; not with a rotation). */
+    enabled: z.boolean(),
+    /** The menu: 2-20 games, each with its betting, none twice. */
+    games: z.array(ChoiceGameSchema).max(L.choiceGames.max),
+    /** Hands each pick lasts; 0 (the default) means one orbit. */
+    hands: wholeNumber(L.choiceHands),
+    /** Seconds the chooser has to pick (10-60, default 20). */
+    pickSeconds: wholeNumber(L.pickSeconds),
+  })
+  .strict()
+  .superRefine((d, ctx) => {
+    if (d.enabled && d.games.length < L.choiceGames.min) custom(ctx, ['games'], 'put at least two games on the menu');
+    const seen = new Set<string>();
+    d.games.forEach((g, i) => {
+      const key = `${g.gameId}/${g.betting}`;
+      if (seen.has(key)) custom(ctx, ['games', i], 'is on the menu twice');
+      seen.add(key);
+    });
+  });
+
 const GameSection = z
   .object({
     /** Game dealt when no rotation is running (default 'nlhe'). */
@@ -134,8 +170,17 @@ const GameSection = z
       .superRefine((r, ctx) => {
         if (r.enabled && r.steps.length < L.rotationSteps.min) custom(ctx, ['steps'], 'add at least one step to rotate games');
       }),
+    /**
+     * Dealer's choice (D31). Optional because settings saved with a table
+     * before it existed aren't migrated: missing means off. New settings
+     * always have it.
+     */
+    dealersChoice: DealersChoiceSchema.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((g, ctx) => {
+    if (g.rotation.enabled && g.dealersChoice?.enabled) custom(ctx, ['dealersChoice', 'enabled'], "turn off rotating games to use Dealer's choice");
+  });
 
 const StakesSection = z
   .object({
@@ -323,10 +368,12 @@ function checkAcrossSections(s: z.output<typeof SettingsObject>, ctx: z.Refineme
         custom(ctx, ['modifiers', entry.id, 'enabled'], 'cash games only: turn it off in tournament mode');
       }
     }
+    if (s.game.dealersChoice?.enabled) custom(ctx, ['game', 'dealersChoice', 'enabled'], 'cash games only: turn it off in tournament mode');
   }
 
   const kinds = new Set<BettingKind>([s.game.betting]);
   if (s.game.rotation.enabled) for (const step of s.game.rotation.steps) kinds.add(step.betting);
+  if (s.game.dealersChoice?.enabled) for (const g of s.game.dealersChoice.games) kinds.add(g.betting);
   const { stakes, blindSchedule } = s;
   const levels = blindSchedule.enabled ? blindSchedule.levels : [];
 
@@ -371,3 +418,5 @@ export const TableSettingsSchema = SettingsObject.superRefine(checkAcrossSection
 export type TableSettings = z.output<typeof TableSettingsSchema>;
 export type BlindLevel = z.output<typeof BlindLevelSchema>;
 export type RotationStep = z.output<typeof RotationStepSchema>;
+export type ChoiceGame = z.output<typeof ChoiceGameSchema>;
+export type DealersChoiceSettings = z.output<typeof DealersChoiceSchema>;

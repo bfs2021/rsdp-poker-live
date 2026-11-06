@@ -215,6 +215,8 @@ export interface TableView {
   bombPotNext: boolean;
   /** Game and stakes of the next hand when no hand is running (cash tables). */
   upcoming: { gameId: string; gameName: string; betting: BettingKind; stakes: Stakes } | null;
+  /** Dealer's choice (D31): who picks next, the game being played and the pick clock. Absent at other tables. */
+  choice?: ChoiceView | null;
   /** Blind schedule: current level and when it ends. */
   level: { index: number; count: number; endsAt: number | null; handsLeft: number | null } | null;
   /** The host sees all requests; everyone else sees their own. */
@@ -254,6 +256,40 @@ export interface TableView {
    * moves when that happens, so browsers fetch the hands again).
    */
   fair: { nextCommit: string; handCommit: string | null; openThrough: number };
+}
+
+/** A game picked at a Dealer's choice table. */
+export interface ChoicePickView {
+  gameId: string;
+  betting: BettingKind;
+  gameName: string;
+  /** Who picked it; null when nobody could. */
+  by: string | null;
+  /** picked: a person chose it; bot: a practice bot did; kept: the game carried on (on purpose or a missed pick); default: nobody could pick. */
+  how: 'picked' | 'bot' | 'kept' | 'default';
+}
+
+export interface ChoiceView {
+  /** The seat with the Pick chip: who picks next (null when nobody can). */
+  chip: number | null;
+  /** The game being played, and who picked it; null before the first pick. */
+  current: ChoicePickView | null;
+  /** Hands of the current pick still to come after the one being played (null before its first hand). */
+  handsLeft: number | null;
+  /** The next game, once picked. */
+  next: ChoicePickView | null;
+  /** The chooser may pick now. */
+  open: boolean;
+  /** The table is waiting for the pick until then; null while no clock runs (picking during the last hand has none). */
+  deadline: number | null;
+  /** People counted when checking a game fits: everyone sitting down, and anyone a seat is held for. */
+  count: number;
+  /** While a smaller game is picked or played, the table seats at most this many (null: no limit). */
+  cap: number | null;
+  /** The menu entry a missed pick deals. */
+  defaultIndex: number;
+  /** The current game is on the menu and fits, so the chooser can keep it going. */
+  canKeep: boolean;
 }
 
 /** A finished hand for the log and replayer, filtered for the viewer. */
@@ -358,6 +394,11 @@ export interface ClientToServer {
   'hand:draw': (input: { discard: number[] } & TurnKey, ack: Ack) => void;
   /** `handNumber`: the hand whose vote I pressed it in, so a vote that arrives during a later hand's vote is ignored, not counted there. */
   'hand:runItTwice': (input: { yes: boolean; handNumber?: number }, ack: Ack) => void;
+  /**
+   * Dealer's choice: pick the next game, by its place on the menu (settings.game.dealersChoice.games).
+   * `handNumber`: the hand I picked during or after, so a pick that arrives once the table has moved on is refused.
+   */
+  'hand:chooseGame': (input: { index: number; handNumber?: number }, ack: Ack) => void;
   /** `handNumber`: the hand I pressed it after, so a show that arrives once the next hand is dealt is refused, not played on that hand. */
   'hand:show': (input: { cards: number[]; handNumber?: number }, ack: Ack) => void;
   /** Add my time bank to my clock now, on the turn I pressed it on (a page from before turn keys sends the ack alone). */

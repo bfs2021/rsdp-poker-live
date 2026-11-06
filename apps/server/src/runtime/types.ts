@@ -239,7 +239,7 @@ export interface RuntimeState {
   stopAfterHand: boolean;
   paused: boolean;
   /** While paused: how long was left on each clock, and when the pause began (missing in older snapshots). */
-  pausedLeft: { at?: number; turn: number | null; nextHand: number | null; rit: number | null } | null;
+  pausedLeft: { at?: number; turn: number | null; nextHand: number | null; rit: number | null; pick?: number | null } | null;
   handNumber: number;
   hand: HandState | null;
   handStartedAt: number | null;
@@ -252,6 +252,8 @@ export interface RuntimeState {
   level: { index: number; elapsedMs: number; runningSince: number | null; hands: number };
   /** Mixed-game rotation progress. */
   rotation: { step: number; hands: number; orbits: number; anchor: number | null };
+  /** Dealer's choice (D31): the Pick chip and the game picked. Missing until a table plays it. */
+  choice?: ChoiceState;
   chat: ChatMessage[];
   log: TableLogEntry[];
   history: HandRecord[];
@@ -334,4 +336,37 @@ export interface TournamentHooks {
     knockedOutBy: Record<PlayerId, PlayerId[]>;
     button: number;
   }): void;
+}
+
+/** A game chosen at a Dealer's choice table, and how. */
+export interface ChoicePick {
+  gameId: string;
+  betting: BettingKind;
+  /** The chooser's name as shown, or null when nobody could pick. */
+  by: string | null;
+  /** The chooser's seat, or null when nobody could pick. */
+  seat: number | null;
+  /** picked: a person chose it; bot: a practice bot did; kept: the current game, kept on purpose or by a missed pick; default: dealt because nobody picked. */
+  how: 'picked' | 'bot' | 'kept' | 'default';
+}
+
+/** Dealer's choice progress (choice.ts). */
+export interface ChoiceState {
+  /** The seat holding the Pick chip: the next chooser, or the first player to its left who can pick. */
+  chip: number;
+  /** At a table that hadn't dealt yet: the first chooser, who gets the first hand's button. */
+  firstButton: number | null;
+  /** The game being played; null before the first pick (the table's own game). */
+  current: ChoicePick | null;
+  /** Hands of `current` dealt so far, and how many it lasts (0 until its first hand). */
+  hands: number;
+  length: number;
+  /** The next game, picked once picking opened (during the current pick's last hand, or while the table waits). */
+  next: ChoicePick | null;
+  /** When the chooser's clock runs out; null while no clock runs. */
+  deadline: number | null;
+  /** Whom the clock is running for: a different chooser gets a fresh clock. */
+  clockFor: PlayerId | null;
+  /** When a bot holding the chip picks. */
+  botAt: number | null;
 }

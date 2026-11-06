@@ -302,7 +302,7 @@ describe('settings validation, pinned', () => {
       const expected = {
         version: 1,
         table: { name: tournament ? 'Tournament table' : 'Poker night', maxSeats: 10, mode, felt: 'green' },
-        game: { gameId: 'nlhe', betting: 'no-limit', rotation: { enabled: false, steps: [] } },
+        game: { gameId: 'nlhe', betting: 'no-limit', rotation: { enabled: false, steps: [] }, dealersChoice: { enabled: false, games: [], hands: 0, pickSeconds: 20 } },
         stakes: { smallBlind: 1, bigBlind: 2, ante: 0, anteType: 'none', bringIn: 0, smallBet: 2, bigBet: 4, centsMode: false },
         blindSchedule: { enabled: false, countdown: 'per-level-timer', levels: [] },
         timing: { decisionSeconds: 30, timeBankSeconds: 30, timeBankRefillHands: 10, autoActivateTimeBank: true, autoStartNextHand: true, showdownSeconds: 6, nextHandDelaySeconds: 3 },

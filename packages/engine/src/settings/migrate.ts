@@ -39,6 +39,7 @@ const MIGRATIONS: ((raw: JsonObject) => JsonObject)[] = [fromMvpConfig];
 /** Defaults for array items, keyed by the array's path. Undefined means required: no default is guessed. */
 const ITEM_TEMPLATES: Record<string, JsonObject> = {
   'game.rotation.steps': { gameId: undefined, betting: undefined, length: undefined, unit: 'hands' },
+  'game.dealersChoice.games': { gameId: undefined, betting: undefined },
   'blindSchedule.levels': { smallBlind: undefined, bigBlind: undefined, ante: 0, minutes: 15, hands: 20 },
 };
 

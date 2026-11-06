@@ -8,6 +8,7 @@ import {
   SettingsError,
   TableSettingsSchema,
   defaultSettings,
+  migrateSettings,
   parseSettings,
   type TableMode,
   type TableSettings,
@@ -35,7 +36,7 @@ describe('defaults', () => {
     const s = cash();
     expect(s.version).toBe(SETTINGS_VERSION);
     expect(s.table).toMatchObject({ maxSeats: 10, mode: 'cash' });
-    expect(s.game).toEqual({ gameId: 'nlhe', betting: 'no-limit', rotation: { enabled: false, steps: [] } });
+    expect(s.game).toEqual({ gameId: 'nlhe', betting: 'no-limit', rotation: { enabled: false, steps: [] }, dealersChoice: { enabled: false, games: [], hands: 0, pickSeconds: 20 } });
     expect(s.timing).toEqual({
       decisionSeconds: 30,
       timeBankSeconds: 30,
@@ -115,6 +116,10 @@ describe('field ranges', () => {
     ['game.betting', ['spread-limit', 'NL', null], ['pot-limit', 'no-limit']],
     ['game.rotation.enabled', ['yes', 1], [false]],
     ['game.rotation.steps', ['plo', {}], [[]]],
+    ['game.dealersChoice.enabled', ['yes', 1], [false]],
+    ['game.dealersChoice.games', ['plo', {}], [[]]],
+    ['game.dealersChoice.hands', [-1, 101, 1.5], [0, 100]],
+    ['game.dealersChoice.pickSeconds', [9, 61, 20.5, 0], [10, 60]],
     ['stakes.smallBlind', [-1, 1.5, MAX_CHIPS + 1, '1', Number.NaN], [0, 2]],
     ['stakes.bigBlind', [-1, 2.5, MAX_CHIPS + 1, Infinity], [2, MAX_CHIPS]],
     ['stakes.ante', [-1, 0.5, MAX_CHIPS + 1], [0]],
@@ -178,7 +183,7 @@ describe('field ranges', () => {
     const leaves = Object.entries(s)
       .filter(([section]) => section !== 'version' && section !== 'modifiers')
       .flatMap(([section, fields]) => Object.keys(fields as object).map((f) => `${section}.${f}`));
-    const missing = leaves.filter((p) => !covered.has(p) && p !== 'game.rotation');
+    const missing = leaves.filter((p) => !covered.has(p) && p !== 'game.rotation' && p !== 'game.dealersChoice');
     expect(missing).toEqual([]);
   });
 
@@ -390,6 +395,32 @@ describe('cross-field rules', () => {
     });
     expect(() => parseSettings(flOnly)).not.toThrow();
     expect(pathsOf(() => parseSettings(withField(flOnly, 'game.rotation.enabled', true)))).toEqual(['stakes.bigBlind']);
+  });
+
+  it("Dealer's choice needs two games, none twice, no rotation, and a cash table; its betting needs its stakes", () => {
+    const nl = { gameId: 'nlhe', betting: 'no-limit' };
+    const razz = { gameId: 'razz', betting: 'fixed-limit' };
+    expect(issuesOf(() => parseSettings(withFields(cash(), { 'game.dealersChoice.enabled': true, 'game.dealersChoice.games': [nl] })))).toEqual([
+      { path: 'game.dealersChoice.games', message: 'put at least two games on the menu' },
+    ]);
+    expect(pathsOf(() => parseSettings(withFields(cash(), { 'game.dealersChoice.games': [nl, razz, nl] })))).toEqual(['game.dealersChoice.games[2]']);
+    const on = withFields(cash(), { 'game.dealersChoice.enabled': true, 'game.dealersChoice.games': [nl, razz] });
+    expect(() => parseSettings(on)).not.toThrow();
+    expect(pathsOf(() => parseSettings(withFields(on, { 'game.rotation.enabled': true, 'game.rotation.steps': [{ ...nl, length: 1, unit: 'hands' }] })))).toEqual([
+      'game.dealersChoice.enabled',
+    ]);
+    expect(pathsOf(() => parseSettings(withField(on, 'stakes.smallBet', 0)))).toEqual(['stakes.smallBet']);
+    // Off, its menu's betting asks nothing of the stakes.
+    expect(() => parseSettings(withFields(on, { 'game.dealersChoice.enabled': false, 'stakes.smallBet': 0 }))).not.toThrow();
+    const tour = withFields(defaultSettings('tournament'), { 'game.dealersChoice.enabled': true, 'game.dealersChoice.games': [nl, razz] });
+    expect(pathsOf(() => parseSettings(tour))).toContain('game.dealersChoice.enabled');
+  });
+
+  it('settings from before Dealer\u2019s choice load with it left out, and migrate with it off', () => {
+    const old = cash() as Record<string, unknown> & { game: Record<string, unknown> };
+    delete old.game.dealersChoice;
+    expect(parseSettings(old).game.dealersChoice).toBeUndefined();
+    expect(migrateSettings(old).game.dealersChoice).toEqual({ enabled: false, games: [], hands: 0, pickSeconds: 20 });
   });
 
   it('an enabled rotation needs a step and an enabled schedule needs a level', () => {

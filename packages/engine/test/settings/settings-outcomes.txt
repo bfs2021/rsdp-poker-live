@@ -178,6 +178,62 @@ game.rotation.steps[0].unit: must be 'hands' | 'orbits', not nan  <=  NaN
 game.rotation.steps[0].unit: must be one of 'hands', 'orbits'  <=  "", " ", "x", "1", "30", "NL", "plo", "  Friday  ", "Friday 🃏", "has space", "dot.id", "tab\there", "bell\u0007", "half \ud83d", "\udc00", 'x'×40, 'x'×41, "  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  ", '🃏'×20, '🃏'×21, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx🃏"
 game.rotation.steps[0].unit: must be 'hands' | 'orbits', not array  <=  [], [1]
 game.rotation.steps[0].unit: must be 'hands' | 'orbits', not object  <=  {}, {"enabled":true}
+## game.dealersChoice
+ok  <=  missing
+game.dealersChoice: must be an object, not null  <=  null
+game.dealersChoice: must be an object, not boolean  <=  true, false
+game.dealersChoice: must be an object, not number  <=  -100000000000000000000, -101, -1, -0, 0, 0.5, 1, 1.5, 2, 2.25, 2.345, 2.5, 3, 4, 5, 6, 7, 9, 10, 11, 20, 21, 24, 30, 31, 40, 41, 100, 101, 200, 201, 240, 241, 300, 301, 600, 601, 1000, 1001, 1440, 1441, 1000000000000, 1000000000001, 9007199254740992, 9007199254740994, 100000000000000000000, Infinity, -Infinity
+game.dealersChoice: must be an object, not nan  <=  NaN
+game.dealersChoice: must be an object, not string  <=  "", " ", "x", "1", "30", "NL", "plo", "  Friday  ", "Friday 🃏", "has space", "dot.id", "tab\there", "bell\u0007", "half \ud83d", "\udc00", 'x'×40, 'x'×41, "  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  ", '🃏'×20, '🃏'×21, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx🃏"
+game.dealersChoice: must be an object, not array  <=  [], [1]
+game.dealersChoice.enabled: required | game.dealersChoice.games: required | game.dealersChoice.hands: required | game.dealersChoice.pickSeconds: required  <=  {}
+game.dealersChoice.games: required | game.dealersChoice.hands: required | game.dealersChoice.pickSeconds: required  <=  {"enabled":true}
+## game.dealersChoice.enabled
+game.dealersChoice.enabled: required  <=  missing
+game.dealersChoice.enabled: must be true or false, not null  <=  null
+game.dealersChoice.games: put at least two games on the menu | game.dealersChoice.enabled: turn off rotating games to use Dealer's choice  <=  true
+ok  <=  false
+game.dealersChoice.enabled: must be true or false, not number  <=  -100000000000000000000, -101, -1, -0, 0, 0.5, 1, 1.5, 2, 2.25, 2.345, 2.5, 3, 4, 5, 6, 7, 9, 10, 11, 20, 21, 24, 30, 31, 40, 41, 100, 101, 200, 201, 240, 241, 300, 301, 600, 601, 1000, 1001, 1440, 1441, 1000000000000, 1000000000001, 9007199254740992, 9007199254740994, 100000000000000000000, Infinity, -Infinity
+game.dealersChoice.enabled: must be true or false, not nan  <=  NaN
+game.dealersChoice.enabled: must be true or false, not string  <=  "", " ", "x", "1", "30", "NL", "plo", "  Friday  ", "Friday 🃏", "has space", "dot.id", "tab\there", "bell\u0007", "half \ud83d", "\udc00", 'x'×40, 'x'×41, "  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  ", '🃏'×20, '🃏'×21, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx🃏"
+game.dealersChoice.enabled: must be true or false, not array  <=  [], [1]
+game.dealersChoice.enabled: must be true or false, not object  <=  {}, {"enabled":true}
+## game.dealersChoice.games
+game.dealersChoice.games: required  <=  missing
+game.dealersChoice.games: must be a list, not null  <=  null
+game.dealersChoice.games: must be a list, not boolean  <=  true, false
+game.dealersChoice.games: must be a list, not number  <=  -100000000000000000000, -101, -1, -0, 0, 0.5, 1, 1.5, 2, 2.25, 2.345, 2.5, 3, 4, 5, 6, 7, 9, 10, 11, 20, 21, 24, 30, 31, 40, 41, 100, 101, 200, 201, 240, 241, 300, 301, 600, 601, 1000, 1001, 1440, 1441, 1000000000000, 1000000000001, 9007199254740992, 9007199254740994, 100000000000000000000, Infinity, -Infinity
+game.dealersChoice.games: must be a list, not nan  <=  NaN
+game.dealersChoice.games: must be a list, not string  <=  "", " ", "x", "1", "30", "NL", "plo", "  Friday  ", "Friday 🃏", "has space", "dot.id", "tab\there", "bell\u0007", "half \ud83d", "\udc00", 'x'×40, 'x'×41, "  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  ", '🃏'×20, '🃏'×21, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx🃏"
+ok  <=  []
+game.dealersChoice.games[0]: must be an object, not number  <=  [1]
+game.dealersChoice.games: must be a list, not object  <=  {}, {"enabled":true}
+## game.dealersChoice.hands
+game.dealersChoice.hands: required  <=  missing
+game.dealersChoice.hands: must be a number, not null  <=  null
+game.dealersChoice.hands: must be a number, not boolean  <=  true, false
+game.dealersChoice.hands: must be at least 0  <=  -100000000000000000000, -101, -1
+ok  <=  -0, 0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 20, 21, 24, 30, 31, 40, 41, 100
+game.dealersChoice.hands: must be a whole number  <=  0.5, 1.5, 2.25, 2.345, 2.5
+game.dealersChoice.hands: must be at most 100  <=  101, 200, 201, 240, 241, 300, 301, 600, 601, 1000, 1001, 1440, 1441, 1000000000000, 1000000000001, 9007199254740992, 9007199254740994, 100000000000000000000
+game.dealersChoice.hands: must be a number, not nan  <=  NaN
+game.dealersChoice.hands: must be a number, not infinity  <=  Infinity, -Infinity
+game.dealersChoice.hands: must be a number, not string  <=  "", " ", "x", "1", "30", "NL", "plo", "  Friday  ", "Friday 🃏", "has space", "dot.id", "tab\there", "bell\u0007", "half \ud83d", "\udc00", 'x'×40, 'x'×41, "  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  ", '🃏'×20, '🃏'×21, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx🃏"
+game.dealersChoice.hands: must be a number, not array  <=  [], [1]
+game.dealersChoice.hands: must be a number, not object  <=  {}, {"enabled":true}
+## game.dealersChoice.pickSeconds
+game.dealersChoice.pickSeconds: required  <=  missing
+game.dealersChoice.pickSeconds: must be a number, not null  <=  null
+game.dealersChoice.pickSeconds: must be a number, not boolean  <=  true, false
+game.dealersChoice.pickSeconds: must be at least 10  <=  -100000000000000000000, -101, -1, -0, 0, 1, 2, 3, 4, 5, 6, 7, 9
+game.dealersChoice.pickSeconds: must be a whole number; must be at least 10  <=  0.5, 1.5, 2.25, 2.345, 2.5
+ok  <=  10, 11, 20, 21, 24, 30, 31, 40, 41
+game.dealersChoice.pickSeconds: must be at most 60  <=  100, 101, 200, 201, 240, 241, 300, 301, 600, 601, 1000, 1001, 1440, 1441, 1000000000000, 1000000000001, 9007199254740992, 9007199254740994, 100000000000000000000
+game.dealersChoice.pickSeconds: must be a number, not nan  <=  NaN
+game.dealersChoice.pickSeconds: must be a number, not infinity  <=  Infinity, -Infinity
+game.dealersChoice.pickSeconds: must be a number, not string  <=  "", " ", "x", "1", "30", "NL", "plo", "  Friday  ", "Friday 🃏", "has space", "dot.id", "tab\there", "bell\u0007", "half \ud83d", "\udc00", 'x'×40, 'x'×41, "  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  ", '🃏'×20, '🃏'×21, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx🃏"
+game.dealersChoice.pickSeconds: must be a number, not array  <=  [], [1]
+game.dealersChoice.pickSeconds: must be a number, not object  <=  {}, {"enabled":true}
 ## stakes
 stakes: required  <=  missing
 stakes: must be an object, not null  <=  null
@@ -1131,6 +1187,8 @@ game.zzz: unknown field
 game.rotation.zzz: unknown field
 ## game.rotation.steps[0] with an unknown field
 game.rotation.steps[0].zzz: unknown field
+## game.dealersChoice with an unknown field
+game.dealersChoice.zzz: unknown field
 ## stakes with an unknown field
 stakes.zzz: unknown field
 ## blindSchedule with an unknown field
@@ -1361,6 +1419,6 @@ settings: settings must be a JSON object
 ## export preset: name with a tab
 name: must not contain control characters
 ## export preset: good
-ok, 2527 characters
+ok, 2654 characters
 ## export preset: invalid settings
 table.maxSeats: must be at least 2

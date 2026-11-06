@@ -41,6 +41,7 @@ How this file works:
 | [D28](#d28-one-comparison-page-may-name-pokernow) | One comparison page may name PokerNow | 2026-11-06 | John |
 | [D29](#d29-in-a-mix-with-stud-only-the-stud-games-ante) | In a mix with stud, only the stud games ante | 2026-11-06 | Claude |
 | [D30](#d30-a-definition-of-done) | A definition of done | 2026-11-06 | John asked; wording Claude |
+| [D31](#d31-dealers-choice) | Dealer's choice | 2026-11-06 | John; the fine print Claude |
 
 ---
 
@@ -333,3 +334,31 @@ How this file works:
 - **Decision:** work is done only when the whole original ask is finished and checked on the live site, by looking only (D07, D24; anything that needs a game is tested on a local copy). Merged but not released is "on develop", not done. Before anyone reports done or closes a thread, every follow-up issue it opened is either being actively worked on or labelled `status: waiting on John` / `status: waiting on others` with the reason in a comment. The steps are in [CONTRIBUTING.md](../CONTRIBUTING.md#definition-of-done).
 - **Why:** twice on 2026-11-05/06 a session shipped part of an ask, opened an issue for the rest and stopped: HORSE and 8-Game reached cash tables but tournaments (#338) sat untouched, and bigger cards reached only some games (#317, then #331). The old rules allowed it: "done" meant the issue was closed, and leftovers only had to become new issues. Sessions are short-lived and nothing picks up a new issue by itself, so an issue with no owner was work nobody was doing.
 - **Where:** [CONTRIBUTING.md](../CONTRIBUTING.md#definition-of-done), [CLAUDE.md](../CLAUDE.md), the [pull request template](../.github/pull_request_template.md).
+
+## D31. Dealer's choice
+
+- **Decided:** 2026-11-06, by John (issue #341). He asked how Dealer's choice would work, read the plan, and took all nine of its recommendations on a decision card. The fine print below the nine is Claude's, settled while building it, and reversible.
+- **Decision (John's nine):**
+  1. A pick lasts one orbit: as many hands as players were dealt into its first hand. The host can set a fixed number of hands instead.
+  2. A **Pick chip**, separate from the dealer button, says who picks next. It moves one seat to the left after each pick.
+  3. The table keeps the seats the host chose. Games that seat fewer players than are sitting down are greyed out in the picker.
+  4. If the chooser doesn't pick in time, the current game carries on for another orbit.
+  5. The same game can be picked twice in a row. No "no repeats" setting unless the group asks.
+  6. A bot holding the chip picks at random from the games that fit, using the site's secure random numbers (as random bomb pots do).
+  7. Cash tables only, for now.
+  8. HORSE and 8-Game fill the menu in one tap; they aren't a single pick.
+  9. One set of stakes for every game on the menu, as for mixed games (D29): with a stud game on the menu, only the stud games ante.
+- **The fine print (Claude):**
+  - **The menu** has 2 to 20 entries, each a game with its betting, with no entry twice. Dealer's choice and a mixed-game rotation can't both be on.
+  - **The first chooser:** when Dealer's choice starts at a table that hasn't dealt yet, a random player (the site's secure random numbers) gets the chip, and the first hand's button is drawn on them. At a table already playing, the chip starts with the player due the next button. Until the first pick, the table's game is the "current game".
+  - **When the clock runs:** once the last hand of an orbit is dealt, the chooser can pick at any time, with no clock. The pick clock (20 seconds by default; the host can set 10 to 60) starts when that hand ends, or at once if no hand is being played. A paused table stops it; after a restart the chooser gets a fresh clock.
+  - **Who can pick:** anyone seated who isn't sitting out, has chips and isn't offline past the table's offline grace time, including a newcomer waiting for the big blind. That is checked while they hold the chip: if they stop being able to pick, the chip moves on and the next player gets a fresh clock. A pick that's made stands, even if the chooser then busts or leaves. If nobody can pick, the current game carries on and the chip stays.
+  - **The default:** a missed pick keeps the current game if it is still on the menu and fits the table; otherwise the first game on the menu that fits. A fixed rule, so everyone knows what will happen.
+  - **An orbit gets shorter** when players leave: it ends once it has had as many hands as were dealt into its first hand, or into its latest hand if that is fewer.
+  - **Seats while a smaller game is on:** from the moment a game is picked (or kept) until its orbit ends, the table seats nobody beyond that game's limit, counting seats held for a waitlist offer or a seat request as taken. Empty seats show as closed, and the waitlist, seat requests and new bots wait. A game "fits" when the seated players plus those held seats are no more than it seats. The host can't save a menu where no game fits, and the table has no more seats than the menu's biggest game.
+  - **A host's change** to the menu applies from the next pick. Editing the menu never moves the chip or restarts the orbit, and a pick already made stands even if its game comes off the menu.
+  - **What players see:** the chooser gets a "Pick the next game" panel; everyone sees the Pick chip, a "Sam is picking" line where "Next hand in" shows, and the game in the top bar. Picks go in the table log. There is no chat line: chat isn't held back for spectators on a delay, and a pick made as a hand ends would tell them it had ended.
+  - **A bomb pot** counts as one hand of the orbit.
+- **Why:** card rooms (the World Series of Poker, the Asian Poker Tour) run Dealer's Choice with a separate pick button and one orbit per pick, so nobody picks a game to suit their own seat. The stud games don't show a button, and after a full orbit the button is back where it started, so "the button picks" would give the same player every pick. PokerNow doesn't offer Dealer's choice. The plan John read is linked from issue #341.
+- **Not done, on purpose:** tournaments (decision 7), a single pick that deals HORSE in turn (decision 8), separate stakes for each game (decision 9, D29), and a chat line for each pick.
+- **Where:** `game.dealersChoice` in `packages/engine/src/settings/schema.ts`; the Pick chip and pick clock in `apps/server/src/runtime/choice.ts` and `dealHand` in `apps/server/src/runtime/table.ts`; the picker in `apps/web/src/components/GamePicker.tsx`.

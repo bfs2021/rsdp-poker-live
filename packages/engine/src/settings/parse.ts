@@ -70,7 +70,7 @@ export function defaultSettings(mode: TableMode): TableSettings {
   return {
     version: SETTINGS_VERSION,
     table: { name: tournament ? 'Tournament table' : 'Poker night', maxSeats: 10, mode, felt: 'green' },
-    game: { gameId: 'nlhe', betting: 'no-limit', rotation: { enabled: false, steps: [] } },
+    game: { gameId: 'nlhe', betting: 'no-limit', rotation: { enabled: false, steps: [] }, dealersChoice: { enabled: false, games: [], hands: 0, pickSeconds: 20 } },
     stakes: {
       smallBlind: 1,
       bigBlind: 2,
