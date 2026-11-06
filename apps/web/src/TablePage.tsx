@@ -404,7 +404,10 @@ export function TablePage({ tableId }: { tableId: string }) {
 
   const game = view.hand
     ? { label: gameLabel(view.hand.gameId, view.hand.betting), stakes: stakesLabel(view.hand.stakes, view.hand.family, view.hand.betting, fmt) }
-    : view.upcoming
+    : view.choice && !view.choice.current
+      ? // Dealer's choice before the first pick: no game yet.
+        { label: "Dealer's choice", stakes: '' }
+      : view.upcoming
       ? {
           label: gameLabel(view.upcoming.gameId, view.upcoming.betting),
           stakes: stakesLabel(view.upcoming.stakes, gameFamily(view.upcoming.gameId), view.upcoming.betting, fmt),

@@ -1,6 +1,6 @@
 import { SETTINGS_LIMITS, type ChoiceGame, type DealersChoiceSettings, type TableSettings } from '@rsdp/engine/settings';
 import { getVariant, MIXED_GAMES, VARIANT_LIST } from '@rsdp/engine/variants';
-import { studBringIn } from '../../format';
+import { defaultStudAnte, studBringIn } from '../../format';
 
 /** Dealer's choice settings, filled in for tables saved before it existed (D31). */
 export const choiceOf = (settings: TableSettings): DealersChoiceSettings => settings.game.dealersChoice ?? { enabled: false, games: [], hands: 0, pickSeconds: 20 };
@@ -46,7 +46,7 @@ export function nextMenuGame(games: readonly ChoiceGame[]): ChoiceGame | null {
  * none are set, a small blind for the blind games, and the stud ante and bring-in when the first stud game goes
  * on (in place of any other ante: with stud on the menu, only the stud games ante, D29).
  */
-export function stakesForMenu(stakes: TableSettings['stakes'], games: readonly ChoiceGame[], before: readonly ChoiceGame[], defaultStudAnte: (s: TableSettings['stakes']) => number): TableSettings['stakes'] {
+export function stakesForMenu(stakes: TableSettings['stakes'], games: readonly ChoiceGame[], before: readonly ChoiceGame[]): TableSettings['stakes'] {
   const next = { ...stakes };
   if (games.some((g) => g.betting === 'fixed-limit') && next.smallBet < 1) {
     next.smallBet = Math.max(1, next.bigBlind);

@@ -3,7 +3,7 @@ import { rakeSchema } from '@rsdp/engine/modifiers';
 import type { FairRecordView, HandRecordView, HandView, SeatView, TableView } from '@rsdp/engine/wire';
 import { fairRevealsAt, fillStakes, rabbitCards, type TableRuntime } from './table';
 import type { HandRecord, PastHand, RuntimeState } from './types';
-import { gameCode, gameTitle } from '@rsdp/engine/variants';
+import { gameCode, gameTitle, skipsMixedGameAnte } from '@rsdp/engine/variants';
 import { spectatorsSeeCards } from '@rsdp/engine/settings';
 
 const CHAT_SHOWN = 100;
@@ -331,6 +331,9 @@ function previewSetup(rt: TableRuntime): TableView['upcoming'] {
     Object.assign(stakes, { smallBlind: level.smallBlind, bigBlind: level.bigBlind, ante: level.ante });
   }
   const betting = step?.betting ?? settings.game.betting;
+  // Dealer's choice: with a stud game on the menu only the stud games ante (D29, D31).
+  const menu = settings.game.dealersChoice?.enabled ? settings.game.dealersChoice.games.map((g) => g.gameId) : null;
+  if (menu && skipsMixedGameAnte(game.id, menu)) stakes.ante = 0;
   return { gameId: game.id, gameName: gameTitle(game.id, betting), betting, stakes: fillStakes(stakes, game) };
 }
 

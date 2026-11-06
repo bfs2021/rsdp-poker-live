@@ -19,6 +19,12 @@ export function bbFormat(bigBlind: number): Fmt {
   };
 }
 
+/** A stud ante of about a quarter of the small bet (1 at 1/2 limit, the same as a new table), never below one chip; in nickels in dollars (0.10 at .50/1). */
+export function defaultStudAnte(stakes: Pick<Stakes, 'smallBet' | 'bigBlind'> & { centsMode: boolean }): number {
+  const quarter = (stakes.smallBet || stakes.bigBlind) / 4;
+  return stakes.centsMode && quarter >= 5 ? Math.floor(quarter / 5) * 5 : Math.max(1, Math.round(quarter));
+}
+
 /** A stud bring-in of about a third of the small bet; in dollars, to the nearest nickel (0.15 at .50/1) rather than 0.16. */
 export function studBringIn(smallBet: number, centsMode: boolean): number {
   const third = smallBet / 3;

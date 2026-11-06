@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultSettings } from '@rsdp/engine/settings';
 import { CHOICE_FILLS, DEFAULT_MENU, menuSeats, nextMenuGame, repeatsOf, stakesForMenu } from './dealersChoice';
-import { defaultStudAnte } from '../SettingsDialog';
 
 describe("Dealer's choice settings helpers", () => {
   it('fill the menu in one tap, starting with the 8-Game games', () => {
@@ -24,9 +23,9 @@ describe("Dealer's choice settings helpers", () => {
 
   it('set up the stakes a menu needs, as for HORSE', () => {
     const stakes = { ...defaultSettings('cash').stakes, centsMode: true, smallBlind: 25, bigBlind: 50, smallBet: 0, bigBet: 0, ante: 50, anteType: 'big-blind' as const };
-    const next = stakesForMenu(stakes, DEFAULT_MENU, [], defaultStudAnte);
+    const next = stakesForMenu(stakes, DEFAULT_MENU, []);
     expect(next).toMatchObject({ smallBet: 50, bigBet: 100, ante: 10, anteType: 'per-player', bringIn: 15 });
     // Adding more games to a menu that already had stud leaves the host's ante alone.
-    expect(stakesForMenu({ ...next, ante: 20 }, [...DEFAULT_MENU, { gameId: 'badugi', betting: 'fixed-limit' }], DEFAULT_MENU, defaultStudAnte).ante).toBe(20);
+    expect(stakesForMenu({ ...next, ante: 20 }, [...DEFAULT_MENU, { gameId: 'badugi', betting: 'fixed-limit' }], DEFAULT_MENU).ante).toBe(20);
   });
 });

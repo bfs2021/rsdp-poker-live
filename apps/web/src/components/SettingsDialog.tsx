@@ -5,7 +5,7 @@ import { getModifierSchema, SETTINGS_LIMITS, type SettingsPatch, type TableSetti
 import { getVariant, mixedGameMaxPlayers, mixedGameOf, MIXED_GAMES, VARIANT_LIST, type MixedGame } from '@rsdp/engine/variants';
 import type { TableView } from '@rsdp/engine/wire';
 import { call } from '../socket';
-import { BETTING_NAME, fromInput, studBringIn, toInput } from '../format';
+import { BETTING_NAME, defaultStudAnte, fromInput, studBringIn, toInput } from '../format';
 import { Modal } from './SeatDialog';
 import { BettingNudge } from './BettingNudge';
 import { Field } from './settings/fields';
@@ -45,12 +45,6 @@ function diff(prev: unknown, next: unknown): unknown {
 }
 
 const maxSeatsFor = (gameIds: string[]) => Math.min(...gameIds.map((id) => getVariant(id).maxPlayers));
-
-/** A stud ante of about a quarter of the small bet (1 at 1/2 limit, the same as a new table), never below one chip; in nickels in dollars (0.10 at .50/1). */
-export const defaultStudAnte = (stakes: TableSettings['stakes']) => {
-  const quarter = (stakes.smallBet || stakes.bigBlind) / 4;
-  return stakes.centsMode && quarter >= 5 ? Math.floor(quarter / 5) * 5 : Math.max(1, Math.round(quarter));
-};
 
 export function SettingsDialog({ view, onClose }: { view: TableView; onClose: () => void }) {
   const [draft, setDraft] = useState<TableSettings>(() => structuredClone(view.settings));
@@ -148,7 +142,7 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
     setDraft((d) => ({
       ...d,
       game: { ...d.game, dealersChoice: { ...choiceOf(d), games: menu } },
-      stakes: stakesForMenu(d.stakes, menu, choiceOf(d).games, defaultStudAnte),
+      stakes: stakesForMenu(d.stakes, menu, choiceOf(d).games),
     }));
   const setMode = (next: 'one' | 'rotate' | 'choice') =>
     setDraft((d) => {
@@ -160,7 +154,7 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
       return {
         ...d,
         game: { ...d.game, rotation, dealersChoice: { ...dc, enabled: next === 'choice', games: menu } },
-        stakes: next === 'choice' ? stakesForMenu(d.stakes, menu, dc.enabled ? dc.games : [], defaultStudAnte) : d.stakes,
+        stakes: next === 'choice' ? stakesForMenu(d.stakes, menu, dc.enabled ? dc.games : []) : d.stakes,
       };
     });
 

@@ -4,7 +4,6 @@ import { NoteBadge } from './Notes';
 import { GestureLayer, SeatPersona } from './Persona';
 import { EquityTag } from './Equity';
 import { ChatBubbles } from './Chat';
-import { PickTag } from './Choice';
 import './extras.css';
 
 /*
@@ -23,7 +22,6 @@ export function SeatExtras({ view, seat }: { view: TableView; seat: SeatView }) 
           NIT
         </span>
       )}
-      <PickTag view={view} seat={seat} />
       {seat.playerId !== view.me.playerId && <NoteBadge seat={seat} />}
       <SeatPersona seat={seat} />
       {seat.inHand && !seat.folded && <EquityTag view={view} seat={seat} />}

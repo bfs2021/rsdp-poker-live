@@ -6,7 +6,7 @@ import { handStrength } from '../strength';
 import { PlayingCard } from './PlayingCard';
 import { besideBet, clearSideBands, fitHand, fromVars, handRoom, inFront, lerp, px, seatFractions, stadiumPoint, type HandFit, type Point, type Reach } from './geometry';
 import { BoardExtras, FeltExtras, SeatExtras } from './table/slots';
-import { ChoiceLine } from './table/Choice';
+import { ChoiceLine, PickTag } from './table/Choice';
 import { baseChip, CHIP_SET, ChipStacks, DOLLAR_CHIPS } from './table/Chips';
 import { feltStyle, usePrefs } from '../prefs';
 import { CountUp, FeltEmblem, useLanded } from './table/Feel';
@@ -621,6 +621,8 @@ export function Table({
                 <div className="name" title={s.bot ? `${s.name}, ${botOwnerLabel(s.bot, 'practice bot')}` : undefined}>
                   {s.name}
                   {s.playerId === view.hostId && <span className="tag">host</span>}
+                  {/* Dealer's choice: the Pick chip, on whoever picks the next game. */}
+                  <PickTag view={view} seat={s} />
                   {/* The bot's own short name comes first, so a long owner name is what gets cut short. */}
                   {s.bot && <span className="bot-owner">· {botPlateLabel(s.bot)}</span>}
                 </div>

@@ -56,6 +56,8 @@
 .note-button { align-self: flex-start; margin-top: 4px; }
 /* Dealer's choice (D31): the Pick chip on the next chooser's nameplate, closed seats, and the chooser's panel. */
 .tag.pick-tag { background: #c98a1b; }
+/* Phones hide the name tags to save room; the Pick chip still shows. */
+.felt.compact .nameplate .name .tag.pick-tag { display: inline; }
 .seat.empty .closed { opacity: 0.7; cursor: default; }
 .topbar .pick-button { white-space: nowrap; }
 .game-picker { display: flex; flex-direction: column; gap: 10px; }
