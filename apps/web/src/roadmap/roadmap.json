@@ -52,6 +52,7 @@
         { "title": "Our roster and results on the site", "detail": "The group's own roster and results kept here, so nobody has to update the spreadsheet by hand. We're waiting on the group's feedback on the plan first." },
         { "title": "Tournament polish", "detail": "Smoother host tools and nicer screens for the big moments, like a final table mode." },
         { "title": "Phone alerts", "detail": "An alert on your phone when it's your turn or a tournament is about to start." },
+        { "title": "Dealer's choice", "detail": "When the button comes to you, you pick the game for the next orbit from the games the host allows, with the How to play guide for whatever you choose." },
         { "title": "A recap for WhatsApp", "detail": "After a session, a short recap ready to paste into the WhatsApp group." },
         { "title": "The long tail", "detail": "High hand prizes, accessibility improvements and lots of small touches." },
         { "title": "Audio and video", "detail": "Talk and see each other at the table, without a separate app." }

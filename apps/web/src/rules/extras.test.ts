@@ -3,7 +3,8 @@ import { engine, planForcedBets, settle, variants, type HandInput, type HandStat
 import { bounty72Schema, nitClears, nitSchema, rakeFor, rakeSchema } from '@rsdp/engine/modifiers';
 import { defaultSettings, SETTINGS_LIMITS } from '@rsdp/engine/settings';
 import { RSDP_TABLE_RULES } from '@rsdp/tournament';
-import { registerAllVariants } from '@rsdp/engine/variants';
+import { MIXED_GAMES, registerAllVariants } from '@rsdp/engine/variants';
+import { studBringIn } from '../format';
 import { describe, expect, it } from 'vitest';
 import { BOMB_EX, BOUNTY_EX, DOUBLE_EX, EXTRAS, NIT_EX, RAKE_EX, RIT_EX, STRADDLE_EX, TIME_EX, extraFor, extrasOn } from './extras';
 import { GUIDES, cardsOf, guideFor } from './guides';
@@ -85,6 +86,11 @@ describe('side game guides', () => {
     }
   });
 
+  it("the HORSE example's bring-in is what a new HORSE table at $0.25/$0.50 gets", () => {
+    expect(studBringIn(50, true)).toBe(15);
+    expect(extraFor('mixed-games')!.examples[0].lines[1]).toContain('bring-in is $0.15');
+  });
+
   it('list the side games switched on at a table', () => {
     const cash = defaultSettings('cash');
     // A new cash table: run it twice by vote, straddles, rabbit hunting and a time bank are on.
@@ -97,6 +103,10 @@ describe('side game guides', () => {
     stud.game.gameId = 'stud';
     stud.modifiers['bounty-72'] = { ...bounty72Schema.defaults(), enabled: true };
     expect(extrasOn(stud)).not.toContain('straddles');
+    expect(extrasOn(cash)).not.toContain('mixed-games');
+    const horse = defaultSettings('cash');
+    horse.game.rotation = { enabled: true, steps: MIXED_GAMES[0].steps.map((st) => ({ ...st, length: 1, unit: 'orbits' as const })) };
+    expect(extrasOn(horse)[0]).toBe('mixed-games');
     expect(extrasOn(stud)).not.toContain('seven-deuce');
     const tourney = defaultSettings('tournament');
     expect(extrasOn(tourney)).toEqual(['rabbit-hunt', 'time-bank', 'showdown']);

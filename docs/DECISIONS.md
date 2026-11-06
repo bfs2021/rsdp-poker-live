@@ -38,13 +38,14 @@ How this file works:
 | [D25](#d25-full-and-light-changes) | Full and light changes | 2026-11-05 | John; the lists Claude |
 | [D26](#d26-a-game-night-recap-for-john-read-by-claude) | A game-night recap for John, read by Claude | 2026-11-05 | John asked; design Claude |
 | [D27](#d27-the-operator-can-read-table-chat) | The operator can read table chat | 2026-11-05 | John; design Claude |
+| [D28](#d28-one-comparison-page-may-name-pokernow) | One comparison page may name PokerNow | 2026-11-06 | John |
 
 ---
 
 ## D01. Scope: full parity, every paid feature free
 
 - **Decided:** 2026-10-25, by John.
-- **Decision:** "Clone" means full feature parity with PokerNow, not a small first version, with John's own additions later. Every feature PokerNow charges for (bomb pots, 7-2, double board, game rotation, Sit & Gos, the replayer and so on) is free for everyone: no payments and no tiers. The code, art, sounds and wording are all original. The site's own pages don't name PokerNow (a test checks the About page). Two older release notes do (the all-in runout line in the changelog and "Blinds the RSDP way" in What's new); they are live, so they stay. New pages and notes shouldn't name it.
+- **Decision:** "Clone" means full feature parity with PokerNow, not a small first version, with John's own additions later. Every feature PokerNow charges for (bomb pots, 7-2, double board, game rotation, Sit & Gos, the replayer and so on) is free for everyone: no payments and no tiers. The code, art, sounds and wording are all original. The site's own pages don't name PokerNow (a test checks the About page), except one comparison page (D28). Two older release notes do (the all-in runout line in the changelog and "Blinds the RSDP way" in What's new); they are live, so they stay. New pages and notes shouldn't name it.
 - **Why:** getting the paid features to the whole group for free is one of John's main reasons for the project.
 - **Where:** README (free for everyone; original app), [ARCHITECTURE.md](ARCHITECTURE.md) ("No PokerNow code, art, sounds or wording"), `apps/web/src/about/about.test.ts` (About page only).
 - **Don't** scope a feature down without asking John.
@@ -303,3 +304,22 @@ How this file works:
 - **Not done, on purpose:** a GitHub workflow that downloads chat: the repository is public, and a workflow's files can be downloaded by others. Whether the game-night recap (D26) should use chat is a separate call for that work; if it does, its key, what it reads and the public record entry need their own decision.
 - **Replaces** D26's "No chat: whether the operator may read table chat is John's call (issue #300)" as far as the operator goes; the recap itself still reads no chat until a change says otherwise.
 - **Where:** `apps/server/src/app.ts` (`/api/admin/chat/:id`), `apps/web/src/roadmap/AdminPage.tsx`, [FAIRNESS.md](FAIRNESS.md), [PRIVACY.md](PRIVACY.md), `apps/web/src/fairness/TransparencyPage.tsx`.
+
+## D28. One comparison page may name PokerNow
+
+- **Decided:** 2026-11-06, by John, on a decision card ("Only on the comparison page"), after he asked to publish the feature comparison (issue #339).
+- **Decision:** one public page may name PokerNow: a dated, factual feature comparison of this site, PokerNow free and PokerNow Plus. Every other page, guide and release note still doesn't name it.
+  - The comparison stays honest, like /fairness: it keeps the rows where PokerNow is ahead (voice and video, phone alerts, track record) and marks things we dropped on purpose.
+  - It says when it was checked and links PokerNow's own plans page as the source, since their features change.
+  - It states facts, with no digs at PokerNow, and uses none of its art, logos or wording.
+- **Why:** the no-name rule came from a session building the About page (2026-10-26), as caution about looking like a knock-off; John was never asked and no reason was recorded. A fair comparison helps friends see what they get here.
+- **Replaces** D01's "the site's own pages don't name PokerNow" for that one page only.
+- **Where:** issue #339 (the page, not built yet); `apps/web/src/about/about.test.ts` keeps the About page name-free.
+
+## D29. In a mix with stud, only the stud games ante
+
+- **Decided:** 2026-11-06, while adding HORSE and 8-Game (issue #335). John asked for the mixes; this detail is Claude's and reversible.
+- **Decision:** a cash table has one set of stakes for every game in its rotation. When the rotation includes a stud game (Seven Card Stud, Razz, Stud Hi-Lo), the ante setting is the stud ante: hold'em, Omaha and draw hands in that rotation post no ante (of either kind). A rotation with no stud game keeps its antes in every game, as before. The Limit games bet the Limit small and big bets, which a new HORSE or 8-Game table sets to the big blind and twice it.
+- **Why:** that is how HORSE and 8-Game are played in card rooms and online. Without it, a hold'em orbit in HORSE would ante as well as post blinds.
+- **Not done, on purpose:** separate stakes for each game in a rotation (for example different blinds for 8-Game's No-Limit and Pot-Limit rounds). One set of stakes keeps the Stakes tab simple; the Mixed games guide says so.
+- **Where:** `packages/engine/src/variants/mixes.ts` (`MIXED_GAMES`, `skipsMixedGameAnte`), `handSetup` in `apps/server/src/runtime/table.ts`.

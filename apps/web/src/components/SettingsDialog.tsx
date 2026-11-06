@@ -2,7 +2,7 @@ import { useState } from 'react';
 import '@rsdp/engine/modifiers';
 import type { BettingKind } from '@rsdp/engine/core';
 import { getModifierSchema, SETTINGS_LIMITS, type SettingsPatch, type TableSettings } from '@rsdp/engine/settings';
-import { getVariant, VARIANT_LIST } from '@rsdp/engine/variants';
+import { getVariant, mixedGameMaxPlayers, mixedGameOf, MIXED_GAMES, VARIANT_LIST, type MixedGame } from '@rsdp/engine/variants';
 import type { TableView } from '@rsdp/engine/wire';
 import { call } from '../socket';
 import { BETTING_NAME, fromInput, studBringIn, toInput } from '../format';
@@ -69,8 +69,22 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
       return { ...d, modifiers: { ...d.modifiers, [id]: { ...cur, ...patch } } };
     });
 
+  const rot = draft.game.rotation;
   const games = draft.game.rotation.enabled && draft.game.rotation.steps.length ? draft.game.rotation.steps.map((s) => s.gameId) : [draft.game.gameId];
   const seatLimit = maxSeatsFor(games);
+
+  // A game with fewer seats than the table: say up front who has to leave, or who moves seats.
+  const tightest = games.map((id) => getVariant(id)).reduce((a, b) => (b.maxPlayers < a.maxPlayers ? b : a));
+  const newSeats = Math.min(draft.table.maxSeats, seatLimit);
+  const tooMany = !tournament && seated > newSeats;
+  const moving = view.seats.flatMap((x, i) => (x && i >= newSeats ? [i + 1] : []));
+  const seatNote = tooMany
+    ? seated > seatLimit
+      ? `${games.length > 1 ? `${tightest.name}, one of the games in the rotation,` : tightest.name} seats at most ${seatLimit} players and ${seated} are sitting down. ${seated - seatLimit} ${seated - seatLimit === 1 ? 'player needs' : 'players need'} to leave the table (or remove ${seated - seatLimit === 1 ? 'a bot' : 'some bots'}) before you can switch.`
+      : `${seated} players are sitting down, so the table needs at least ${seated} seats.`
+    : !tournament && moving.length
+      ? `The table goes down to ${newSeats} seats. ${moving.length === 1 ? 'The player' : 'Players'} in seat${moving.length === 1 ? '' : 's'} ${moving.join(' and ').replace(/ and (?=.* and )/g, ', ')} will move to ${moving.length === 1 ? 'a free seat' : 'free seats'}${handLive ? ' when this hand ends' : ''}.`
+      : '';
 
   const pickGame = (gameId: string) => {
     const spec = getVariant(gameId);
@@ -89,6 +103,29 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
       };
     });
   };
+
+  /** Fills the rotation with a standard mix, one orbit per game, and sets up the stud ante and bring-in it needs. */
+  const pickMix = (mix: MixedGame) =>
+    setDraft((d) => {
+      const stud = mix.steps.some((st) => getVariant(st.gameId).forcedBets === 'ante-bring-in');
+      const first = mix.steps[0];
+      // The Limit games bet the big blind and twice it, as on a new table, so older Limit amounts don't linger.
+      const smallBet = Math.max(1, d.stakes.bigBlind);
+      const stakes = { ...d.stakes, smallBet, bigBet: smallBet * 2 };
+      return {
+        ...d,
+        game: { gameId: first.gameId, betting: first.betting, rotation: { enabled: true, steps: mix.steps.map((st) => ({ ...st, length: 1, unit: 'orbits' as const })) } },
+        table: { ...d.table, maxSeats: Math.min(d.table.maxSeats, mixedGameMaxPlayers(mix)) },
+        stakes: {
+          ...stakes,
+          // A stud table has no small blind; the hold'em and Omaha rounds need one.
+          ...(d.stakes.smallBlind === 0 && d.stakes.bigBlind > 1 ? { smallBlind: Math.floor(d.stakes.bigBlind / 2) } : {}),
+          // The ante is the stud ante: everyone posts it in the stud games.
+          ...(stud ? { ante: d.stakes.ante || defaultStudAnte(stakes), anteType: 'per-player' as const, bringIn: studBringIn(smallBet, d.stakes.centsMode) } : {}),
+        },
+      };
+    });
+  const currentMix = rot.enabled ? mixedGameOf(rot.steps) : null;
 
   const save = () => {
     const fixed = { ...draft, table: { ...draft.table, maxSeats: Math.min(draft.table.maxSeats, seatLimit) } };
@@ -118,7 +155,6 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
     </label>
   );
 
-  const rot = draft.game.rotation;
   const sched = draft.blindSchedule;
 
   return (
@@ -160,10 +196,37 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
                 </div>
                 {!rot.enabled && <BettingNudge gameId={draft.game.gameId} betting={draft.game.betting} onSwitch={(betting) => set('game', { betting })} />}
                 {numberField('Seats', Math.min(draft.table.maxSeats, seatLimit), (v) => set('table', { maxSeats: v }), Math.max(2, seated), seatLimit, `Up to ${seatLimit} for ${games.length > 1 ? 'these games' : 'this game'}.`)}
+                {seatNote && !tooMany && <p className="hint">{seatNote}</p>}
                 {toggle('Rotate games (mixed games)', rot.enabled, (enabled) =>
                   set('game', {
                     rotation: { ...rot, enabled, steps: rot.steps.length ? rot.steps : [{ gameId: draft.game.gameId, betting: draft.game.betting, length: 1, unit: 'orbits' }] },
                   }),
+                )}
+                <div className="mixed-game-picks" role="group" aria-label="Standard mixed games">
+                  <span className="muted">Or play a standard mix:</span>
+                  {MIXED_GAMES.map((mix) => {
+                    const cap = mixedGameMaxPlayers(mix);
+                    const mixTooBig = seated > cap;
+                    return (
+                      <button
+                        type="button"
+                        key={mix.id}
+                        className={currentMix?.id === mix.id ? 'on' : ''}
+                        aria-pressed={currentMix?.id === mix.id}
+                        disabled={mixTooBig}
+                        title={mixTooBig ? `${mix.name} seats at most ${cap}: ${seated} players are seated` : mix.summary}
+                        onClick={() => pickMix(mix)}
+                      >
+                        {mix.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {currentMix && (
+                  <p className="muted">
+                    {currentMix.name}: {currentMix.summary} One orbit each; change the lengths below. Only the stud games ante; the others play on the blinds, and
+                    the Limit games bet the Limit amounts in Stakes.
+                  </p>
                 )}
                 {rot.enabled && (
                   <div className="list-editor">
@@ -422,12 +485,13 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
         )}
       </div>
       {handLive && <p className="muted">Changes to the game, stakes and seats take effect when this hand ends.</p>}
+      {tooMany && <p className="error">{seatNote}</p>}
       {error && <p className="error">{error}</p>}
       <div className="row">
         <button type="button" onClick={onClose}>
           Cancel
         </button>
-        <button className="primary" disabled={busy} onClick={save}>
+        <button className="primary" disabled={busy || tooMany} onClick={save}>
           Save
         </button>
       </div>

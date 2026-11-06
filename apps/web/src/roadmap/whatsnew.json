@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "id": "2026.11.06.3",
+      "date": "2026-11-06",
+      "title": "HORSE and 8-Game",
+      "items": [
+        { "title": "Play HORSE or 8-Game in one tap", "detail": "Pick HORSE or 8-Game under Mixed games when you start a cash game, or tap one in Table settings > Game. HORSE plays Limit Hold'em, Omaha Hi-Lo, Razz, Seven Card Stud and Stud Hi-Lo in turn; 8-Game adds 2-7 Triple Draw, No-Limit Hold'em and Pot-Limit Omaha. Each game lasts an orbit, and you can change the lengths or the games afterwards. How to play has a new Mixed games guide.", "suggestedBy": "John" }
+      ]
+    },
+    {
       "id": "2026.11.05.7",
       "date": "2026-11-05",
       "title": "A bigger table on big screens",
