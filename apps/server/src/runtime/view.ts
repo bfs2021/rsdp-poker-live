@@ -317,7 +317,7 @@ function handView(rt: TableRuntime, hand: HandState, viewer: Viewer, now: number
 function previewSetup(rt: TableRuntime): TableView['upcoming'] {
   const settings = rt.state.settings;
   const rot = settings.game.rotation;
-  const step = rot.enabled && rot.steps.length ? rot.steps[rt.state.rotation.step % rot.steps.length] : null;
+  const step = rot.enabled && rot.steps.length ? rot.steps[rt.previewRotationStep() % rot.steps.length] : null;
   const game = variants.get(step?.gameId ?? settings.game.gameId).spec;
   const { centsMode: _c, ...stakes } = settings.stakes;
   const sched = settings.blindSchedule;

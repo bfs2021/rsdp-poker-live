@@ -115,6 +115,30 @@ export function hashKey(key: string): number {
 /** Bots a player who is not the host may have at one table. */
 export const BOTS_PER_PLAYER = 3;
 
+type RotationSettings = TableSettings['game']['rotation'];
+type RotationState = RuntimeState['rotation'];
+
+/**
+ * Mixed games: the rotation's progress once a hand is dealt with `button`, the
+ * last hand having been dealt with `prevButton`. Counts an orbit when the
+ * button reaches or passes the seat where the step began, and moves to the
+ * next step once this one has had its hands or orbits. Changes nothing: the
+ * deal keeps the result only once the hand is really dealt.
+ */
+export function nextRotation(rot: RotationSettings, r: RotationState, prevButton: number | null, button: number, seatCount: number): { state: RotationState; switched: boolean } {
+  if (!rot.enabled || !rot.steps.length) return { state: r, switched: false };
+  const next = { ...r };
+  if (next.anchor === null) next.anchor = button;
+  else if (prevButton !== null && prevButton !== button) {
+    const d = (from: number, to: number) => (to - from + seatCount) % seatCount;
+    if (d(prevButton, next.anchor) > 0 && d(prevButton, next.anchor) <= d(prevButton, button)) next.orbits++;
+  }
+  const step = rot.steps[next.step % rot.steps.length];
+  const done = step.unit === 'hands' ? next.hands >= step.length : next.orbits >= step.length;
+  if (!done) return { state: next, switched: false };
+  return { state: { step: (next.step + 1) % rot.steps.length, hands: 0, orbits: 0, anchor: button }, switched: true };
+}
+
 export interface RuntimeDeps {
   clock?: Clock;
   rng?: Rng;
@@ -1232,6 +1256,8 @@ export class TableRuntime {
       // seat that is gone (redrawing them anyway could give the last big blind the big blind again).
       const p = s.positions;
       if (p && [p.button, p.smallBlind, p.bigBlind].some((x) => x !== null && x >= seats)) s.positions = null;
+      // An orbit that began at a seat that is gone (nobody moved from it) starts again from the next button.
+      if (s.rotation.anchor !== null && (s.rotation.anchor >= seats || !s.positions)) s.rotation.anchor = null;
     }
     if (!before.blindSchedule.enabled && s.settings.blindSchedule.enabled) {
       s.level = { index: 0, elapsedMs: 0, runningSince: s.handNumber > 0 && !s.paused ? this.clock.now() : null, hands: 0 };
@@ -1263,6 +1289,8 @@ export class TableRuntime {
       // The button or a blind they had goes with them, so the blinds carry on from where they were.
       const p = s.positions;
       if (p) for (const k of ['button', 'smallBlind', 'bigBlind'] as const) if (p[k] === from) p[k] = to;
+      // So does the seat where the current game's orbit began, so a mixed game's step keeps its length.
+      if (s.rotation.anchor === from) s.rotation.anchor = to;
       for (const r of s.requests) if (r.playerId === seat.playerId) r.seat = to;
       this.log(`${seat.name} moved from seat ${from + 1} to seat ${to + 1}: the table now has ${limit} seats`);
     }
@@ -2284,14 +2312,7 @@ export class TableRuntime {
       }
     }
     const offline = (seat: SeatState) => !this.isOnline(seat.playerId);
-    const candidates = s.seats.filter((x): x is SeatState => {
-      if (!x || x.stack <= 0) return false;
-      if (this.isTournament) return true;
-      if (x.sittingOut) return false;
-      // Offline players are sat out unless the table deals to away players.
-      if (offline(x) && !s.settings.seating.dealToAway && this.offlineFor(x) > s.settings.seating.offlineGraceSeconds * 1000) return false;
-      return true;
-    });
+    const candidates = this.dealCandidates();
     if (candidates.length < 2) return false;
     // Bots don't play on by themselves at a cash table: someone has to be there.
     const here = (x: SeatState) => !this.isBot(x.playerId) && !(offline(x) && this.offlineFor(x) > s.settings.seating.offlineGraceSeconds * 1000);
@@ -2299,42 +2320,58 @@ export class TableRuntime {
     // Nobody has played yet (or a game is restarting): deal everyone in free.
     if (candidates.filter((x) => !x.isNew).length < 2) for (const x of candidates) x.isNew = false;
 
-    const plannerSeats: PlannerSeat[] = candidates.map((x) => ({
-      seat: x.seat,
-      playerId: x.playerId,
-      stack: x.stack,
-      isNew: x.isNew,
-      missedSmallBlind: x.missedSmallBlind,
-      missedBigBlind: x.missedBigBlind,
-      waitForBigBlind: x.waitForBigBlind,
-      straddle: x.straddle,
-    }));
+    const plannerSeats = this.plannerSeatsOf(candidates);
     const maxSeats = s.seats.length;
     const firstButton = candidates[this.rng(candidates.length)].seat;
-    const planFor = (setup: HandSetup, bombPot: { amount: number } | null = null) =>
+    /** `fromButton`: plan as a first hand from that button, ignoring the blinds on record. */
+    const planFor = (setup: HandSetup, bombPot: { amount: number } | null = null, fromButton: number | null = null) =>
       planForcedBets({
         game: setup.game,
         stakes: setup.stakes,
         maxSeats,
         seats: plannerSeats,
-        lastBigBlindSeat: s.positions?.bigBlind ?? null,
-        lastSmallBlindSeat: s.positions?.smallBlind ?? null,
-        lastButton: s.positions?.button ?? firstButton,
+        lastBigBlindSeat: fromButton !== null ? null : (s.positions?.bigBlind ?? null),
+        lastSmallBlindSeat: fromButton !== null ? null : (s.positions?.smallBlind ?? null),
+        lastButton: fromButton ?? s.positions?.button ?? firstButton,
         mode: this.isTournament ? 'tournament' : 'cash',
         straddles: this.isTournament ? 'off' : s.settings.play.straddle,
         bombPot,
       });
+    /**
+     * A cash hand the usual rules would deal to fewer than two (new players and missed blinds waiting for the button
+     * to pass, which it can't while no hand is dealt) starts the game afresh instead: everyone is dealt in free, as
+     * when a game starts.
+     */
+    const planDealable = (setup: HandSetup) => {
+      const first = planFor(setup);
+      if (first.dealtIn.length >= 2 || this.isTournament) return first;
+      for (const x of plannerSeats) {
+        x.isNew = false;
+        x.missedBigBlind = false;
+        x.missedSmallBlind = false;
+        x.waitForBigBlind = false;
+      }
+      return planFor(setup);
+    };
+    // A deal that can't go ahead leaves the rotation as it was, so no game is skipped or cut short.
+    const rotationBefore = { ...s.rotation };
+    const cannotDeal = () => {
+      s.rotation = rotationBefore;
+      return false;
+    };
     let setup = this.handSetup();
-    let plan = planFor(setup);
+    let plan = planDealable(setup);
     if (plan.dealtIn.length < 2) return false;
     // Mixed games: the step may end with this hand's button (orbits), which changes the game.
-    if (this.rotationStepDone(plan.button)) {
+    const rotation = nextRotation(s.settings.game.rotation, s.rotation, s.positions?.button ?? null, plan.button, maxSeats);
+    s.rotation = rotation.state;
+    if (rotation.switched) {
       setup = this.handSetup();
-      plan = planFor(setup);
+      plan = planDealable(setup);
       // The new game can put the button somewhere else (after stud, the blinds pick up where they left off),
       // so the new step's orbit starts at the button this hand is really dealt with.
       s.rotation.anchor = plan.button;
-      if (plan.dealtIn.length < 2) return false;
+      if (plan.dealtIn.length < 2) return cannotDeal();
     }
     const sideGames = this.sideGames();
     let bombPot = false;
@@ -2342,7 +2379,10 @@ export class TableRuntime {
       const cfg = bombPotSchema.get(s.settings);
       if (bombPotDue(cfg, { handsSince: sideGames.handsSinceBombPot, requested: sideGames.bombPotNext, rng: this.rng })) {
         const bomb = this.bombPotSetup(setup, cfg.gameId, cfg.betting);
-        const bombPlan = bomb && planFor(bomb, { amount: cfg.bigBlinds * bomb.stakes.bigBlind });
+        // A bomb pot in a stud game (there are no blinds on record) is dealt from the button the stud hand would have
+        // had, so it takes that hand's place in the orbit, as a bomb pot does in the blind games.
+        const fromButton = setup.game.forcedBets === 'blinds' ? null : plan.button;
+        const bombPlan = bomb && planFor(bomb, { amount: cfg.bigBlinds * bomb.stakes.bigBlind }, fromButton);
         if (bomb && bombPlan && bombPlan.dealtIn.length >= 2 && bombPlan.dealtIn.length <= bomb.game.maxPlayers) {
           setup = bomb;
           plan = bombPlan;
@@ -2414,9 +2454,13 @@ export class TableRuntime {
       if (e instanceof ActionError && !this.isTournament) {
         this.log(`Couldn't deal: ${e.message}`);
         s.started = false;
-        return false;
+        return cannotDeal();
       }
       throw e;
+    }
+    if (rotation.switched) {
+      const step = s.settings.game.rotation.steps[s.rotation.step];
+      this.log(`Switching to ${gameTitle(step.gameId, step.betting)}`);
     }
     s.handNumber = input.handNumber;
     s.hand = hand;
@@ -2516,32 +2560,61 @@ export class TableRuntime {
     return Math.min(s.level.index, sched.levels.length - 1);
   }
 
+  /** Seats that can be dealt into the next hand: chips, and at a cash table sitting in and here (or dealt to while away). */
+  private dealCandidates(): SeatState[] {
+    const s = this.state;
+    return s.seats.filter((x): x is SeatState => {
+      if (!x || x.stack <= 0) return false;
+      if (this.isTournament) return true;
+      if (x.sittingOut) return false;
+      // Offline players are sat out unless the table deals to away players.
+      if (!this.isOnline(x.playerId) && !s.settings.seating.dealToAway && this.offlineFor(x) > s.settings.seating.offlineGraceSeconds * 1000) return false;
+      return true;
+    });
+  }
+
+  private plannerSeatsOf(candidates: SeatState[]): PlannerSeat[] {
+    return candidates.map((x) => ({
+      seat: x.seat,
+      playerId: x.playerId,
+      stack: x.stack,
+      isNew: x.isNew,
+      missedSmallBlind: x.missedSmallBlind,
+      missedBigBlind: x.missedBigBlind,
+      waitForBigBlind: x.waitForBigBlind,
+      straddle: x.straddle,
+    }));
+  }
+
   /**
-   * Mixed games: counts orbits (the button reaching the seat where the step
-   * began) and moves to the next step once this one has had its hands or
-   * orbits. True when the step changed.
+   * Mixed games: the rotation step the next cash hand will most likely play, for the "next hand" preview. A step
+   * counted in hands ends when its hands are used up; one counted in orbits when the next button reaches the seat
+   * where it began, so this plans the next button the way the deal would. Changes nothing; the deal decides.
    */
-  private rotationStepDone(button: number): boolean {
+  previewRotationStep(): number {
     const s = this.state;
     const rot = s.settings.game.rotation;
-    if (!rot.enabled || !rot.steps.length) return false;
+    if (!rot.enabled || !rot.steps.length) return 0;
     const r = s.rotation;
-    const prev = s.positions?.button ?? null;
-    if (r.anchor === null) r.anchor = button;
-    else if (prev !== null && prev !== button) {
-      const n = s.seats.length;
-      const d = (from: number, to: number) => (to - from + n) % n;
-      if (d(prev, r.anchor) > 0 && d(prev, r.anchor) <= d(prev, button)) r.orbits++;
-    }
     const step = rot.steps[r.step % rot.steps.length];
-    const done = step.unit === 'hands' ? r.hands >= step.length : r.orbits >= step.length;
-    if (!done) return false;
-    r.step = (r.step + 1) % rot.steps.length;
-    r.hands = 0;
-    r.orbits = 0;
-    r.anchor = button;
-    this.log(`Switching to ${gameTitle(rot.steps[r.step].gameId, rot.steps[r.step].betting)}`);
-    return true;
+    if (step.unit === 'hands') return nextRotation(rot, r, null, 0, s.seats.length).state.step;
+    // Before the first hand, or after the seats were shuffled, the orbit starts with the next hand.
+    if (this.isTournament || !s.positions || r.anchor === null) return r.step;
+    const seats = this.dealCandidates();
+    if (seats.length < 2) return r.step;
+    const plan = planForcedBets({
+      game: variants.get(step.gameId).spec,
+      stakes: s.settings.stakes,
+      maxSeats: s.seats.length,
+      seats: this.plannerSeatsOf(seats),
+      lastBigBlindSeat: s.positions.bigBlind,
+      lastSmallBlindSeat: s.positions.smallBlind,
+      lastButton: s.positions.button,
+      mode: 'cash',
+      straddles: 'off',
+      bombPot: null,
+    });
+    return nextRotation(rot, r, s.positions.button, plan.button, s.seats.length).state.step;
   }
 
   // ---------------------------------------------------------------- clocks
