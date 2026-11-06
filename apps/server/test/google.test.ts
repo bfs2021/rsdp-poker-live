@@ -1,6 +1,8 @@
 import type { AddressInfo } from 'node:net';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { io as connect } from 'socket.io-client';
+import { variants } from '@rsdp/engine/core';
+import { registerAllVariants } from '@rsdp/engine/variants';
 import { createApp } from '../src/app';
 import { closeDb, type Db } from '../src/db';
 import { createTestDb, resetTestDb } from '../src/db/testing';
@@ -24,6 +26,8 @@ let seen: URLSearchParams[] = [];
 const jwt = (claims: object) => ['e30', Buffer.from(JSON.stringify(claims)).toString('base64url'), 'sig'].join('.');
 
 beforeAll(async () => {
+  // A new table's settings are checked against the games, which the server registers at startup.
+  registerAllVariants(variants);
   db = await createTestDb();
 });
 

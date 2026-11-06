@@ -61,6 +61,19 @@ describe('socket server', () => {
     expect(ov.settings.seating.minBuyIn).toBe(4_000);
   });
 
+  it('refuses a new table with more seats than one of its games deals, as a settings change would', async () => {
+    const host = client('create-seats-host-0123456789');
+    // A preset (or a hand-edited preset file) rotating No-Limit Hold'em and Badugi, which deals at most 6.
+    const step = (gameId: string, betting: string) => ({ gameId, betting, length: 1, unit: 'orbits' });
+    const rotation = { enabled: true, steps: [step('nlhe', 'no-limit'), step('badugi', 'fixed-limit')] };
+    const before = server.tables.size;
+    await expect(host.call('table:create', { settings: { table: { maxSeats: 10 }, game: { rotation } } })).rejects.toThrow(/^Badugi seats at most 6$/);
+    expect(server.tables.size).toBe(before);
+    const { tableId } = await host.call<{ tableId: string }>('table:create', { settings: { table: { maxSeats: 6 }, game: { rotation } } });
+    await host.call('table:join', { tableId });
+    expect((await host.until((v) => v.id === tableId)).seats).toHaveLength(6);
+  });
+
   it('exports every finished hand, hiding cards the viewer never saw', async () => {
     const host = client('export-host-0123456789');
     const guest = client('export-guest-0123456789');

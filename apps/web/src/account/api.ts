@@ -130,6 +130,8 @@ export interface FoundHand {
 export interface HandQuery {
   player?: string;
   game?: string;
+  /** With a game: just the hands played with this betting (Limit or No-Limit Hold'em). Left out, any betting. */
+  betting?: string;
   cards?: string;
   minPot?: string;
   result?: '' | 'won' | 'lost';
@@ -142,7 +144,15 @@ export function searchHands(q: HandQuery, before?: string | null) {
   return request<{ hands: FoundHand[]; next: string | null }>('GET', `/api/hands/search?${params}`);
 }
 
-export const fetchHandGames = () => request<{ games: { id: string; name: string; hands: number }[] }>('GET', '/api/hands/games');
+/** A game I've played, once for each betting I played it with. `betting` is missing from an older server. */
+export interface HandGame {
+  id: string;
+  betting?: string;
+  name: string;
+  hands: number;
+}
+
+export const fetchHandGames = () => request<{ games: HandGame[] }>('GET', '/api/hands/games');
 
 /** A link anyone can open to watch one of my hands; `hideMine` keeps my cards face down unless shown. */
 export const shareFoundHand = (handId: string, hideMine: boolean) => request<{ id: string }>('POST', '/api/hands/share', { handId, hideMine });

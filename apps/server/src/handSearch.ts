@@ -5,7 +5,9 @@
 
 import express from 'express';
 import { and, desc, eq, inArray, lt, or, sql } from 'drizzle-orm';
-import { gameTitle } from '@rsdp/engine/variants';
+import type { BettingKind } from '@rsdp/engine/core';
+import { BETTING_KINDS } from '@rsdp/engine/settings';
+import { gameTitle, getVariant } from '@rsdp/engine/variants';
 import type { SharedHandView } from '@rsdp/engine/wire';
 import { schema, type Db } from './db';
 import { playersForAccount, whoIs } from './identity';
@@ -31,6 +33,8 @@ export interface HandFilter {
   /** Part of another player's name. */
   player?: string;
   gameId?: string;
+  /** No limit, pot limit or limit; with no game, any game played that way. */
+  betting?: BettingKind;
   /** My cards: ranks like "AA", "AK", "AKs", "72o", or exact cards like "AsKs". */
   cards?: string;
   /** Pots of at least this many big blinds. */
@@ -101,11 +105,26 @@ export function potOf(past: PastHand): number {
   return pot;
 }
 
+const isBetting = (v: unknown): v is BettingKind => (BETTING_KINDS as readonly unknown[]).includes(v);
+
+/** The betting a hand was played with: hands saved before it was kept played their game's usual betting. */
+export function bettingOf(gameId: string | undefined, betting: unknown): BettingKind | undefined {
+  if (isBetting(betting)) return betting;
+  try {
+    return gameId ? getVariant(gameId).defaultBetting : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** The big blind, or for games without blinds the big bet, so pots compare across stakes. */
 const unit = (past: PastHand) => past.stakes.bigBlind || past.stakes.bigBet || past.stakes.smallBet || 1;
 
 export function matches(past: PastHand, mySeat: number, names: (playerId: string) => string, f: HandFilter & { cardTest?: CardTest | null }): boolean {
-  if (f.gameId && past.events[0]?.t === 'hand-start' && past.events[0].gameId !== f.gameId) return false;
+  const start = past.events[0]?.t === 'hand-start' ? past.events[0] : null;
+  if (f.gameId && start && start.gameId !== f.gameId) return false;
+  // As the games list reads it: from the saved header, which is what past.betting holds.
+  if (f.betting && bettingOf(start?.gameId ?? f.gameId, past.betting) !== f.betting) return false;
   if (f.player) {
     const want = f.player.toLowerCase();
     if (!past.seats.some((x) => x.seat !== mySeat && names(x.playerId).toLowerCase().includes(want))) return false;
@@ -179,6 +198,7 @@ export function handSearchRoutes(
     const filter: HandFilter = {
       player: str(q.player) || undefined,
       gameId: str(q.game) || undefined,
+      betting: isBetting(str(q.betting)) ? (str(q.betting) as BettingKind) : undefined,
       cards: str(q.cards) || undefined,
       minPotBb: Number(q.minPot) > 0 ? Number(q.minPot) : undefined,
       result: q.result === 'won' || q.result === 'lost' ? q.result : undefined,
@@ -239,7 +259,7 @@ export function handSearchRoutes(
     })().catch((e) => fail(res, e));
   });
 
-  // The games I've played, for the search form's list.
+  // The games I've played, for the search form's list: one entry per game and betting (Limit and No-Limit Hold'em apart).
   app.get('/api/hands/games', (req, res) => {
     res.set('Cache-Control', 'no-store');
     if (!db) return void res.status(503).json({ error: 'Hand search is not available on this server.' });
@@ -251,11 +271,14 @@ export function handSearchRoutes(
         .from(hands)
         .where(dealtTo(ids))
         .groupBy(hands.gameId, sql`${hands.header} -> 'input' ->> 'betting'`);
-      const byGame = new Map<string, { id: string; name: string; hands: number }>();
+      const byGame = new Map<string, { id: string; betting?: BettingKind; name: string; hands: number }>();
       for (const r of rows) {
-        const g = byGame.get(r.gameId) ?? { id: r.gameId, name: gameTitle(r.gameId, (r.betting ?? undefined) as never), hands: 0 };
+        // Older hands without a betting saved join their game's usual one.
+        const betting = bettingOf(r.gameId, r.betting);
+        const key = `${r.gameId} ${betting ?? ''}`;
+        const g = byGame.get(key) ?? { id: r.gameId, betting, name: gameTitle(r.gameId, betting), hands: 0 };
         g.hands += Number(r.n);
-        byGame.set(r.gameId, g);
+        byGame.set(key, g);
       }
       res.json({ games: [...byGame.values()].sort((a, b) => b.hands - a.hands) });
     })().catch((e) => fail(res, e));

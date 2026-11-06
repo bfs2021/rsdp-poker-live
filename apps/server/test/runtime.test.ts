@@ -387,6 +387,25 @@ describe('host settings', () => {
     expect(() => rt.updateSettings('host', { stakes: { smallBlind: 5, bigBlind: 2 } })).toThrow(/stakes.smallBlind/);
   });
 
+  it('checks settings on their own, as a new table needs: known games, no game with fewer seats than the table, a bomb pot game with a flop', () => {
+    const s = defaultSettings('cash');
+    const step = (gameId: string, betting: 'no-limit' | 'fixed-limit') => ({ gameId, betting, length: 1, unit: 'orbits' as const });
+    const mixed = (maxSeats: number, enabled = true): TableSettings => ({
+      ...s,
+      table: { ...s.table, maxSeats },
+      game: { ...s.game, rotation: { enabled, steps: [step('nlhe', 'no-limit'), step('badugi', 'fixed-limit')] } },
+    });
+    expect(() => TableRuntime.checkGameSettings(mixed(10))).toThrow(/^Badugi seats at most 6$/);
+    expect(() => TableRuntime.checkGameSettings(mixed(6))).not.toThrow();
+    // A rotation that is off deals only the table's game.
+    expect(() => TableRuntime.checkGameSettings(mixed(10, false))).not.toThrow();
+    expect(() => TableRuntime.checkGameSettings({ ...s, game: { ...s.game, gameId: 'nope' } })).toThrow(/^unknown game nope$/);
+    const bomb = (gameId: string): TableSettings => ({ ...s, modifiers: { ...s.modifiers, 'bomb-pot': { enabled: true, chancePercent: 10, everyHands: 0, bigBlinds: 5, gameId, betting: 'pot-limit' } } });
+    expect(() => TableRuntime.checkGameSettings(bomb('plo4'))).not.toThrow();
+    expect(() => TableRuntime.checkGameSettings(bomb('stud'))).toThrow(/^bomb pots need a game with a flop, not /);
+    expect(() => TableRuntime.checkGameSettings(bomb('nope'))).toThrow(/^unknown bomb pot game nope$/);
+  });
+
   it('a blind schedule moves up by hands', () => {
     const { rt, clock } = table((s) => {
       s.blindSchedule = {

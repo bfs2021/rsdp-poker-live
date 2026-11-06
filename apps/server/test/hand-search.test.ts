@@ -2,10 +2,11 @@
 
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { eq, sql } from 'drizzle-orm';
 import { variants } from '@rsdp/engine/core';
 import { registerAllVariants } from '@rsdp/engine/variants';
 import { createApp } from '../src/app';
-import { closeDb, loadSnapshot, saveSnapshot, type Db } from '../src/db';
+import { closeDb, loadSnapshot, saveSnapshot, schema, type Db } from '../src/db';
 import { createTestDb } from '../src/db/testing';
 import { dbIdentity, dbStore } from '../src/storage';
 import { dbSharedHands } from '../src/shared';
@@ -44,10 +45,10 @@ const search = async (query: string, guest = ANN) => {
 };
 
 /** Two players play `hands` hands where whoever acts first folds. */
-async function play(name: string, a: string, b: string, names: [string, string], hands: number) {
+async function play(name: string, a: string, b: string, names: [string, string], hands: number, game?: { gameId: string; betting: string }) {
   const x = client(a);
   const y = client(b);
-  const { tableId } = await x.call<{ tableId: string }>('table:create', { settings: { table: { name }, seating: { requireApproval: false }, timing: { autoStartNextHand: false } } });
+  const { tableId } = await x.call<{ tableId: string }>('table:create', { settings: { table: { name }, seating: { requireApproval: false }, timing: { autoStartNextHand: false }, ...(game ? { game } : {}) } });
   await x.call('table:join', { tableId });
   await y.call('table:join', { tableId });
   await x.call('seat:request', { seat: 0, name: names[0], stack: 100 });
@@ -143,5 +144,34 @@ describe('hand search and a stopped game', () => {
     const found = (await search('', DAN)).hands.find((h) => h.tableId === tableId)!;
     expect(found.hand.fair).toBeTruthy();
     expect(found.hand.fair!.serverSeed).toBeNull();
+  });
+});
+
+describe('hand search by game and betting', () => {
+  it("keeps Limit and No-Limit Hold'em apart, and counts an older hand with no betting saved as No-Limit", { timeout: 40_000 }, async () => {
+    const FAY = 'hs-fay-secret-0123456789';
+    const GUS = 'hs-gus-secret-0123456789';
+    await play('Limit', FAY, GUS, ['Fay', 'Gus'], 2, { gameId: 'nlhe', betting: 'fixed-limit' });
+    await play('No-Limit', FAY, GUS, ['Fay', 'Gus'], 3);
+    // Saved before the betting was kept with each hand.
+    const old = await play('Old', FAY, GUS, ['Fay', 'Gus'], 1);
+    await db.update(schema.hands).set({ header: sql`${schema.hands.header} #- '{input,betting}'` }).where(eq(schema.hands.tableId, old));
+    const [saved] = await db.select({ betting: sql<string | null>`${schema.hands.header} -> 'input' ->> 'betting'` }).from(schema.hands).where(eq(schema.hands.tableId, old));
+    expect(saved.betting).toBeNull();
+
+    const games = (await (await fetch(`${url}/api/hands/games`, { headers: { 'x-guest-token': FAY } })).json()) as { games: { id: string; betting?: string; name: string; hands: number }[] };
+    expect(games.games).toEqual([
+      { id: 'nlhe', betting: 'no-limit', name: "No-Limit Hold'em", hands: 4 },
+      { id: 'nlhe', betting: 'fixed-limit', name: "Limit Hold'em", hands: 2 },
+    ]);
+
+    const tables = async (query: string) => (await search(query, FAY)).hands.map((h) => h.tableName).sort();
+    expect(await tables('game=nlhe&betting=no-limit')).toEqual(['No-Limit', 'No-Limit', 'No-Limit', 'Old']);
+    expect(await tables('game=nlhe&betting=fixed-limit')).toEqual(['Limit', 'Limit']);
+    // A link from before: the game alone finds every betting of it.
+    expect(await tables('game=nlhe')).toHaveLength(6);
+    // A betting that isn't one is ignored.
+    expect(await tables('game=nlhe&betting=table-stakes')).toHaveLength(6);
+    expect(await tables('game=plo4&betting=no-limit')).toEqual([]);
   });
 });

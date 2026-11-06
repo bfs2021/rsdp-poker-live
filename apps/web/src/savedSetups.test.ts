@@ -70,3 +70,18 @@ describe("a guest's saved setups keep to what an account takes", () => {
     expect(list.list()).toHaveLength(SETUPS_PER_KIND + 4);
   });
 });
+
+describe('a preset with more seats than one of its games deals', () => {
+  it('is saved, and started from, with seats that fit', async () => {
+    stubStorage();
+    const { presetSettings, savePreset, tablePresets } = await import('./presets');
+    const s = defaultSettings('cash');
+    const step = (gameId: string, betting: 'no-limit' | 'fixed-limit') => ({ gameId, betting, length: 1, unit: 'orbits' as const });
+    // A draft whose rotation gained Badugi (at most 6) without the seats coming down.
+    const mixed = { ...s, table: { ...s.table, maxSeats: 10 }, game: { ...s.game, rotation: { enabled: true, steps: [step('nlhe', 'no-limit'), step('badugi', 'fixed-limit')] } } };
+    await savePreset('Mixed', mixed);
+    expect(importPreset(tablePresets.list()[0].json).settings.table.maxSeats).toBe(6);
+    // One saved before this, still with 10 seats, starts a table of 6.
+    expect(presetSettings({ name: 'Old', json: exportPreset(mixed, 'Old') }).table.maxSeats).toBe(6);
+  });
+});

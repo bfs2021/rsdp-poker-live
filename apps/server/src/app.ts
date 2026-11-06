@@ -1249,6 +1249,8 @@ export function createApp(deps: AppDeps = {}) {
           const patch = input?.settings ?? {};
           // Tables made here are cash tables, played for dollars and cents; tournaments make their own.
           const settings = newCashSettings(mergePatches(patch, { table: { mode: 'cash' } }));
+          // The checks a settings change gets: a preset can ask for more seats than one of its games deals.
+          TableRuntime.checkGameSettings(settings);
           if (!tableCreates(me, socketAddress(socket))) throw new ActionError('that is a lot of new tables; try again in a few minutes');
           const rt = TableRuntime.create({ hostId: me, settings }, { clock, rng: deps.rng, log, fairLeadMs: deps.fairLeadMs, fairStopRevealMs: deps.fairStopRevealMs });
           // A practice table is set up before it is saved, so one that can't be leaves nothing behind.

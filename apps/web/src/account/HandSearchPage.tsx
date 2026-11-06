@@ -5,7 +5,10 @@ import { LogText } from '../components/PlayingCard';
 import { Replayer } from '../components/Replayer';
 import type { TableView } from '@rsdp/engine/wire';
 import { Shell } from './AccountPages';
-import { fetchHandGames, searchHands, shareFoundHand, type FoundHand, type HandQuery } from './api';
+import { fetchHandGames, searchHands, shareFoundHand, type FoundHand, type HandGame, type HandQuery } from './api';
+
+/** One choice in the Game list: the game and its betting. */
+const gameKey = (game: string, betting?: string) => `${game}/${betting ?? ''}`;
 
 const when = (ms: number) => new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
@@ -23,7 +26,7 @@ function myCards(f: FoundHand): string {
 /** /hands: find past hands across every table I played, then replay or share them. */
 export function HandSearchPage() {
   const [query, setQuery] = useState<HandQuery>({ result: '' });
-  const [games, setGames] = useState<{ id: string; name: string }[]>([]);
+  const [games, setGames] = useState<HandGame[]>([]);
   const [found, setFound] = useState<FoundHand[] | null>(null);
   const [next, setNext] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -75,10 +78,16 @@ export function HandSearchPage() {
           </label>
           <label>
             Game
-            <select value={query.game ?? ''} onChange={set('game')}>
+            <select
+              value={query.game ? gameKey(query.game, query.betting) : ''}
+              onChange={(e) => {
+                const g = games.find((x) => gameKey(x.id, x.betting) === e.target.value);
+                setQuery((q) => ({ ...q, game: g?.id, betting: g?.betting }));
+              }}
+            >
               <option value="">Any game</option>
               {games.map((g) => (
-                <option key={g.id} value={g.id}>
+                <option key={gameKey(g.id, g.betting)} value={gameKey(g.id, g.betting)}>
                   {g.name}
                 </option>
               ))}

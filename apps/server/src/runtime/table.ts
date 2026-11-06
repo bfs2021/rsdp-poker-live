@@ -1206,25 +1206,28 @@ export class TableRuntime {
     if (next.table.mode !== cur.table.mode) throw new ActionError('a table cannot switch between cash and tournament');
     // Every amount here, the ledger and everyone's records are in the table's unit, so it stays the one the table was made with.
     if (next.stakes.centsMode !== cur.stakes.centsMode) throw new ActionError(cur.stakes.centsMode ? 'cash games are played in dollars and cents' : 'this table plays in chips; start a new table to play in dollars and cents');
-    const games = next.game.rotation.enabled ? next.game.rotation.steps.map((st) => st.gameId) : [next.game.gameId];
     const seated = this.state.seats.filter(Boolean).length;
-    const specs = games.map((id) => {
-      try {
-        return variants.get(id).spec;
-      } catch {
-        throw new ActionError(`unknown game ${id}`);
-      }
-    });
+    const specs = TableRuntime.gameSpecs(next);
     // The game with the fewest seats sets the size of the whole table, even in a mixed-game rotation.
     const tightest = specs.reduce((a, b) => (b.maxPlayers < a.maxPlayers ? b : a));
     if (seated > tightest.maxPlayers) {
       const extra = seated - tightest.maxPlayers;
-      const which = games.length > 1 ? `${tightest.name}, one of the games in the rotation,` : tightest.name;
+      const which = specs.length > 1 ? `${tightest.name}, one of the games in the rotation,` : tightest.name;
       throw new ActionError(
         `${which} seats at most ${tightest.maxPlayers} players and ${seated} are sitting down. ${extra} ${extra === 1 ? 'player needs' : 'players need'} to leave the table (or remove ${extra === 1 ? 'a bot' : 'some bots'}) before you can switch.`,
       );
     }
-    for (const spec of specs) if (next.table.maxSeats > spec.maxPlayers) throw new ActionError(`${spec.name} seats at most ${spec.maxPlayers}`);
+    TableRuntime.checkGameSettings(next);
+    // Fewer seats than people sitting: someone would have to go. Players in the seats that go move into free ones instead.
+    if (next.table.maxSeats < seated) throw new ActionError(`${seated} players are sitting down, so the table needs at least ${seated} seats`);
+  }
+
+  /**
+   * The checks on the settings alone, which a new table gets too (a preset can ask for anything): every game is
+   * one there is, no game has fewer seats than the table, and a bomb pot game has a flop.
+   */
+  static checkGameSettings(next: TableSettings): void {
+    for (const spec of TableRuntime.gameSpecs(next)) if (next.table.maxSeats > spec.maxPlayers) throw new ActionError(`${spec.name} seats at most ${spec.maxPlayers}`);
     const bombGame = bombPotSchema.get(next).gameId;
     if (bombGame) {
       let spec: GameSpec;
@@ -1235,8 +1238,18 @@ export class TableRuntime {
       }
       if (spec.family !== 'flop' || spec.forcedBets !== 'blinds') throw new ActionError(`bomb pots need a game with a flop, not ${spec.name}`);
     }
-    // Fewer seats than people sitting: someone would have to go. Players in the seats that go move into free ones instead.
-    if (next.table.maxSeats < seated) throw new ActionError(`${seated} players are sitting down, so the table needs at least ${seated} seats`);
+  }
+
+  /** The games the settings deal (the rotation's when it is on); a game there isn't is refused. */
+  private static gameSpecs(next: TableSettings): GameSpec[] {
+    const games = next.game.rotation.enabled ? next.game.rotation.steps.map((st) => st.gameId) : [next.game.gameId];
+    return games.map((id) => {
+      try {
+        return variants.get(id).spec;
+      } catch {
+        throw new ActionError(`unknown game ${id}`);
+      }
+    });
   }
 
   private applyPendingSettings() {

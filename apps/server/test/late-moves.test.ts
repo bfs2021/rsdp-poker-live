@@ -116,7 +116,7 @@ describe('a move for a turn that has passed', () => {
   });
 
   it('refuses a draw sent for an earlier draw', async () => {
-    const { ann, ben } = await headsUp('draw', { game: { gameId: 'td27' } });
+    const { ann, ben } = await headsUp('draw', { game: { gameId: 'td27' }, table: { maxSeats: 6 } });
     const players = [ann, ben];
     // Whoever draws first in the first draw, with the turn on screen: played.
     await playOn(players, () => players.some((c) => !!c.view().canDraw));
