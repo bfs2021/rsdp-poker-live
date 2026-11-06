@@ -917,7 +917,7 @@ dl.shortcuts dd { margin: 0; }
 /* ---- big windows (#317): the table grows into the room. --k is its scale (Table.tsx), --sk the seats' (k, or less when a
    full table needs it). Below k = 1 none of this applies. */
 .table-page:not(.portrait) .felt-area > .felt.grown {
-  margin: calc(84px * var(--sk)) calc(var(--side-margin) * var(--sk)) calc(46px * var(--sk));
+  margin: calc(var(--top-margin, 84px) * var(--sk)) calc(var(--side-margin) * var(--sk)) calc(46px * var(--sk));
   max-height: none;
 }
 .felt.grown .board .pots { zoom: var(--k); }
@@ -933,6 +933,12 @@ dl.shortcuts dd { margin: 0; }
   .seat.me.has-cards:not(.long-hand) { --cw: 84px; --tuck: 166px; }
   .seat.me.has-cards:not(.long-hand):has(.hole.n4) { --tuck: 232px; }
   .seat.me.has-cards:not(.long-hand) .hole.n4 { --cw: 68px; }
+  /* Stud, triple draw and five- and six-card Omaha (#331): the row of cards over the nameplate grows the same way. */
+  .seat.long-hand .playing-card.small { --cw: 60px; }
+  .seat.long-hand .hole .playing-card + .playing-card { margin-left: -21px; }
+  .seat.long-hand.me .playing-card.small { --cw: 72px; }
+  .seat.long-hand.me .hole .playing-card + .playing-card { margin-left: -26px; }
+  .seat.long-hand.me .nameplate { min-width: 260px; }
 }
 
 /* ---- the wide layout (windows 1440px and wider, #317): no side column. Chat sits in the bottom-left corner beside the

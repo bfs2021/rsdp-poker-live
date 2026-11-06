@@ -284,12 +284,17 @@ export function Table({
   // Seats grow with k unless the players round the felt need them smaller. The felt's size is estimated from the room
   // and k, not measured, because its margins grow with the seats and a measured size would feed back.
   // A player's nameplate with its tucked cards, at scale 1: wider with four cards, and with the wide layout's bigger cards.
-  const fourCard = ['plo4', 'plo8', 'badugi'].includes((hand ?? view.upcoming)?.gameId ?? '');
+  const gameId = (hand ?? view.upcoming)?.gameId ?? '';
+  const fourCard = ['plo4', 'plo8', 'badugi'].includes(gameId);
+  // Stud, triple draw and five- and six-card Omaha show a row of cards over the nameplate. In the wide layout those
+  // cards are bigger too (#331), so the row stands taller and the felt leaves more room above the top seats.
+  const longGame = wide && ['plo5', 'plo6', 'plo5-8', 'plo6-8', 'stud', 'razz', 'stud8', 'td27'].includes(gameId);
+  const topMargin = longGame ? 106 : 84;
   const podWidth = (wide ? 320 : 290) + (fourCard ? 50 : 0);
   // The felt's side margins hold half a side seat's nameplate.
   const sideMargin = 140 + (fourCard ? 30 : 0);
   const estW = room.w - 2 * sideMargin * k;
-  const estH = room.h - 130 * k;
+  const estH = room.h - (topMargin + 46) * k;
   const estPerimeter = 2 * Math.abs(estW - estH) + Math.PI * Math.min(estW, estH);
   const grownScale = Math.round(Math.max(0.72, Math.min(k, (estPerimeter * 0.92) / (players * podWidth + (n - players) * 130))) * 100) / 100;
   const seatScale = compact ? 1 : grown ? grownScale : Math.round(Math.max(0.72, roomy) * 100) / 100;
@@ -297,7 +302,8 @@ export function Table({
   const boardCard = compact
     ? null
     : grown
-      ? Math.round(Math.max(60, Math.min((wide ? 80 : 68) * k, w * 0.085, h * 0.21)))
+      ? // With a row of big cards above and below it (#331), the board gives up a little height so bets don't reach it.
+        Math.round(Math.max(60, Math.min((wide ? 80 : 68) * k, w * 0.085, h * (longGame ? 0.19 : 0.21))))
       : Math.round(Math.max(60, Math.min(88, w * 0.062, h * 0.17)));
   // Bets sit just inside each seat's nameplate and cards, on the way to the middle.
   const guess: Reach = compact ? { l: 50, r: 50, u: 55, d: 25 } : { l: 100, r: 100, u: 70, d: 32 };
@@ -440,7 +446,7 @@ export function Table({
     <div
       ref={felt}
       className={['felt', compact && 'compact', grown && 'grown', grown && wide && 'big-cards', handFit && 'hand-fit', done && hand!.awards.length > 0 && 'showdown', view.me.seat !== null && 'seated-view', myTurn && 'my-turn', view.cardsWatched && 'cards-watched'].filter(Boolean).join(' ')}
-      style={{ ...feltStyle(prefs, view.settings.table.felt), '--seat-scale': seatScale, ...(grown ? { '--k': k, '--sk': seatScale, '--side-margin': `${sideMargin}px` } : {}), ...(boardCard ? { '--board-cw': `${boardCard}px` } : {}), ...(handFit ? { '--fit-cw': `${handFit.cw}px`, '--fit-overlap': `${-handFit.overlap}px` } : {}) } as CSSProperties}
+      style={{ ...feltStyle(prefs, view.settings.table.felt), '--seat-scale': seatScale, ...(grown ? { '--k': k, '--sk': seatScale, '--side-margin': `${sideMargin}px`, '--top-margin': `${topMargin}px` } : {}), ...(boardCard ? { '--board-cw': `${boardCard}px` } : {}), ...(handFit ? { '--fit-cw': `${handFit.cw}px`, '--fit-overlap': `${-handFit.overlap}px` } : {}) } as CSSProperties}
     >
       <FeltEmblem />
       <div className={`board${multiRun || multiBoard ? ' multi' : ''}`} style={boardShift ? { translate: `0 ${Math.round(boardShift)}px` } : undefined}>

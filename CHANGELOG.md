@@ -23,6 +23,7 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 ### Fixed and changed
 
 - The Roadmap page is up to date again: what it listed as coming next is already live, so it's been moved to Live now, along with the bigger table on big screens and the new all-in run-outs.
+- Big screens: the bigger cards now show in every game, not just Hold'em and Omaha. Five- and six-card Omaha, Seven Card Stud, Razz, Stud Hi-Lo and 2-7 Triple Draw get the same bigger cards, with a little more room above the table so the top seats' cards stay clear of the top bar. Laptops and phones look as before.
 
 ## [2026.11.05.7] - 2026-11-05
 
