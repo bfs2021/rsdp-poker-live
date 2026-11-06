@@ -49,6 +49,37 @@ up, it gets an issue too.
    [Releases](#releases)).
 6. **Status reports come from these lists, not from memory** (see
    [Reporting status](#reporting-status)).
+7. **Work is done only when the whole ask is done** (see
+   [Definition of done](#definition-of-done)).
+
+## Definition of done
+
+A piece of work is done only when **everything the person asked for is
+finished and checked on the live site**. Part of it shipped, with the rest
+in a new issue, is not done. Merged but not released yet is "on develop",
+not done: say that plainly. Docs and tests have nothing to see on the
+site, so check them where they show (on GitHub).
+
+Before a session (or anyone) says "done" to John or stops work on it:
+
+1. **Check the original ask, not just your change.** Read the request
+   again and look at each part of it on the live site the way John would see
+   it: every game, screen size or setting it covers, not only the ones the
+   change touched. Only look, never play: no games, bots, tables or
+   sign-ups there (D07, D24). What can't be seen just by looking (a hand
+   being played, say) is tested on a local copy, and the message says so.
+2. **Every follow-up issue has an owner.** If you opened an issue for part
+   of the ask, it must either have someone actively working on it now
+   (`status: in progress`, assigned, with a session or pull request behind
+   it), or carry `status: waiting on John` or `status: waiting on others`
+   with a comment saying what it's waiting for. An issue nobody is working
+   on means the work isn't done.
+3. **Say plainly what's left.** If something is waiting, the "done"
+   message says so and links the issue. "Done" with a hidden leftover is
+   the thing this rule is here to stop.
+
+Until all three are true, the work is still in progress. Keep going, or
+start the follow-up yourself. Why: [D30](docs/DECISIONS.md#d30-a-definition-of-done).
 
 ## Labels
 
@@ -186,7 +217,9 @@ Decide that before it's merged into `develop`, and make its branch from
    a light change). That pass is ours, not an outside audit. Its findings,
    and the commit it reviewed, go in a comment on the pull request, so the
    review leaves a trace on GitHub. Anything left for later gets its own
-   issue, listed under "Left to do".
+   issue, listed under "Left to do", and needs an owner or a "waiting on"
+   label before the work counts as done
+   ([Definition of done](#definition-of-done)).
 4. **Merge into `develop`.** GitHub only closes issues for merges into the
    default branch (`main`), so a workflow labels each issue the pull request
    closes `status: on develop` and comments on it.
@@ -275,7 +308,8 @@ the issue lists, every time, in this order:
 5. Waiting on others.
 
 Link every issue so John can check it himself. "Done" means its issue is
-closed with proof. Before asking John for anything, search the issues
+closed with proof and the [definition of done](#definition-of-done) is
+met. Before asking John for anything, search the issues
 (open and closed) to see whether he has already given it.
 
 ## What we don't use, and why

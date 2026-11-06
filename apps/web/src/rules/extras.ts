@@ -138,6 +138,7 @@ export const EXTRAS: ExtraGuide[] = [
     ],
     settings: [
       'Start a cash game: pick HORSE or 8-Game under Mixed games in the Game list.',
+      "Host a tournament: tap HORSE or 8-Game next to Mixed under Game. The game changes every level; each level's blinds, and its ante for the stud games, come from the structure.",
       'At a table: Table settings > Game, then tap HORSE or 8-Game. You can then change how long each game lasts, drop games or add others.',
       'Table settings > Stakes sets the blinds, the Limit small and big bets, the stud ante and the bring-in.',
     ],

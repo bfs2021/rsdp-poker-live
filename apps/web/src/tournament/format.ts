@@ -1,4 +1,5 @@
-import { gameTitle, VARIANT_LIST } from '@rsdp/engine/variants';
+import type { BettingKind } from '@rsdp/engine/core';
+import { gameTitle, getVariant, mixedGameOf, VARIANT_LIST } from '@rsdp/engine/variants';
 
 export const chips = (n: number) => n.toLocaleString();
 
@@ -28,15 +29,29 @@ export function ordinal(n: number): string {
 // Tournaments play each game with its usual betting, so the pickers say which.
 export const GAMES: { id: string; name: string }[] = VARIANT_LIST.map((v) => ({ id: v.id, name: gameTitle(v.id) }));
 
-/** The game with its usual betting: "No-Limit Hold'em", "Pot-Limit Omaha". */
-export const gameName = (id: string) => gameTitle(id);
+/** The game with its betting, its usual one when left out: "No-Limit Hold'em", "Pot-Limit Omaha". */
+export const gameName = (id: string, betting?: BettingKind | null) => gameTitle(id, betting ?? undefined);
+
+/** A tournament's games: the mix's name for HORSE and 8-Game, otherwise each game with its betting. */
+export function gamesText(s: { games: string[]; gameBetting?: (BettingKind | null)[] }): string {
+  const steps = s.games.map((gameId, i) => ({ gameId, betting: s.gameBetting?.[i] ?? defaultBetting(gameId) }));
+  return mixedGameOf(steps)?.name ?? s.games.map((id, i) => gameName(id, s.gameBetting?.[i])).join(' / ');
+}
+
+function defaultBetting(id: string): BettingKind {
+  try {
+    return getVariant(id).defaultBetting;
+  } catch {
+    return 'no-limit';
+  }
+}
 
 /** Money in the smallest unit (cents) shown as dollars. */
 export const money = (cents: number) =>
   (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD', minimumFractionDigits: cents % 100 ? 2 : 0 });
 
 export function blinds(l: { sb: number; bb: number; ante: number; anteType: string }): string {
-  const ante = l.anteType === 'none' ? '' : l.anteType === 'big-blind' ? ` · BB ante ${chips(l.ante)}` : ` · ante ${chips(l.ante)}`;
+  const ante = l.anteType === 'none' || l.ante === 0 ? '' : l.anteType === 'big-blind' ? ` · BB ante ${chips(l.ante)}` : ` · ante ${chips(l.ante)}`;
   return `${chips(l.sb)} / ${chips(l.bb)}${ante}`;
 }
 

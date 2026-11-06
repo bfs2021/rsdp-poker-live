@@ -35,6 +35,10 @@ review leaves a trace on GitHub. Say what was fixed and what wasn't, and why.
 
 <!--
 Anything this leaves for later, each with its own issue (#123), or "None".
+Each one needs someone actively working on it, or a "status: waiting on
+John" / "status: waiting on others" label with the reason. If the person
+asked for it, it isn't later: the work isn't done until it ships too.
+See "Definition of done" in CONTRIBUTING.md.
 -->
 
 ## Release notes

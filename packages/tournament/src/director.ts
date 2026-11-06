@@ -15,6 +15,8 @@
 // must wake at nextWakeAt (a 1 s tick is a fine fallback).
 
 import { handOver, RoleError, withCoHost, withoutCoHost } from '@rsdp/engine/roles';
+import { BETTING_KINDS } from '@rsdp/engine/settings';
+import { skipsMixedGameAnte } from '@rsdp/engine/variants';
 import {
   checkInActive,
   checkInGroupOf,
@@ -114,6 +116,7 @@ const SETTINGS_KEYS: Record<keyof TournamentSettings, true> = {
   name: true,
   start: true,
   games: true,
+  gameBetting: true,
   stopRotationAtLevel: true,
   structure: true,
   startingStack: true,
@@ -235,6 +238,10 @@ export function validateSettings(s: TournamentSettings, before?: TournamentSetti
   if (!isWhole(s.startingStack, 1, MAX_CHIPS)) errors.push(`Starting stack must be a whole number from 1 to ${CHIPS_LABEL}`);
   if (!Array.isArray(s.games) || !s.games.length) errors.push('Pick at least one game');
   else if (!s.games.every(isId)) errors.push('Every game must be a game id');
+  if (s.gameBetting != null) {
+    if (!Array.isArray(s.gameBetting) || !Array.isArray(s.games) || s.gameBetting.length !== s.games.length) errors.push('Give one betting choice for each game');
+    else if (!s.gameBetting.every((b) => b === null || (BETTING_KINDS as readonly unknown[]).includes(b))) errors.push('Betting must be no-limit, pot-limit or fixed-limit');
+  }
   if (s.stopRotationAtLevel != null && !isLimit(s.stopRotationAtLevel)) errors.push('Rotation must stop at level 1 or later');
   errors.push(...validateStructure(s.structure, { maxRebuys: rebuy.max }).errors);
   const capped = (n: number, was: unknown) => isWhole(n, 0, MAX_BUYS_PER_PLAYER) || (n === was && isWhole(n, 0, Number.MAX_SAFE_INTEGER));
@@ -522,6 +529,15 @@ export function tableGate(s: TournamentState, tableId: TableId, _now: number): G
   return 'deal';
 }
 
+/** skipsMixedGameAnte, with games this build doesn't know (the server refuses them) never skipping. */
+function skipsAnte(gameId: string, games: readonly string[]): boolean {
+  try {
+    return games.length > 1 && skipsMixedGameAnte(gameId, games);
+  } catch {
+    return false;
+  }
+}
+
 /** Game and stakes for the next hand (during a break, the level after it). */
 export function levelFor(s: TournamentState, _tableId: TableId): LevelStakes {
   const p = position(s);
@@ -529,14 +545,20 @@ export function levelFor(s: TournamentState, _tableId: TableId): LevelStakes {
   const levelNumber = p.onBreak ? p.levelNumber + 1 : p.levelNumber;
   const { games, stopRotationAtLevel } = s.settings;
   const rotationLevel = stopRotationAtLevel ? Math.min(levelNumber, stopRotationAtLevel) : levelNumber;
-  const gameId = level.gameId ?? games[(rotationLevel - 1) % games.length];
+  const slot = (rotationLevel - 1) % games.length;
+  const gameId = level.gameId ?? games[slot];
+  // A level that names its own game plays it with its usual betting.
+  const betting = level.gameId === undefined ? (s.settings.gameBetting?.[slot] ?? undefined) : undefined;
   const smallBet = level.limit?.smallBet ?? level.bb;
   return {
     levelNumber,
     gameId,
+    ...(betting ? { betting } : {}),
     sb: level.sb,
     bb: level.bb,
-    ante: level.ante,
+    // In a mix with stud, only the stud games ante (D29).
+    // Once the rotation has stopped, one game is left and keeps its antes.
+    ante: skipsAnte(gameId, stopRotationAtLevel && levelNumber >= stopRotationAtLevel ? [gameId] : games) ? 0 : level.ante,
     anteType: level.anteType,
     smallBet,
     bigBet: level.limit?.bigBet ?? smallBet * 2,
@@ -709,7 +731,7 @@ function begin(c: Ctx) {
 
 function emitLevel(c: Ctx) {
   const l = levelFor(c.s, '');
-  emit(c, { type: 'levelUp', levelNumber: l.levelNumber, sb: l.sb, bb: l.bb, ante: l.ante, anteType: l.anteType, gameId: l.gameId });
+  emit(c, { type: 'levelUp', levelNumber: l.levelNumber, sb: l.sb, bb: l.bb, ante: l.ante, anteType: l.anteType, gameId: l.gameId, ...(l.betting ? { betting: l.betting } : {}) });
 }
 
 /** Seats one player at the table with the fewest players, opening a table if all are full. */
@@ -1313,7 +1335,7 @@ export function apply(state: TournamentState, cmd: Command, now: number): Result
         const changes = cleanSettings(cmd.settings);
         const next = { ...s.settings, ...structuredClone(changes) };
         const locked: (keyof TournamentSettings)[] = s.tables.length
-          ? ['start', 'games', 'stopRotationAtLevel', 'startingStack', 'seatsPerTable', 'structure', 'season', 'tableRules']
+          ? ['start', 'games', 'gameBetting', 'stopRotationAtLevel', 'startingStack', 'seatsPerTable', 'structure', 'season', 'tableRules']
           : ['structure', 'season'];
         // Compared cleaned, as settings saved before nested fields were cleaned may still hold extra ones.
         const was = cleanSettings(s.settings);

@@ -619,6 +619,7 @@ export class TournamentManager {
         const l = levelFor(live.state, tableId);
         return {
           gameId: l.gameId,
+          ...(l.betting ? { betting: l.betting } : {}),
           stakes: { smallBlind: l.sb, bigBlind: l.bb, ante: l.ante, anteType: l.anteType, bringIn: l.bringIn, smallBet: l.smallBet, bigBet: l.bigBet },
         };
       },

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { engine, variants, type Action } from '@rsdp/engine/core';
-import { registerAllVariants } from '@rsdp/engine/variants';
+import { MIXED_GAMES, registerAllVariants } from '@rsdp/engine/variants';
 import { addOnsOpen, defaultSettings, standings, tableAddress, type Command, type StructureRow, type TournamentSettings } from '@rsdp/tournament';
 import type { TableRuntime } from '../src/runtime/table';
 import { tableName } from '../src/tournament/manager';
@@ -42,6 +42,38 @@ async function seatedThenStopped() {
   for (const rt of first.tables.values()) rt.dispose();
   return { first, id, addresses: state.tables.map((t) => tableAddress(t.id)) };
 }
+
+describe('mixed-game tournaments', () => {
+  it('a HORSE table deals Limit Hold\'em without the level\'s ante, then Limit Omaha Hi-Lo', async () => {
+    const env = setup();
+    const horse = MIXED_GAMES.find((m) => m.id === 'horse')!;
+    const structure: StructureRow[] = [1, 2].map((n) => ({ kind: 'level', sb: 50 * n, bb: 100 * n, ante: 10 * n, anteType: 'per-player', minutes: 10 }));
+    const id = await env.manager.create(
+      'host',
+      defaultSettings({
+        name: 'HORSE',
+        startingStack: 5000,
+        seatsPerTable: 8,
+        games: horse.steps.map((st) => st.gameId),
+        gameBetting: horse.steps.map((st) => st.betting),
+        structure,
+        lateRegistration: { enabled: false, throughLevel: null },
+      }),
+    );
+    await registerAll(env, id, 3);
+    await env.manager.command(id, 'host', '', { type: 'startNow', by: 'host' });
+    const rt = [...env.tables.values()][0];
+    for (const seat of rt.state.seats) if (seat) rt.connect(seat.playerId);
+    for (let i = 0; i < 60 && !rt.state.hand; i++) env.clock.advance(1000);
+    const first = rt.state.hand!.input;
+    expect([first.game.id, first.betting, first.stakes.ante, first.stakes.smallBet, first.stakes.bigBet]).toEqual(['nlhe', 'fixed-limit', 0, 100, 200]);
+    expect(rt.handSetup()).toMatchObject({ betting: 'fixed-limit' });
+    env.clock.advance(10 * MIN);
+    expect(rt.handSetup().game.id).toBe('plo8');
+    expect(rt.handSetup().betting).toBe('fixed-limit');
+    expect(rt.handSetup().stakes.ante).toBe(0);
+  });
+});
 
 describe('tournament manager guards', () => {
   it('refuses host edits naming a game it cannot deal at this table size', async () => {
