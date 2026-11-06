@@ -1,3 +1,4 @@
+import type { BettingKind } from '@rsdp/engine/core';
 // One line per tournament for the home page lists: what it is, when it starts
 // or how far it has got, and where the viewer stands in it.
 
@@ -14,6 +15,8 @@ export interface TournamentListing {
   startAt: number | null;
   finishedAt: number | null;
   games: string[];
+  /** Betting for each game, as in the settings; left out when every game plays its usual betting. */
+  gameBetting?: (BettingKind | null)[];
   startingStack: number;
   entrants: number;
   maxEntrants: number;
@@ -51,6 +54,7 @@ export function tournamentListing(s: TournamentState, me: PlayerId | null, now: 
     startAt: s.startedAt ?? s.startAt,
     finishedAt: s.finishedAt,
     games: s.settings.games,
+    ...(s.settings.gameBetting ? { gameBetting: s.settings.gameBetting } : {}),
     startingStack: s.settings.startingStack,
     entrants: sum.entrants,
     maxEntrants: s.settings.maxEntrants,

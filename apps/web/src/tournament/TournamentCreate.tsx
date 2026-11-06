@@ -20,7 +20,8 @@ import {
 } from '@rsdp/tournament';
 import { LocalTournamentClient, tournamentClient } from './client';
 import { GAMES, localTime } from './format';
-import { getVariant, VARIANT_LIST } from '@rsdp/engine/variants';
+import type { BettingKind } from '@rsdp/engine/core';
+import { getVariant, mixedGameMaxPlayers, mixedGameOf, MIXED_GAMES, VARIANT_LIST, type MixedGame } from '@rsdp/engine/variants';
 import { useSession } from './hooks';
 import { call } from '../socket';
 import { FormatsEditor, NO_FORMATS, type Formats } from './FormatsEditor';
@@ -136,6 +137,8 @@ export function TournamentCreate({
   const first = useMemo(() => startFields(initial), [initial]);
   const [name, setName] = useState(initial?.name ?? 'Friday Night Tournament');
   const [games, setGames] = useState<string[]>(initial?.games ?? ['nlhe']);
+  // HORSE and 8-Game give each game its own betting (Limit Hold'em, then No-Limit Hold'em); null for the usual one.
+  const [gameBetting, setGameBetting] = useState<(BettingKind | null)[] | undefined>(initial?.gameBetting);
   const [startingStack, setStartingStack] = useState(initial?.startingStack ?? RSDP_DEFAULTS.startingStack);
   const [seatsPerTable, setSeats] = useState(initial?.seatsPerTable ?? 9);
   const [maxEntrants, setMaxEntrants] = useState(initial?.maxEntrants ?? 100);
@@ -154,7 +157,7 @@ export function TournamentCreate({
   const base = useMemo(() => {
     if (!initial) return RSDP_DEFAULTS;
     // Formats, payouts and the season come back from their own inputs, so one switched off is left out.
-    const { bounty: _b, invites: _i, checkIn: _c, payouts: _p, season: _s, ...rest } = initial;
+    const { bounty: _b, invites: _i, checkIn: _c, payouts: _p, season: _s, gameBetting: _g, ...rest } = initial;
     return rest;
   }, [initial]);
   const [lateReg, setLateReg] = useState(base.lateRegistration);
@@ -213,6 +216,7 @@ export function TournamentCreate({
     ...base,
     name,
     games,
+    ...(gameBetting ? { gameBetting } : {}),
     startingStack,
     seatsPerTable,
     maxEntrants,
@@ -267,10 +271,21 @@ export function TournamentCreate({
   };
 
   const [seatNote, setSeatNote] = useState('');
+  const currentMix = mixedGameOf(games.map((gameId, i) => ({ gameId, betting: gameBetting?.[i] ?? getVariant(gameId).defaultBetting })));
+  const pickMix = (mix: MixedGame) => {
+    setGames(mix.steps.map((st) => st.gameId));
+    setGameBetting(mix.steps.map((st) => st.betting));
+    const cap = Math.min(10, mixedGameMaxPlayers(mix));
+    setSeatNote(seatsPerTable > cap ? `Seats per table lowered to ${cap}: ${mix.name} can't deal to more.` : '');
+    if (seatsPerTable > cap) setSeats(cap);
+  };
   const toggleGame = (id: string) => {
     setSeatNote('');
-    if (games.includes(id)) return setGames(games.filter((g) => g !== id));
-    setGames([...games, id]);
+    // Picking games one by one goes back to each game's usual betting.
+    setGameBetting(undefined);
+    const list = [...new Set(games)];
+    if (list.includes(id)) return setGames(list.filter((g) => g !== id));
+    setGames([...list, id]);
     const spec = getVariant(id);
     const cap = Math.min(seatCap, spec.maxPlayers);
     if (seatsPerTable > cap) {
@@ -313,6 +328,28 @@ export function TournamentCreate({
                   </div>
                 ))}
               </div>
+              <div className="tn-game-group tn-chips" role="group" aria-label="Mixed games">
+                <span>Mixed</span>
+                {MIXED_GAMES.map((mix) => (
+                  <button
+                    type="button"
+                    key={mix.id}
+                    className={`tn-chip ${currentMix?.id === mix.id ? 'on' : ''}`}
+                    aria-pressed={currentMix?.id === mix.id}
+                    title={mix.summary}
+                    onClick={() => pickMix(mix)}
+                  >
+                    {mix.name}
+                  </button>
+                ))}
+              </div>
+              {currentMix && (
+                <p className="muted">
+                  {currentMix.name}: {currentMix.summary} The game changes every level. The Limit games bet the big blind, then twice it, unless a level sets its own Limit
+                  amounts; only the stud games post the level's ante
+                  {structure.some((r) => r.kind === 'level' && r.ante > 0) ? '.' : ', so add antes to the levels below if you want them in Razz and Stud.'}
+                </p>
+              )}
               {seatNote && <p className="muted" role="status">{seatNote}</p>}
             </fieldset>
             <div className="tn-grid3">

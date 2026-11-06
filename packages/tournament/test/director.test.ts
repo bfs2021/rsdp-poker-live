@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { MIXED_GAMES } from '@rsdp/engine/variants';
 import {
   apply,
   createTournament,
   defaultSettings,
   DirectorError,
   levelFor,
+  validateSettings,
   nextWakeAt,
   payoutPreset,
   standings,
@@ -218,6 +220,57 @@ describe('clock, breaks and pause', () => {
     expect(levelFor(sim.state, t).gameId).toBe('plo');
     sim.at(T0 + 25 * MIN);
     expect(levelFor(sim.state, t).gameId).toBe('plo');
+  });
+
+  it('plays HORSE with each game\'s own betting, and only the stud levels ante', () => {
+    const anteLevels: StructureRow[] = [1, 2, 3, 4, 5, 6].map((n) => ({ kind: 'level', sb: 50 * n, bb: 100 * n, ante: 10 * n, anteType: 'per-player', minutes: 10 }));
+    const horse = MIXED_GAMES.find((m) => m.id === 'horse')!;
+    const sim = new Sim({ structure: anteLevels, games: horse.steps.map((st) => st.gameId), gameBetting: horse.steps.map((st) => st.betting) });
+    sim.register(2);
+    sim.do({ type: 'startNow', by: 'host' });
+    const t = sim.state.tables[0].id;
+    const seen = [];
+    for (let level = 0; level < 6; level++) {
+      sim.at(T0 + level * 10 * MIN + MIN);
+      const l = levelFor(sim.state, t);
+      seen.push([l.gameId, l.betting, l.ante]);
+    }
+    expect(seen).toEqual([
+      ['nlhe', 'fixed-limit', 0],
+      ['plo8', 'fixed-limit', 0],
+      ['razz', 'fixed-limit', 30],
+      ['stud', 'fixed-limit', 40],
+      ['stud8', 'fixed-limit', 50],
+      ['nlhe', 'fixed-limit', 0],
+    ]);
+    expect(sim.of('levelUp').find((e) => e.levelNumber === 2)).toMatchObject({ gameId: 'plo8', betting: 'fixed-limit', ante: 0 });
+  });
+
+  it('8-Game deals Hold\'em both Limit and No-Limit; a game left to its usual betting says nothing', () => {
+    const eight = MIXED_GAMES.find((m) => m.id === '8-game')!;
+    const sim = new Sim({ games: eight.steps.map((st) => st.gameId), gameBetting: eight.steps.map((st) => st.betting), seatsPerTable: 6 });
+    expect(sim.state.settings.gameBetting).toHaveLength(8);
+    const plain = new Sim({ games: ['nlhe', 'stud'] });
+    plain.register(2);
+    plain.do({ type: 'startNow', by: 'host' });
+    expect(levelFor(plain.state, plain.state.tables[0].id)).not.toHaveProperty('betting');
+  });
+
+  it('a mix with stud keeps its antes once the rotation stops on a blind game', () => {
+    const anteLevels: StructureRow[] = [1, 2, 3].map((n) => ({ kind: 'level', sb: 50 * n, bb: 100 * n, ante: 10 * n, anteType: 'per-player', minutes: 10 }));
+    const sim = new Sim({ structure: anteLevels, games: ['stud', 'nlhe'], stopRotationAtLevel: 2 });
+    sim.register(2);
+    sim.do({ type: 'startNow', by: 'host' });
+    const t = sim.state.tables[0].id;
+    sim.at(T0 + 21 * MIN);
+    expect(levelFor(sim.state, t)).toMatchObject({ levelNumber: 3, gameId: 'nlhe', ante: 30 });
+  });
+
+  it('refuses betting that does not line up with the games', () => {
+    const base = defaultSettings({ games: ['nlhe', 'stud'] });
+    expect(validateSettings({ ...base, gameBetting: ['fixed-limit'] })).toContain('Give one betting choice for each game');
+    expect(validateSettings({ ...base, gameBetting: ['fixed-limit', 'huge' as never] })).toContain('Betting must be no-limit, pot-limit or fixed-limit');
+    expect(validateSettings({ ...base, gameBetting: ['fixed-limit', null] })).toEqual([]);
   });
 
   it('only future levels can be edited once running', () => {

@@ -1,6 +1,13 @@
 {
   "releases": [
     {
+      "id": "2026.11.06.4",
+      "date": "2026-11-06",
+      "fixes": [
+        "Mixed-game tournaments with stud in them: only the stud levels post the level's ante, as at cash tables. A tournament without stud games keeps its antes as before."
+      ]
+    },
+    {
       "id": "2026.11.06.3",
       "date": "2026-11-06",
       "fixes": [

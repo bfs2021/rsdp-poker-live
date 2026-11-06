@@ -4,6 +4,7 @@
 import type { CoHost, HostPower } from '@rsdp/engine/roles';
 import type { PayoutStructure, PrizeMoney } from './payouts';
 import type { Schedule } from './recurrence';
+import type { BettingKind } from '@rsdp/engine/core';
 import type { AnteType, StructureRow } from './structure';
 
 /**
@@ -38,6 +39,11 @@ export interface TournamentSettings {
   start: StartRule;
   /** Games in rotation, one per level; one entry for a single game. */
   games: string[];
+  /**
+   * Betting for each entry of `games`, by position (HORSE plays Limit Hold'em, 8-Game plays it both Limit and
+   * No-Limit). Left out, or null for an entry, plays that game's usual betting.
+   */
+  gameBetting?: (BettingKind | null)[];
   /** Stop rotating from this level on and stay on that level's game. */
   stopRotationAtLevel?: number;
   structure: StructureRow[];
@@ -347,7 +353,7 @@ export type DirectorEvent =
   | { type: 'tableOpened'; tableId: TableId }
   | { type: 'startDelayed'; reason: 'not-enough-players'; graceUntil: number }
   | { type: 'started'; at: number }
-  | { type: 'levelUp'; levelNumber: number; sb: number; bb: number; ante: number; anteType: AnteType; gameId: string }
+  | { type: 'levelUp'; levelNumber: number; sb: number; bb: number; ante: number; anteType: AnteType; gameId: string; betting?: BettingKind }
   | { type: 'breakStarted'; minutes: number; endsAt: number; addOn: boolean }
   | { type: 'breakEnded' }
   | { type: 'lateRegistrationClosed' }
@@ -417,6 +423,8 @@ export interface LevelStakes {
   bb: number;
   ante: number;
   anteType: AnteType;
+  /** Left out: the game's usual betting. */
+  betting?: BettingKind;
   bringIn: number;
   smallBet: number;
   bigBet: number;
