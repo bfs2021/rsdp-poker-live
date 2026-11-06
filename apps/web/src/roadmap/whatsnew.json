@@ -1,6 +1,14 @@
 {
   "releases": [
     {
+      "id": "2026.11.06.4",
+      "date": "2026-11-06",
+      "title": "HORSE and 8-Game tournaments",
+      "items": [
+        { "title": "HORSE and 8-Game tournaments", "detail": "When you host a tournament, tap HORSE or 8-Game next to Mixed under Game. The game changes every level, with Limit Hold'em and Omaha Hi-Lo played Limit, and 8-Game's No-Limit Hold'em and Pot-Limit Omaha levels as they should be. Seats per table drop to 8 for HORSE and 6 for 8-Game. The lobby and the tournament list show HORSE or 8-Game as the game.", "suggestedBy": "John" }
+      ]
+    },
+    {
       "id": "2026.11.06.3",
       "date": "2026-11-06",
       "title": "HORSE and 8-Game",

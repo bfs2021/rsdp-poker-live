@@ -3,7 +3,7 @@ import { isLive, type TournamentListing } from '@rsdp/tournament';
 import { socket } from '../socket';
 import { tournamentClient } from './client';
 import { AlertsToggle } from './TournamentAlerts';
-import { countdown, gameName, localTime, ordinal } from './format';
+import { countdown, gamesText, localTime, ordinal } from './format';
 import { navigate, useNow } from './hooks';
 
 /** How often the home page refreshes its lists while open. */
@@ -123,7 +123,7 @@ function ListingRow({ t, now }: { t: TournamentListing; now: number }) {
         </span>
         <span className={`tn-list-when tn-list-${t.status}`}>{when(t, now)}</span>
         <span className="muted">
-          {t.games.map(gameName).join(' / ')} · {t.entrants} {t.entrants === 1 ? 'player' : 'players'}
+          {gamesText(t)} · {t.entrants} {t.entrants === 1 ? 'player' : 'players'}
           {t.start === 'sng' ? ' · Sit & Go' : ''}
         </span>
       </a>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { clockText, tableRulesText } from './format';
+import { MIXED_GAMES } from '@rsdp/engine/variants';
+import { clockText, gamesText, tableRulesText } from './format';
 
 const RSDP = { decisionSeconds: 10, timeBankSeconds: 20, timeBankRefillHands: 30, rabbitHunt: false };
 
@@ -18,5 +19,16 @@ describe('table rules in words', () => {
     // With no clock there is no time bank to speak of.
     expect(tableRulesText({ ...RSDP, decisionSeconds: 0 })).toBe('No turn clock, no rabbit hunting and no straddles.');
     expect(clockText({ decisionSeconds: 0 })).toBe('no clock');
+  });
+});
+
+describe('gamesText', () => {
+  it('names HORSE and 8-Game, and spells out other mixes with their betting', () => {
+    const steps = (id: string) => MIXED_GAMES.find((m) => m.id === id)!.steps;
+    expect(gamesText({ games: steps('horse').map((s) => s.gameId), gameBetting: steps('horse').map((s) => s.betting) })).toBe('HORSE');
+    expect(gamesText({ games: steps('8-game').map((s) => s.gameId), gameBetting: steps('8-game').map((s) => s.betting) })).toBe('8-Game');
+    // The same games at their usual betting aren't HORSE.
+    expect(gamesText({ games: steps('horse').map((s) => s.gameId) })).toBe("No-Limit Hold'em / Pot-Limit Omaha Hi-Lo (8 or better) / Razz / Seven Card Stud / Stud Hi-Lo (8 or better)");
+    expect(gamesText({ games: ['nlhe', 'stud'], gameBetting: ['fixed-limit', null] })).toBe("Limit Hold'em / Seven Card Stud");
   });
 });

@@ -20,8 +20,15 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 
 ## [2026.11.06.4] - 2026-11-06
 
+_HORSE and 8-Game tournaments_
+
+### New
+
+- **HORSE and 8-Game tournaments.** When you host a tournament, tap HORSE or 8-Game next to Mixed under Game. The game changes every level, with Limit Hold'em and Omaha Hi-Lo played Limit, and 8-Game's No-Limit Hold'em and Pot-Limit Omaha levels as they should be. Seats per table drop to 8 for HORSE and 6 for 8-Game. The lobby and the tournament list show HORSE or 8-Game as the game. (Suggested by John.)
+
 ### Fixed and changed
 
+- Mixed-game tournaments with stud in them: only the stud levels post the level's ante, as at cash tables. A tournament without stud games keeps its antes as before.
 - Wide but short screens (an ultrawide monitor, or a big screen with tall browser bars): the bigger table and bigger cards now switch on there too, in every game. Before, a window like that fell back to the laptop layout and the seats and cards shrank, which looked tiny on the long table.
 
 ## [2026.11.06.3] - 2026-11-06

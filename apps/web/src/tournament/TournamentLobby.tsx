@@ -15,7 +15,7 @@ import {
   type TournamentState,
 } from '@rsdp/tournament';
 import { LocalTournamentClient, tournamentClient, type Session } from './client';
-import { blinds, chips, clockText, countdown, gameName, localTime, money, ordinal, tableRulesText } from './format';
+import { blinds, chips, clockText, countdown, gamesText, localTime, money, ordinal, tableRulesText } from './format';
 import { navigate, useFollowSeat, useNow, useSession, useTournament } from './hooks';
 import { savedName } from '../socket';
 import { CoHostPanel, EventPanel, PlayerManager, RequestRow } from './HostPanels';
@@ -101,7 +101,7 @@ export function TournamentLobby({ id }: { id: string }) {
             <span className={`tn-status tn-status-${state.status}`}>{STATUS_LABEL[state.status]}</span>
           </div>
           <p className="muted">
-            {state.settings.games.map(gameName).join(' / ')} · {chips(state.settings.startingStack)} chips · {state.settings.seatsPerTable}-max · {clockText(tableRulesOf(state.settings))}
+            {gamesText(state.settings)} · {chips(state.settings.startingStack)} chips · {state.settings.seatsPerTable}-max · {clockText(tableRulesOf(state.settings))}
             {state.settings.start.kind === 'sng' ? ' · Sit & Go' : ''}
             {state.settings.bounty ? ` · ${money(state.settings.bounty.amount)} ${state.settings.bounty.progressivePercent > 0 ? 'progressive bounty' : 'bounty'}` : ''}
           </p>

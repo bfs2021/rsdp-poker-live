@@ -17,7 +17,7 @@ export function logText(e: LogEvent): string {
     case 'startDelayed':
       return 'Waiting for a second player before starting';
     case 'levelUp':
-      return `Level ${e.levelNumber}: ${blinds(e)}${e.gameId ? ` · ${gameName(e.gameId)}` : ''}`;
+      return `Level ${e.levelNumber}: ${blinds(e)}${e.gameId ? ` · ${gameName(e.gameId, e.betting)}` : ''}`;
     case 'breakStarted':
       return `${e.minutes}-minute break${e.addOn ? ' · add-ons open' : ''}`;
     case 'breakEnded':

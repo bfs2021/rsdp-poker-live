@@ -1,6 +1,7 @@
 // The lobby's public record: director events turned into what everyone may
 // read (names, not player ids; no approval requests), plus lobby chat.
 
+import type { BettingKind } from '@rsdp/engine/core';
 import type { AnteType } from './structure';
 import type { DirectorEvent, PlayerId, TournamentState } from './types';
 
@@ -10,7 +11,7 @@ export type LogEvent =
   | { type: 'bountyWon'; name: string; from: string; cash: number }
   | { type: 'started' }
   | { type: 'startDelayed'; graceUntil: number }
-  | { type: 'levelUp'; levelNumber: number; sb: number; bb: number; ante: number; anteType: AnteType; gameId: string }
+  | { type: 'levelUp'; levelNumber: number; sb: number; bb: number; ante: number; anteType: AnteType; gameId: string; betting?: BettingKind }
   | { type: 'breakStarted'; minutes: number; addOn: boolean }
   | { type: 'breakEnded' }
   | { type: 'lateRegistrationClosed' }
@@ -68,7 +69,7 @@ export function logEvent(e: DirectorEvent, name: (playerId: PlayerId) => string)
     case 'startDelayed':
       return { type: 'startDelayed', graceUntil: e.graceUntil };
     case 'levelUp':
-      return { type: 'levelUp', levelNumber: e.levelNumber, sb: e.sb, bb: e.bb, ante: e.ante, anteType: e.anteType, gameId: e.gameId };
+      return { type: 'levelUp', levelNumber: e.levelNumber, sb: e.sb, bb: e.bb, ante: e.ante, anteType: e.anteType, gameId: e.gameId, ...(e.betting ? { betting: e.betting } : {}) };
     case 'breakStarted':
       return { type: 'breakStarted', minutes: e.minutes, addOn: e.addOn };
     case 'breakEnded':
