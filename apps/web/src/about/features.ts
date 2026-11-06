@@ -16,7 +16,7 @@ export const FEATURES: Feature[] = [
   {
     icon: '💣',
     title: 'The fun extras, free for everyone',
-    detail: 'Bomb pots, the 7-2 bounty, double board, run it twice, straddles and game rotation. Anyone can host a table with them, not just one person in the group.',
+    detail: "Bomb pots, the 7-2 bounty, double board, run it twice, straddles, game rotation and Dealer's choice. Anyone can host a table with them, not just one person in the group.",
   },
   {
     icon: '🏆',

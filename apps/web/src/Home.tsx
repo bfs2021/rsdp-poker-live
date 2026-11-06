@@ -12,10 +12,11 @@ import { WhatsNewBanner } from './roadmap/WhatsNewPage';
 import { SiteFooter, SiteHeader } from './components/SiteHeader';
 import { TournamentList } from './tournament/TournamentList';
 import { LEVEL_INFO, lastBotLevel, rememberBotLevel } from './components/table/BotLevels';
+import { DEFAULT_MENU } from './components/settings/dealersChoice';
 
 export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
   const [name, setName] = useState(savedName);
-  // A game id, or 'mix:' and a mixed game's id (HORSE, 8-Game).
+  // A game id, 'mix:' and a mixed game's id (HORSE, 8-Game), or 'choice' for Dealer's choice.
   const [gameId, setGameId] = useState('nlhe');
   const [betting, setBetting] = useState<BettingKind>('no-limit');
   // Cash games are played for dollars and cents, typed as dollars.
@@ -31,7 +32,9 @@ export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
   const presets = usePresets();
   const [presetName, setPresetName] = useState('');
   const preset = presets.find((p) => p.name === presetName) ?? null;
-  const mix = gameId.startsWith('mix:') ? getMixedGame(gameId.slice(4)) : null;
+  // Dealer's choice starts with the 8-Game games on the menu, so it needs the same stakes.
+  const choice = gameId === 'choice';
+  const mix = choice ? getMixedGame('8-game') : gameId.startsWith('mix:') ? getMixedGame(gameId.slice(4)) : null;
   const spec = getVariant(mix ? mix.steps[0].gameId : gameId);
   const stud = !mix && spec.family === 'stud';
   // A mix with stud in it needs both the blinds and the stud ante.
@@ -39,7 +42,7 @@ export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
 
   const pickGame = (id: string) => {
     setGameId(id);
-    if (!id.startsWith('mix:')) setBetting(getVariant(id).defaultBetting);
+    if (!id.startsWith('mix:') && id !== 'choice') setBetting(getVariant(id).defaultBetting);
   };
 
   /** A table for friends, or with `practice` a table for you and some bots that deals at once. */
@@ -64,8 +67,10 @@ export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
     const tableName = practice ? `${name.trim() || 'My'}'s practice table` : `${name.trim() || 'Friends'}'s table`;
     // A mix rotates one orbit per game: blind games use the blinds, Limit games bet the big blind and twice it, stud antes.
     const mixed: SettingsPatch | null = mix && {
-      table: { name: tableName, maxSeats: Math.min(9, mixedGameMaxPlayers(mix)) },
-      game: { gameId: mix.steps[0].gameId, betting: mix.steps[0].betting, rotation: { enabled: true, steps: mix.steps.map((st) => ({ ...st, length: 1, unit: 'orbits' as const })) } },
+      table: { name: tableName, maxSeats: choice ? 9 : Math.min(9, mixedGameMaxPlayers(mix)) },
+      game: choice
+        ? { gameId: 'nlhe', betting: 'no-limit', rotation: { enabled: false, steps: [] }, dealersChoice: { enabled: true, games: DEFAULT_MENU, hands: 0, pickSeconds: 20 } }
+        : { gameId: mix.steps[0].gameId, betting: mix.steps[0].betting, rotation: { enabled: true, steps: mix.steps.map((st) => ({ ...st, length: 1, unit: 'orbits' as const })) } },
       stakes: {
         smallBlind: sb,
         bigBlind: bb,
@@ -161,6 +166,7 @@ export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
                             {m.name}
                           </option>
                         ))}
+                        <option value="choice">Dealer&apos;s choice</option>
                       </optgroup>
                     </select>
                   </label>
@@ -202,7 +208,9 @@ export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
                   )}
                 </div>
                 <p className="muted">
-                  {mix
+                  {choice
+                    ? "Players take turns choosing the game, one orbit each, from the 8-Game games (change the menu in Table settings). Up to 9 players; a game that seats fewer than are sitting down can't be picked. The Limit games bet the big blind, then twice it; only the stud games ante."
+                    : mix
                     ? `${mix.summary} One orbit each, up to ${Math.min(9, mixedGameMaxPlayers(mix))} players. The Limit games bet the big blind, then twice it; only the stud games ante.`
                     : spec.rules}
                 </p>

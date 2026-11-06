@@ -1,3 +1,4 @@
+import type { BettingKind } from '@rsdp/engine/core';
 import type { TableView } from '@rsdp/engine/wire';
 import { BETTING_NAME } from '../format';
 import { GameGuide } from '../rules/GameGuide';
@@ -12,11 +13,17 @@ const BETTING_RULES = {
 } as const;
 
 /** How to play the game on the table now (and the others in a rotation) and the side games switched on here, with guides to everything else too. */
-export function RulesDialog({ view, onClose }: { view: TableView; onClose: () => void }) {
+export function RulesDialog({ view, gameId, betting: asked, onClose }: { view: TableView; gameId?: string; betting?: BettingKind; onClose: () => void }) {
   const rot = view.settings.game.rotation;
-  const ids = rot.enabled && rot.steps.length ? [...new Set(rot.steps.map((s) => s.gameId))] : [view.hand?.gameId ?? view.settings.game.gameId];
-  const current = view.hand?.gameId ?? ids[0];
-  const betting = view.hand?.betting ?? view.upcoming?.betting ?? view.settings.game.betting;
+  const menu = view.settings.game.dealersChoice?.enabled ? view.settings.game.dealersChoice.games : [];
+  // Dealer's choice lists every game on the menu; `gameId` opens one of them (from the chooser's panel).
+  const ids = menu.length
+    ? [...new Set(menu.map((g) => g.gameId))]
+    : rot.enabled && rot.steps.length
+      ? [...new Set(rot.steps.map((s) => s.gameId))]
+      : [view.hand?.gameId ?? view.settings.game.gameId];
+  const current = gameId ?? view.hand?.gameId ?? view.upcoming?.gameId ?? ids[0];
+  const betting = asked ?? view.hand?.betting ?? view.upcoming?.betting ?? view.settings.game.betting;
   return (
     <Modal title="How to play" onClose={onClose}>
       <div className="rules">

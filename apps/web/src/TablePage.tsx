@@ -35,6 +35,8 @@ import { useDepartures, useRunoutReveal } from './runout';
 import { holdReloadWhile, reloadIfStale } from './freshness';
 import { TableStrip } from './tournament/TableStrip';
 import { navigate, tournamentOfTable, useFollowSeat } from './tournament/hooks';
+import type { BettingKind } from '@rsdp/engine/core';
+import { canPickNow, choiceText, GamePicker, myPickDue } from './components/table/Choice';
 
 /** Plays sounds, buzzes and badges the tab for what changed between two views. */
 function useTableEffects(view: TableView | null, skew: number, preQueued: { current: boolean }) {
@@ -45,6 +47,12 @@ function useTableEffects(view: TableView | null, skew: number, preQueued: { curr
     if (!view || !before) return;
     if (newChat(before.chat, view.chat).some((m) => m.playerId && m.playerId !== view.me.playerId)) sounds.chat();
     if (view.powers.includes('approve') && view.requests.length > before.requests.length) sounds.request();
+    // Dealer's choice: the table waiting for my pick calls me like a turn to act.
+    if (myPickDue(view) && !myPickDue(before)) {
+      sounds.turn();
+      buzz();
+      notify('Your pick: choose the next game', view.name, { tag: `turn:${view.id}`, url: `/t/${view.id}` });
+    }
     const hand = view.hand;
     if (!hand) return;
     const fresh = hand.handNumber !== before.hand?.handNumber;
@@ -74,7 +82,7 @@ function useTableEffects(view: TableView | null, skew: number, preQueued: { curr
     }
   }, [view]);
 
-  const myTurn = !!view?.legal || !!view?.canDraw || !!view?.canVoteRunItTwice;
+  const myTurn = !!view?.legal || !!view?.canDraw || !!view?.canVoteRunItTwice || (!!view && myPickDue(view));
 
   // A warning beep a few seconds before your clock runs out.
   const deadline = myTurn && !view?.paused && view?.turn?.seat === view?.me.seat ? (view?.turn?.deadline ?? null) : null;
@@ -113,7 +121,7 @@ function useTableEffects(view: TableView | null, skew: number, preQueued: { curr
 
 const HURRY_MS = 5000;
 
-type Dialog = { kind: 'seat'; seat: number; waitlist?: boolean } | { kind: 'player'; seat: SeatView } | { kind: 'add-bot'; seat: number } | { kind: 'rebuy' } | { kind: 'settings' } | { kind: 'rules' } | { kind: 'people' } | { kind: 'look' } | { kind: 'keys' } | { kind: 'feedback' } | null;
+type Dialog = { kind: 'seat'; seat: number; waitlist?: boolean } | { kind: 'player'; seat: SeatView } | { kind: 'add-bot'; seat: number } | { kind: 'rebuy' } | { kind: 'settings' } | { kind: 'rules'; gameId?: string; betting?: BettingKind } | { kind: 'people' } | { kind: 'look' } | { kind: 'keys' } | { kind: 'feedback' } | null;
 
 /** How long the keyboard tip stays up if nobody presses Got it. */
 const KEYS_TIP_MS = 20_000;
@@ -128,6 +136,12 @@ export function TablePage({ tableId }: { tableId: string }) {
   /** The server's answer when it refused (or never answered) Sit out, I'm back, straddle or wait for the big blind. */
   const [seatError, setSeatError] = useState('');
   const [dialog, setDialog] = useState<Dialog>(null);
+  // Dealer's choice: my "Pick the next game" panel. It opens by itself when the table starts waiting for my pick.
+  const [picker, setPicker] = useState(false);
+  const pickDue = !!view && myPickDue(view);
+  useEffect(() => {
+    if (pickDue) setPicker(true);
+  }, [pickDue]);
   const [sheet, setSheet] = useState<'menu' | 'chat' | Tab | null>(null);
   const [copied, setCopied] = useState(false);
   const [connected, setConnected] = useState(socket.connected);
@@ -508,10 +522,16 @@ export function TablePage({ tableId }: { tableId: string }) {
               {game.label} {game.stakes}
             </>
           )}
+          {view.choice?.current && choiceText(view) && <> · {choiceText(view)}</>}
           {levelText && <> · {levelText}</>}
           {view.hand?.bombPot && view.hand.phase !== 'complete' && <b> · Bomb pot</b>}
           {view.paused && <b className="paused"> · Paused</b>}
         </span>
+        {canPickNow(view) && !picker && (
+          <button className="primary pick-button" onClick={() => setPicker(true)} title="Dealer's choice: pick the game for after this hand">
+            {portrait ? 'Pick' : 'Pick next game'}
+          </button>
+        )}
         {bigBlind > 0 && (
           <button
             className="units-toggle"
@@ -819,7 +839,11 @@ export function TablePage({ tableId }: { tableId: string }) {
       {dialog?.kind === 'add-bot' && <AddBotDialog view={view} seat={dialog.seat} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'rebuy' && <RebuyDialog view={view} fmt={fmt} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'settings' && <SettingsDialog view={view} onClose={() => setDialog(null)} />}
-      {dialog?.kind === 'rules' && <RulesDialog view={view} onClose={() => setDialog(null)} />}
+      {/* Dealer's choice: the chooser's panel sits under the other dialogs, so How to play opens on top of it. */}
+      {picker && canPickNow(view) && (
+        <GamePicker view={view} skew={skew} onClose={() => setPicker(false)} onRules={(gameId, betting) => setDialog({ kind: 'rules', gameId, betting })} />
+      )}
+      {dialog?.kind === 'rules' && <RulesDialog view={view} gameId={dialog.gameId} betting={dialog.betting} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'people' && <PeopleDialog view={view} fmt={fmt} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'look' && <LookDialog view={view} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'keys' && <ShortcutsDialog onClose={() => setDialog(null)} />}

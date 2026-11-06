@@ -6,6 +6,7 @@ import { handStrength } from '../strength';
 import { PlayingCard } from './PlayingCard';
 import { besideBet, clearSideBands, fitHand, fromVars, handRoom, inFront, lerp, px, seatFractions, stadiumPoint, type HandFit, type Point, type Reach } from './geometry';
 import { BoardExtras, FeltExtras, SeatExtras } from './table/slots';
+import { ChoiceLine } from './table/Choice';
 import { baseChip, CHIP_SET, ChipStacks, DOLLAR_CHIPS } from './table/Chips';
 import { feltStyle, usePrefs } from '../prefs';
 import { CountUp, FeltEmblem, useLanded } from './table/Feel';
@@ -253,6 +254,7 @@ export function Table({
   const clientNow = useNow(ticking) + skew;
   const now = view.paused ? view.serverNow : clientNow;
   const myTurn = !!view.legal || !!view.canDraw || view.canVoteRunItTwice;
+  const seatsClosed = view.choice?.cap != null && view.choice.count >= view.choice.cap;
 
   // Geometry. Before the first measure, assume a typical box so nothing jumps far.
   const w = size.w || (compact ? 320 : 800);
@@ -516,11 +518,13 @@ export function Table({
             </div>
           ))}
         {/* The pot's spot above the board says what happens next between hands. */}
-        {!live && view.nextHandAt !== null && view.started && !view.paused && (
+        {!live && view.nextHandAt !== null && view.started && !view.paused && view.choice?.deadline == null && (
           <div className="next-hand">Next hand in {Math.max(0, Math.ceil((view.nextHandAt - now) / 1000))}</div>
         )}
+        {/* Dealer's choice: who is picking the next game, in the same spot. */}
+        <ChoiceLine view={view} now={now} />
         {view.paused && <div className="next-hand">Paused</div>}
-        {!hand && view.upcoming && <div className="next-hand muted">{view.upcoming.gameName}</div>}
+        {!hand && view.upcoming && !(view.choice && !view.choice.current) && <div className="next-hand muted">{view.upcoming.gameName}</div>}
         <BoardExtras view={view} />
       </div>
 
@@ -529,8 +533,17 @@ export function Table({
         if (!s) {
           return (
             <div className="seat empty" style={px(pos)} key={seat}>
-              {onPickSeat ? <button onClick={() => onPickSeat(seat)}>Sit</button> : !onAddBot && <span>{seat + 1}</span>}
-              {onAddBot && (
+              {seatsClosed ? (
+                // Dealer's choice: a smaller game has every seat it can deal (D31).
+                <span className="closed" title="This game seats no more players. The seat opens after this game.">
+                  Closed
+                </span>
+              ) : onPickSeat ? (
+                <button onClick={() => onPickSeat(seat)}>Sit</button>
+              ) : (
+                !onAddBot && <span>{seat + 1}</span>
+              )}
+              {onAddBot && !seatsClosed && (
                 <button className="add-bot" onClick={() => onAddBot(seat)} title="Add a practice bot to this seat">
                   + Bot
                 </button>

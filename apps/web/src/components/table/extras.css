@@ -54,3 +54,15 @@
 .felt.compact .nameplate .note-badge:not(.has-note) { display: none; }
 .felt.compact .nameplate .note-badge.has-note { top: -4px; right: -4px; width: 12px; height: 12px; font-size: 0; line-height: 0; border-width: 1.5px; border-color: var(--panel); }
 .note-button { align-self: flex-start; margin-top: 4px; }
+/* Dealer's choice (D31): the Pick chip on the next chooser's nameplate, closed seats, and the chooser's panel. */
+.tag.pick-tag { background: #c98a1b; }
+.seat.empty .closed { opacity: 0.7; cursor: default; }
+.topbar .pick-button { white-space: nowrap; }
+.game-picker { display: flex; flex-direction: column; gap: 10px; }
+.game-picker p { margin: 0; }
+.game-picker-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.game-picker-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.game-picker-list .game-picker-pick { flex: 1 1 12em; text-align: left; }
+.game-picker-list li.greyed .game-picker-pick { opacity: 0.55; }
+.game-picker-list li .muted { font-size: 0.85rem; }
+.game-picker button.link { background: none; border: none; padding: 0; min-height: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }

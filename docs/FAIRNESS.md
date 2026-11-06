@@ -323,6 +323,9 @@ silent.
   rake.
 - **Host actions on players are logged too**: changing a stack, moving or
   removing a player, muting someone in chat.
+- **At a Dealer's choice table the host sets the menu, never the pick.** Only
+  the player holding the Pick chip can choose, and every pick (or missed pick)
+  is in the table log.
 
 **Spectators seeing every card is the one way a host can open hands up.** It
 is meant for coaching or streaming. While it's on, someone watching could pass
@@ -499,6 +502,7 @@ Limits, stated plainly:
 | Draw-game reshuffle | Used a non-cryptographic xorshift generator from a 31-bit seed, with a tiny modulo bias. Only about 2 billion possible reshuffles. | **Fixed**: now SHA-256 from the hand's 256-bit seed, unbiased. Hands in progress during the upgrade finish the old way. |
 | Run it twice, double board, bomb pots, rabbit hunt, stud | All deal the next cards of the one pre-shuffled deck. Rabbit cards are the real next cards, shown only after the hand to whoever asks. | OK |
 | Button draw, seat shuffle, bomb-pot timing | Use the CSPRNG. | OK |
+| Dealer's choice (added 2026-11-06, D31) | Who picks follows a fixed rule: a Pick chip that moves one seat to the left after each pick, starting with a player drawn with the CSPRNG at a new table. A missed pick follows a fixed rule too (the current game carries on, or the first game on the menu that fits). Practice bots pick at random from the games that fit, with the CSPRNG. The game never touches the deck: each hand's deck comes from its seeds alone, whatever game is dealt. | OK |
 | Tournament seat draw | A fast non-cryptographic generator (mulberry32) from a secret 32-bit CSPRNG seed that stays on the server. Seats only, never cards. | Acceptable; could move to the seeded scheme later. |
 | All-in equity | Computed in the browser from cards already visible; its seeded sampling only affects the displayed percentages. | OK |
 | Coach tips | Worked out on the server only for the one person dealt into a hand where everyone else is a practice bot, at a cash table where people have never played each other, never in tournaments, from a copy of the hand holding only what that person can see: no deck, no other hole cards, no muck, no seeds (`seenBy()` in apps/server/src/bots/strategy.ts). Sent only to them and never saved. Tests swap every card they can't see and check the tip doesn't change. | OK |

@@ -107,6 +107,12 @@ describe('side game guides', () => {
     const horse = defaultSettings('cash');
     horse.game.rotation = { enabled: true, steps: MIXED_GAMES[0].steps.map((st) => ({ ...st, length: 1, unit: 'orbits' as const })) };
     expect(extrasOn(horse)[0]).toBe('mixed-games');
+    const choice = defaultSettings('cash');
+    choice.game.dealersChoice = { enabled: true, games: MIXED_GAMES[1].steps.map((st) => ({ gameId: st.gameId, betting: st.betting })), hands: 0, pickSeconds: 20 };
+    expect(extrasOn(choice)[0]).toBe('dealers-choice');
+    // The menu's blind games still allow straddles.
+    expect(extrasOn(choice)).toContain('straddles');
+    expect(extrasOn(cash)).not.toContain('dealers-choice');
     expect(extrasOn(stud)).not.toContain('seven-deuce');
     const tourney = defaultSettings('tournament');
     expect(extrasOn(tourney)).toEqual(['rabbit-hunt', 'time-bank', 'showdown']);
