@@ -143,7 +143,7 @@ describe("Dealer's choice", () => {
     expect(hand(rt).input.game.id).toBe('razz');
     expect(rt.state.log.some((l) => l.text === `${late.name} didn't pick in time, so Razz carries on`)).toBe(true);
     expect(chooser(rt).seat).toBe((late.seat + 1) % 3);
-    expect(rt.state.choice!.current).toMatchObject({ how: 'kept', by: late.name });
+    expect(rt.state.choice!.current).toMatchObject({ how: 'kept', by: null });
   });
 
   it('deals the first game on the menu that fits when the very first pick is missed', () => {

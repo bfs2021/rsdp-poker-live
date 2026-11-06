@@ -214,7 +214,8 @@ export class DealersChoice {
     const kept = !!cur && same(g, cur);
     this.host.log(`${chooser.name} didn't pick in time, so ${gameTitle(g.gameId, g.betting)} ${kept ? 'carries on' : 'is dealt'}`);
     this.passChip(chooser.seat);
-    this.start({ gameId: g.gameId, betting: g.betting, by: chooser.name, seat: chooser.seat, how: kept ? 'kept' : 'default' });
+    // Nobody picked it: the top bar says whose pick a game was only when someone chose it.
+    this.start({ gameId: g.gameId, betting: g.betting, by: null, seat: null, how: kept ? 'kept' : 'default' });
     return 'changed';
   }
 

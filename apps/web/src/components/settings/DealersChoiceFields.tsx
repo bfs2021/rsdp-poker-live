@@ -4,7 +4,7 @@ import { gameTitle, getVariant, VARIANT_LIST } from '@rsdp/engine/variants';
 import { BETTING_NAME } from '../../format';
 import { BettingNudge } from '../BettingNudge';
 import { Field } from './fields';
-import { CHOICE_FILLS, isStud, menuSeats, nextMenuGame, repeatsOf } from './dealersChoice';
+import { CHOICE_FILLS, isStud, nextMenuGame, repeatsOf } from './dealersChoice';
 
 const BETTINGS: BettingKind[] = ['no-limit', 'pot-limit', 'fixed-limit'];
 const L = SETTINGS_LIMITS;
@@ -112,7 +112,6 @@ export function DealersChoiceFields({
           />
         </Field>
       </div>
-      <p className="muted">Up to {menuSeats(games)} seats, for the biggest game on the menu.</p>
     </div>
   );
 }

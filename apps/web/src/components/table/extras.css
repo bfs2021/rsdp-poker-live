@@ -56,8 +56,9 @@
 .note-button { align-self: flex-start; margin-top: 4px; }
 /* Dealer's choice (D31): the Pick chip on the next chooser's nameplate, closed seats, and the chooser's panel. */
 .tag.pick-tag { background: #c98a1b; }
-/* Phones hide the name tags to save room; the Pick chip still shows. */
-.felt.compact .nameplate .name .tag.pick-tag { display: inline; }
+/* Phones hide the name tags to save room, so the picture wears the Pick chip, on top (a bot's level is underneath). */
+.seat-avatar .pick-badge { display: none; }
+.felt.compact .seat-avatar .pick-badge { display: block; position: absolute; left: 50%; top: -6px; translate: -50% 0; font-size: 0.45rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1; padding: 1px 3px; border-radius: 3px; background: #c98a1b; color: #fff; }
 .seat.empty .closed { opacity: 0.7; cursor: default; }
 .topbar .pick-button { white-space: nowrap; }
 .game-picker { display: flex; flex-direction: column; gap: 10px; }

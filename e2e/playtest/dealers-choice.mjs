@@ -1,8 +1,8 @@
 // Play-test: Dealer's choice (D31). A host makes a Dealer's choice table from
 // the front page, three friends join (one on a phone), and they take turns
 // picking games: in time, early during the last hand of a pick, and late (the
-// current game carries on). Then three bots join, so Badugi (6 seats) is greyed
-// out for seven players, and the table is shown on a wide, short screen.
+// current game carries on). Then three bots join, so 2-7 Triple Draw (6 seats) is
+// greyed out for seven players, and the table is shown on a wide, short screen.
 // Takes about 6 minutes.
 //   BASE_URL=http://localhost:3001 node e2e/playtest/dealers-choice.mjs
 // See README.md.
@@ -105,13 +105,13 @@ try {
   await john.waitForFunction(() => document.querySelector('.log, .side')?.textContent?.includes("didn't pick in time") ?? false, null, { timeout: 60_000 }).catch(() => {});
   await shot(john, 'dc-missed', 'Nobody picked in time: Omaha carries on for another orbit, and the chip moves on.');
 
-  // Seven at the table: Badugi seats 6, so it is greyed out.
+  // Seven at the table: 2-7 Triple Draw seats 6, so it is greyed out.
   for (let i = 0; i < 3; i++) {
     await john.locator('.seat.empty button.add-bot').first().click();
     await john.locator('.modal button.primary').click();
   }
   const seven = await chooser(300_000);
-  await shot(seven, 'dc-greyed', `Seven at the table: Badugi and 2-7 Triple Draw seat 6, so they are greyed out for ${seven.label}.`);
+  await shot(seven, 'dc-greyed', `Seven at the table: 2-7 Triple Draw seats 6, so it is greyed out for ${seven.label}.`);
   await pick(seven, 'Seven Card Stud');
 
   // Wide, short screen.

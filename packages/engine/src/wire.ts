@@ -263,7 +263,7 @@ export interface ChoicePickView {
   gameId: string;
   betting: BettingKind;
   gameName: string;
-  /** Who picked it; null when nobody could. */
+  /** Who picked it; null when nobody did (a missed pick, or nobody could pick). */
   by: string | null;
   /** picked: a person chose it; bot: a practice bot did; kept: the game carried on (on purpose or a missed pick); default: nobody could pick. */
   how: 'picked' | 'bot' | 'kept' | 'default';

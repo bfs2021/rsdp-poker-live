@@ -235,7 +235,7 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
                 </div>
                 )}
                 {mode === 'one' && <BettingNudge gameId={draft.game.gameId} betting={draft.game.betting} onSwitch={(betting) => set('game', { betting })} />}
-                {numberField('Seats', Math.min(draft.table.maxSeats, seatLimit), (v) => set('table', { maxSeats: v }), Math.max(2, seated), seatLimit, `Up to ${seatLimit} for ${games.length > 1 ? 'these games' : 'this game'}.`)}
+                {numberField('Seats', Math.min(draft.table.maxSeats, seatLimit), (v) => set('table', { maxSeats: v }), Math.max(2, seated), seatLimit, mode === 'choice' ? `Up to ${seatLimit}, for the biggest game on the menu.` : `Up to ${seatLimit} for ${games.length > 1 ? 'these games' : 'this game'}.`)}
                 {seatNote && !tooMany && <p className="hint">{seatNote}</p>}
                 {mode === 'choice' && <DealersChoiceFields choice={choice} seated={seated} onChange={setChoice} setMenu={setMenu} />}
                 {mode !== 'choice' && (

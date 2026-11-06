@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AVATARS, BOT_LOOKS, GESTURES, type GestureKind, type SeatView, type TableView } from '@rsdp/engine/wire';
 import { call, currentSession, onSession, socket } from '../../socket';
 import { setPrefs, usePrefs } from '../../prefs';
@@ -119,7 +119,7 @@ export function initialsColor(playerId: string) {
 }
 
 /** Picture and mood on a seat, as this viewer chose to see them. */
-export function SeatPersona({ seat }: { seat: SeatView }) {
+export function SeatPersona({ seat, badge }: { seat: SeatView; badge?: ReactNode }) {
   const prefs = usePrefs();
   const showAvatar = prefs.avatars && !!seat.avatar && !prefs.hiddenAvatars.includes(seat.playerId);
   const showMood = prefs.moods && !!seat.mood;
@@ -140,6 +140,7 @@ export function SeatPersona({ seat }: { seat: SeatView }) {
             {[...seat.name.trim()][0]?.toUpperCase() ?? '?'}
           </span>
         )}
+        {badge}
       </span>
       {showMood && (
         <span className="seat-mood" title={`${seat.name}'s mood`}>
