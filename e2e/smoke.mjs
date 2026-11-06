@@ -399,6 +399,75 @@ try {
     await host.screenshot({ path: path.join(OUT, 'wide.png') });
   });
 
+  await step('wide, short window: the table holds still', async () => {
+    // A wide, short screen (a laptop on a big monitor) once made the whole table twitch between two sizes (#350): the
+    // keyboard tip changed the felt's height as it came and went, and a rounding loop flipped the scale back and forth.
+    // Across a range of window heights, the table must settle on one size, and the same size with or without the tip.
+    const host = await open('short host', { width: 2300, height: 800 });
+    const guest = await open('short guest');
+    await host.goto(BASE);
+    await host.fill('input[required]', 'Sid');
+    await host.click('button:has-text("Create table")');
+    await host.waitForURL(/\/t\//);
+    await host.locator('.seat.empty button').first().click();
+    await host.click('button:has-text("Sit down")');
+    await host.waitForSelector('.seat.me');
+    await guest.goto(host.url());
+    await guest.locator('.seat.empty button').nth(2).click();
+    await guest.fill('.modal input[required]', 'Kim');
+    await guest.click('button:has-text("Ask to sit")');
+    await host.click('.request button:has-text("Approve")');
+    await guest.waitForSelector('.seat.me');
+    await host.click('button:has-text("Start game")');
+    await host.waitForSelector('.seat .hole .playing-card');
+    if (await host.locator('.side.drawer.open').count()) await host.keyboard.press('Escape');
+    // A fresh visit, so the tip's 20 seconds start now and it is still up when the first sweep ends.
+    await host.reload();
+    await host.waitForSelector('.seat .hole .playing-card');
+    if (await host.locator('.side.drawer.open').count()) await host.keyboard.press('Escape');
+    await host.locator('.tip-toast').waitFor();
+    await host.evaluate(() => {
+      const seen = (window.__tableSizes = new Set());
+      const sample = () => {
+        const felt = document.querySelector('.felt');
+        if (felt) seen.add(`scale ${felt.style.getPropertyValue('--k')}, felt ${Math.round(felt.getBoundingClientRect().height)}px`);
+        requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
+    const sweep = async () => {
+      const sizes = [];
+      for (let h = 760; h <= 880; h += 12) {
+        // A change of width, so the bar under the table lets go of a taller size it held from an earlier height (Dock.tsx).
+        await host.setViewportSize({ width: 2299, height: h });
+        await host.waitForTimeout(100);
+        await host.setViewportSize({ width: 2300, height: h });
+        await host.waitForTimeout(250);
+        await host.evaluate(() => window.__tableSizes.clear());
+        await host.waitForTimeout(250);
+        const seen = await host.evaluate(() => [...window.__tableSizes]);
+        if (seen.length !== 1) throw new Error(`at 2300x${h} the table kept changing size: ${seen.join(' / ')}`);
+        sizes.push(seen[0]);
+      }
+      return sizes;
+    };
+    const withTip = await sweep();
+    if (!(await host.locator('.tip-toast').count())) throw new Error('the keyboard tip went before the sweep with it was done');
+    await host.click('.tip-toast button:has-text("Got it")');
+    const withoutTip = await sweep();
+    withTip.forEach((s, i) => {
+      if (s !== withoutTip[i]) throw new Error(`at 2300x${760 + 12 * i} the keyboard tip changed the table's size: ${s} with it, ${withoutTip[i]} without`);
+    });
+    await host.setViewportSize({ width: 2300, height: 800 });
+    await host.click('.drawer-button');
+    await stopGame(host, [host, guest]);
+  });
+
+  // The server saves a table up to half a second after its last change (SAVE_DEBOUNCE_MS in app.ts), and a hand at once.
+  // CI's backup check reads the leaderboard right after this, so give the last table's save time to land: read in that
+  // half second, the board counts the last hand but not its chips, and the restored copy doesn't match.
+  await new Promise((r) => setTimeout(r, 2000));
+
   if (errors.length) throw new Error(`console errors:\n${errors.join('\n')}`);
   console.log('smoke test passed');
 } catch (e) {

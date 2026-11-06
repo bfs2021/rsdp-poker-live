@@ -18,6 +18,12 @@ On `main`, every entry here is live. On `develop`, the top entry may be the next
 still being filled in: its tag and GitHub release only exist once it goes live. Work that is
 merged but not live yet is also on the issues labelled [status: on develop](https://github.com/jcolter11374/rsdp-poker-live/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+on+develop%22).
 
+## [2026.11.06.5] - 2026-11-06
+
+### Fixed and changed
+
+- Wide but short screens: the table no longer twitches back and forth during a hand. A one-pixel rounding error, and the keyboard tip coming and going, kept flipping the table between two sizes.
+
 ## [2026.11.06.4] - 2026-11-06
 
 _HORSE and 8-Game tournaments_
@@ -647,6 +653,7 @@ _RSDP Poker Live! is live_
 - The "Connection lost" banner no longer sticks on slow phones.
 - Add-ons and recurring tournaments carry on after a server restart.
 
+[2026.11.06.5]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.06.5
 [2026.11.06.4]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.06.4
 [2026.11.06.3]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.06.3
 [2026.11.06.2]: https://github.com/jcolter11374/rsdp-poker-live/releases/tag/v2026.11.06.2

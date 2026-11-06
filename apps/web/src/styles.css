@@ -785,7 +785,10 @@ kbd {
 .portrait .units-toggle span { padding: 2px 7px; font-size: 0.72rem; }
 /* The one-time keyboard tip: a small note over the felt's bottom corner rather than in the page, so it covers
    no buttons (action bar, chat, host requests) and sits below any dialog. */
-.tip-anchor { position: relative; height: 0; margin-top: -10px; }
+/* The anchor is always there and takes no room: its negative margin cancels the felt area's 14px gap, so the felt keeps
+   its height whether or not the tip shows (#350). */
+.tip-anchor { position: relative; height: 0; margin-top: -14px; }
+.portrait .tip-anchor { display: none; }
 .tip-toast {
   position: absolute;
   left: 12px;

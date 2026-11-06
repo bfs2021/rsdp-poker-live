@@ -1,6 +1,13 @@
 {
   "releases": [
     {
+      "id": "2026.11.06.5",
+      "date": "2026-11-06",
+      "fixes": [
+        "Wide but short screens: the table no longer twitches back and forth during a hand. A one-pixel rounding error, and the keyboard tip coming and going, kept flipping the table between two sizes."
+      ]
+    },
+    {
       "id": "2026.11.06.4",
       "date": "2026-11-06",
       "fixes": [
