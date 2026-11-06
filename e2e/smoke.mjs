@@ -463,6 +463,11 @@ try {
     await stopGame(host, [host, guest]);
   });
 
+  // The server saves a table up to half a second after its last change (SAVE_DEBOUNCE_MS in app.ts), and a hand at once.
+  // CI's backup check reads the leaderboard right after this, so give the last table's save time to land: read in that
+  // half second, the board counts the last hand but not its chips, and the restored copy doesn't match.
+  await new Promise((r) => setTimeout(r, 2000));
+
   if (errors.length) throw new Error(`console errors:\n${errors.join('\n')}`);
   console.log('smoke test passed');
 } catch (e) {
