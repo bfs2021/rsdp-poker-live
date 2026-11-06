@@ -279,7 +279,13 @@ export function Table({
   const roomy = Math.min(1.1, h / 460, (perimeter * 0.92) / (players * 290 + (n - players) * 130));
   // On a big window the whole table grows with it (#317): k is the table's scale, from the room the felt has. Below k = 1
   // (laptops, and the replayer) the sizes above stay as they were.
-  const k = !fill || compact || !room.w ? 1 : Math.round(Math.min(1.9, room.h / 560, room.w / 1180) * 100) / 100;
+  // A short, very wide window (an ultrawide screen, or a big one with tall browser bars) has the width but not the height:
+  // there the wide layout packs the table tighter from top to bottom, so it still grows a little instead of shrinking (#347).
+  const kTall = Math.min(1.9, room.h / 560, room.w / 1180);
+  const kShort = wide ? Math.min(1.25, room.h / 470, room.w / 1180) : 0;
+  const k = !fill || compact || !room.w ? 1 : Math.round(Math.max(kTall, kShort) * 100) / 100;
+  // On such a window the board gives up some height too, so bets in front of the seats above and below don't reach it.
+  const short = kShort > kTall && k > 1;
   const grown = k > 1;
   // Seats grow with k unless the players round the felt need them smaller. The felt's size is estimated from the room
   // and k, not measured, because its margins grow with the seats and a measured size would feed back.
@@ -303,7 +309,7 @@ export function Table({
     ? null
     : grown
       ? // With a row of big cards above and below it (#331), the board gives up a little height so bets don't reach it.
-        Math.round(Math.max(60, Math.min((wide ? 80 : 68) * k, w * 0.085, h * (longGame ? 0.19 : 0.21))))
+        Math.round(Math.max(short ? 44 : 60, Math.min((wide ? 80 : 68) * k, w * 0.085, h * (longGame ? 0.19 : 0.21) * (short ? 0.82 : 1))))
       : Math.round(Math.max(60, Math.min(88, w * 0.062, h * 0.17)));
   // Bets sit just inside each seat's nameplate and cards, on the way to the middle.
   const guess: Reach = compact ? { l: 50, r: 50, u: 55, d: 25 } : { l: 100, r: 100, u: 70, d: 32 };
@@ -445,7 +451,7 @@ export function Table({
   return (
     <div
       ref={felt}
-      className={['felt', compact && 'compact', grown && 'grown', grown && wide && 'big-cards', handFit && 'hand-fit', done && hand!.awards.length > 0 && 'showdown', view.me.seat !== null && 'seated-view', myTurn && 'my-turn', view.cardsWatched && 'cards-watched'].filter(Boolean).join(' ')}
+      className={['felt', compact && 'compact', grown && 'grown', grown && wide && 'big-cards', short && 'short', handFit && 'hand-fit', done && hand!.awards.length > 0 && 'showdown', view.me.seat !== null && 'seated-view', myTurn && 'my-turn', view.cardsWatched && 'cards-watched'].filter(Boolean).join(' ')}
       style={{ ...feltStyle(prefs, view.settings.table.felt), '--seat-scale': seatScale, ...(grown ? { '--k': k, '--sk': seatScale, '--side-margin': `${sideMargin}px`, '--top-margin': `${topMargin}px` } : {}), ...(boardCard ? { '--board-cw': `${boardCard}px` } : {}), ...(handFit ? { '--fit-cw': `${handFit.cw}px`, '--fit-overlap': `${-handFit.overlap}px` } : {}) } as CSSProperties}
     >
       <FeltEmblem />
