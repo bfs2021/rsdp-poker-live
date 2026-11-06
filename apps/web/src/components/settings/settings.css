@@ -11,3 +11,15 @@
 .modal .tabs button {
   flex: 1 0 auto;
 }
+
+/* One-tap HORSE and 8-Game under "Rotate games". */
+.mixed-game-picks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mixed-game-picks button.on {
+  outline: 2px solid currentColor;
+  font-weight: 600;
+}

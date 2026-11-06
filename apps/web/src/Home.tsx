@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { BettingKind } from '@rsdp/engine/core';
 import type { SettingsPatch } from '@rsdp/engine/settings';
-import { getVariant, VARIANT_LIST } from '@rsdp/engine/variants';
+import { getMixedGame, getVariant, mixedGameMaxPlayers, MIXED_GAMES, VARIANT_LIST } from '@rsdp/engine/variants';
 import { BOT_LEVELS, type BotLevel } from '@rsdp/engine/wire';
 import { call, saveName, savedName } from './socket';
 import { BETTING_NAME, fromInput, studBringIn } from './format';
@@ -15,6 +15,7 @@ import { LEVEL_INFO, lastBotLevel, rememberBotLevel } from './components/table/B
 
 export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
   const [name, setName] = useState(savedName);
+  // A game id, or 'mix:' and a mixed game's id (HORSE, 8-Game).
   const [gameId, setGameId] = useState('nlhe');
   const [betting, setBetting] = useState<BettingKind>('no-limit');
   // Cash games are played for dollars and cents, typed as dollars.
@@ -30,12 +31,15 @@ export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
   const presets = usePresets();
   const [presetName, setPresetName] = useState('');
   const preset = presets.find((p) => p.name === presetName) ?? null;
-  const spec = getVariant(gameId);
-  const stud = spec.family === 'stud';
+  const mix = gameId.startsWith('mix:') ? getMixedGame(gameId.slice(4)) : null;
+  const spec = getVariant(mix ? mix.steps[0].gameId : gameId);
+  const stud = !mix && spec.family === 'stud';
+  // A mix with stud in it needs both the blinds and the stud ante.
+  const mixAnte = !!mix && mix.steps.some((st) => getVariant(st.gameId).family === 'stud');
 
   const pickGame = (id: string) => {
     setGameId(id);
-    setBetting(getVariant(id).defaultBetting);
+    if (!id.startsWith('mix:')) setBetting(getVariant(id).defaultBetting);
   };
 
   /** A table for friends, or with `practice` a table for you and some bots that deals at once. */
@@ -58,7 +62,21 @@ export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
       return setError(`The ${stud ? 'small bet' : 'big blind'} must be at least 0.01`);
     }
     const tableName = practice ? `${name.trim() || 'My'}'s practice table` : `${name.trim() || 'Friends'}'s table`;
-    const quick: SettingsPatch = {
+    // A mix rotates one orbit per game: blind games use the blinds, Limit games bet the big blind and twice it, stud antes.
+    const mixed: SettingsPatch | null = mix && {
+      table: { name: tableName, maxSeats: Math.min(9, mixedGameMaxPlayers(mix)) },
+      game: { gameId: mix.steps[0].gameId, betting: mix.steps[0].betting, rotation: { enabled: true, steps: mix.steps.map((st) => ({ ...st, length: 1, unit: 'orbits' as const })) } },
+      stakes: {
+        smallBlind: sb,
+        bigBlind: bb,
+        ...(mixAnte ? { ante: an, anteType: an > 0 ? ('per-player' as const) : ('none' as const), bringIn: studBringIn(bb, true) } : {}),
+        smallBet: bb,
+        bigBet: bb * 2,
+        centsMode: true,
+      },
+      timing: { decisionSeconds: 30 },
+    };
+    const quick: SettingsPatch = mixed ?? {
       table: { name: tableName, maxSeats: Math.min(9, spec.maxPlayers) },
       game: { gameId, betting },
       // Stud has no blinds: the ante and bring-in start the pot. Limit bets are the big blind and twice it.
@@ -137,20 +155,29 @@ export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
                           {v.name}
                         </option>
                       ))}
+                      <optgroup label="Mixed games">
+                        {MIXED_GAMES.map((m) => (
+                          <option key={m.id} value={`mix:${m.id}`}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                   </label>
-                  <label>
-                    Betting
-                    <select value={betting} onChange={(e) => setBetting(e.target.value as BettingKind)}>
-                      {(['no-limit', 'pot-limit', 'fixed-limit'] as const).map((b) => (
-                        <option key={b} value={b}>
-                          {BETTING_NAME[b]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  {!mix && (
+                    <label>
+                      Betting
+                      <select value={betting} onChange={(e) => setBetting(e.target.value as BettingKind)}>
+                        {(['no-limit', 'pot-limit', 'fixed-limit'] as const).map((b) => (
+                          <option key={b} value={b}>
+                            {BETTING_NAME[b]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </div>
-                <BettingNudge gameId={gameId} betting={betting} onSwitch={setBetting} />
+                {!mix && <BettingNudge gameId={gameId} betting={betting} onSwitch={setBetting} />}
                 <div className="row">
                   {stud ? (
                     <label>
@@ -167,8 +194,18 @@ export function Home({ onCreated }: { onCreated: (tableId: string) => void }) {
                     {stud ? 'Small bet ($)' : 'Big blind ($)'}
                     <input type="number" min={0.01} step={0.01} inputMode="decimal" value={bigBlind} onChange={(e) => setBigBlind(e.target.value)} />
                   </label>
+                  {mixAnte && (
+                    <label>
+                      Stud ante ($)
+                      <input type="number" min={0} step={0.01} inputMode="decimal" value={ante} onChange={(e) => setAnte(e.target.value)} />
+                    </label>
+                  )}
                 </div>
-                <p className="muted">{spec.rules}</p>
+                <p className="muted">
+                  {mix
+                    ? `${mix.summary} One orbit each, up to ${Math.min(9, mixedGameMaxPlayers(mix))} players. The Limit games bet the big blind, then twice it; only the stud games ante.`
+                    : spec.rules}
+                </p>
               </>
             )}
             {error && errorFor === 'cash' && <p className="error">{error}</p>}

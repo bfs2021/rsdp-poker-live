@@ -33,7 +33,7 @@ import {
   type TableSettings,
 } from '@rsdp/engine/settings';
 import { bombPotDue, bombPotSchema, bounty72Schema, nitClears, nitSchema, sevenDeuceWinners } from '@rsdp/engine/modifiers';
-import { gameTitle } from '@rsdp/engine/variants';
+import { gameTitle, skipsMixedGameAnte } from '@rsdp/engine/variants';
 import { BOT_LEVELS, BOT_LOOKS, type BotLevel, type BotNote, type CoachTip, type TurnKey } from '@rsdp/engine/wire';
 import {
   RUNTIME_VERSION,
@@ -2331,6 +2331,9 @@ export class TableRuntime {
     if (this.rotationStepDone(plan.button)) {
       setup = this.handSetup();
       plan = planFor(setup);
+      // The new game can put the button somewhere else (after stud, the blinds pick up where they left off),
+      // so the new step's orbit starts at the button this hand is really dealt with.
+      s.rotation.anchor = plan.button;
       if (plan.dealtIn.length < 2) return false;
     }
     const sideGames = this.sideGames();
@@ -2491,6 +2494,8 @@ export class TableRuntime {
       stakes.bigBlind = level.bigBlind;
       stakes.ante = level.ante;
     }
+    // In a mix with stud, only the stud games ante; the blind games play on the blinds alone.
+    if (rotation.enabled && rotation.steps.length && skipsMixedGameAnte(gameId, rotation.steps.map((st) => st.gameId))) stakes.ante = 0;
     return { game, betting, stakes: fillStakes(stakes, game) };
   }
 

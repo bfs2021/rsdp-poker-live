@@ -2,7 +2,7 @@ import { useState } from 'react';
 import '@rsdp/engine/modifiers';
 import type { BettingKind } from '@rsdp/engine/core';
 import { getModifierSchema, SETTINGS_LIMITS, type SettingsPatch, type TableSettings } from '@rsdp/engine/settings';
-import { getVariant, VARIANT_LIST } from '@rsdp/engine/variants';
+import { getVariant, mixedGameMaxPlayers, mixedGameOf, MIXED_GAMES, VARIANT_LIST, type MixedGame } from '@rsdp/engine/variants';
 import type { TableView } from '@rsdp/engine/wire';
 import { call } from '../socket';
 import { BETTING_NAME, fromInput, studBringIn, toInput } from '../format';
@@ -69,6 +69,7 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
       return { ...d, modifiers: { ...d.modifiers, [id]: { ...cur, ...patch } } };
     });
 
+  const rot = draft.game.rotation;
   const games = draft.game.rotation.enabled && draft.game.rotation.steps.length ? draft.game.rotation.steps.map((s) => s.gameId) : [draft.game.gameId];
   const seatLimit = maxSeatsFor(games);
 
@@ -103,6 +104,29 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
     });
   };
 
+  /** Fills the rotation with a standard mix, one orbit per game, and sets up the stud ante and bring-in it needs. */
+  const pickMix = (mix: MixedGame) =>
+    setDraft((d) => {
+      const stud = mix.steps.some((st) => getVariant(st.gameId).forcedBets === 'ante-bring-in');
+      const first = mix.steps[0];
+      // The Limit games bet the big blind and twice it, as on a new table, so older Limit amounts don't linger.
+      const smallBet = Math.max(1, d.stakes.bigBlind);
+      const stakes = { ...d.stakes, smallBet, bigBet: smallBet * 2 };
+      return {
+        ...d,
+        game: { gameId: first.gameId, betting: first.betting, rotation: { enabled: true, steps: mix.steps.map((st) => ({ ...st, length: 1, unit: 'orbits' as const })) } },
+        table: { ...d.table, maxSeats: Math.min(d.table.maxSeats, mixedGameMaxPlayers(mix)) },
+        stakes: {
+          ...stakes,
+          // A stud table has no small blind; the hold'em and Omaha rounds need one.
+          ...(d.stakes.smallBlind === 0 && d.stakes.bigBlind > 1 ? { smallBlind: Math.floor(d.stakes.bigBlind / 2) } : {}),
+          // The ante is the stud ante: everyone posts it in the stud games.
+          ...(stud ? { ante: d.stakes.ante || defaultStudAnte(stakes), anteType: 'per-player' as const, bringIn: studBringIn(smallBet, d.stakes.centsMode) } : {}),
+        },
+      };
+    });
+  const currentMix = rot.enabled ? mixedGameOf(rot.steps) : null;
+
   const save = () => {
     const fixed = { ...draft, table: { ...draft.table, maxSeats: Math.min(draft.table.maxSeats, seatLimit) } };
     const patch = diff(view.settings, fixed) as SettingsPatch | undefined;
@@ -131,7 +155,6 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
     </label>
   );
 
-  const rot = draft.game.rotation;
   const sched = draft.blindSchedule;
 
   return (
@@ -178,6 +201,32 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
                   set('game', {
                     rotation: { ...rot, enabled, steps: rot.steps.length ? rot.steps : [{ gameId: draft.game.gameId, betting: draft.game.betting, length: 1, unit: 'orbits' }] },
                   }),
+                )}
+                <div className="mixed-game-picks" role="group" aria-label="Standard mixed games">
+                  <span className="muted">Or play a standard mix:</span>
+                  {MIXED_GAMES.map((mix) => {
+                    const cap = mixedGameMaxPlayers(mix);
+                    const mixTooBig = seated > cap;
+                    return (
+                      <button
+                        type="button"
+                        key={mix.id}
+                        className={currentMix?.id === mix.id ? 'on' : ''}
+                        aria-pressed={currentMix?.id === mix.id}
+                        disabled={mixTooBig}
+                        title={mixTooBig ? `${mix.name} seats at most ${cap}: ${seated} players are seated` : mix.summary}
+                        onClick={() => pickMix(mix)}
+                      >
+                        {mix.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {currentMix && (
+                  <p className="muted">
+                    {currentMix.name}: {currentMix.summary} One orbit each; change the lengths below. Only the stud games ante; the others play on the blinds, and
+                    the Limit games bet the Limit amounts in Stakes.
+                  </p>
                 )}
                 {rot.enabled && (
                   <div className="list-editor">

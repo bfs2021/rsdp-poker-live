@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { engine, variants } from '@rsdp/engine/core';
 import { defaultSettings, type TableSettings } from '@rsdp/engine/settings';
-import { registerAllVariants } from '@rsdp/engine/variants';
+import { MIXED_GAMES, registerAllVariants } from '@rsdp/engine/variants';
 import { HOST_HANDOFF_MS, RESUME_MIN_MS, TableRuntime } from '../src/runtime/table';
 import { behind, delayedPart, tableView, type DelayedPart } from '../src/runtime/view';
 import { FakeClock, seeded } from './fake-clock';
@@ -430,6 +430,67 @@ describe('host settings', () => {
       clock.advance(10_000);
     }
     expect(games).toEqual(['nlhe', 'nlhe', 'plo4', 'stud', 'nlhe']);
+  });
+
+  for (const mix of MIXED_GAMES) {
+    it(`${mix.name} deals every game in turn with its own betting, and only the stud games ante`, () => {
+      const { rt, clock } = table((s) => {
+        s.table.maxSeats = 6;
+        s.stakes = { ...s.stakes, smallBlind: 1, bigBlind: 2, ante: 1, anteType: 'per-player', bringIn: 1, smallBet: 2, bigBet: 4 };
+        s.game.rotation = { enabled: true, steps: mix.steps.map((st) => ({ ...st, length: 1, unit: 'hands' as const })) };
+      });
+      seatPlayers(rt, 3, 1000);
+      rt.start('host');
+      const dealt: { game: string; betting: string; antes: number }[] = [];
+      for (let i = 0; i < mix.steps.length; i++) {
+        const h = hand(rt);
+        dealt.push({ game: h.input.game.id, betting: h.input.betting, antes: h.input.stakes.ante });
+        checkDown(rt);
+        expect(total(rt)).toBe(3000);
+        clock.advance(10_000);
+      }
+      expect(dealt).toEqual(mix.steps.map((st) => ({ game: st.gameId, betting: st.betting, antes: ['razz', 'stud', 'stud8'].includes(st.gameId) ? 1 : 0 })));
+    });
+  }
+
+  it('HORSE by orbits gives every game a full orbit, also going from stud back to the blind games', () => {
+    const { rt, clock } = table((s) => {
+      s.table.maxSeats = 8;
+      s.stakes = { ...s.stakes, ante: 1, anteType: 'per-player', bringIn: 1, smallBet: 2, bigBet: 4 };
+      s.game.rotation = { enabled: true, steps: MIXED_GAMES[0].steps.map((st) => ({ ...st, length: 1, unit: 'orbits' as const })) };
+    });
+    seatPlayers(rt, 3, 1000);
+    rt.start('host');
+    const games: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      games.push(hand(rt).input.game.id);
+      checkDown(rt);
+      clock.advance(10_000);
+    }
+    const cycle = ['nlhe', 'plo8', 'razz', 'stud', 'stud8'].flatMap((g) => [g, g, g]);
+    expect(games).toEqual([...cycle, ...cycle]);
+  });
+
+  it('a rotation without stud keeps its antes in every game', () => {
+    const { rt, clock } = table((s) => {
+      s.stakes = { ...s.stakes, ante: 1, anteType: 'per-player' };
+      s.game.rotation = {
+        enabled: true,
+        steps: [
+          { gameId: 'nlhe', betting: 'no-limit', length: 1, unit: 'hands' },
+          { gameId: 'plo4', betting: 'pot-limit', length: 1, unit: 'hands' },
+        ],
+      };
+    });
+    seatPlayers(rt, 3);
+    rt.start('host');
+    const antes: number[] = [];
+    for (let i = 0; i < 2; i++) {
+      antes.push(hand(rt).input.stakes.ante);
+      checkDown(rt);
+      clock.advance(10_000);
+    }
+    expect(antes).toEqual([1, 1]);
   });
 });
 

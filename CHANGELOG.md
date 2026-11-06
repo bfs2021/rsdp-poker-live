@@ -20,9 +20,17 @@ merged but not live yet is also on the issues labelled [status: on develop](http
 
 ## [2026.11.06.3] - 2026-11-06
 
+_HORSE and 8-Game_
+
+### New
+
+- **Play HORSE or 8-Game in one tap.** Pick HORSE or 8-Game under Mixed games when you start a cash game, or tap one in Table settings > Game. HORSE plays Limit Hold'em, Omaha Hi-Lo, Razz, Seven Card Stud and Stud Hi-Lo in turn; 8-Game adds 2-7 Triple Draw, No-Limit Hold'em and Pot-Limit Omaha. Each game lasts an orbit, and you can change the lengths or the games afterwards. How to play has a new Mixed games guide. (Suggested by John.)
+
 ### Fixed and changed
 
 - Hosts: switching to a game with fewer seats (2-7 Triple Draw and Badugi seat 6, the stud games 8) no longer fails with "seat 8 is taken". If everyone fits, players in the seats that go move into free seats and the blinds carry on as normal. If not everyone fits, Table settings says how many players need to leave first. Lowering the seat count by hand works the same way.
+- Mixed games with stud in them: only the stud games ante now, as in a card room. Hold'em, Omaha and draw hands in the same rotation are played on the blinds alone. A rotation without stud games keeps its antes as before.
+- Mixed games: when a rotation went from a stud game back to hold'em or Omaha, the first blind game could end after a single hand instead of a full orbit. Every game now gets its full orbit.
 
 ## [2026.11.06.2] - 2026-11-06
 

@@ -115,6 +115,38 @@ function timeExample(t: { clock: number; bank: number; refillHands: number; firs
 
 export const EXTRAS: ExtraGuide[] = [
   {
+    id: 'mixed-games',
+    name: 'Mixed games: HORSE and 8-Game',
+    idea: 'The table plays several games in turn, switching after a set number of orbits or hands. HORSE and 8-Game are the two classic mixes.',
+    steps: [
+      "HORSE is five Limit games: Hold'em, Omaha Hi-Lo, Razz, Seven Card Stud and Stud Hi-Lo (the first letters spell it).",
+      "8-Game plays 2-7 Triple Draw, Limit Hold'em, Omaha Hi-Lo, Razz, Seven Card Stud, Stud Hi-Lo, No-Limit Hold'em and Pot-Limit Omaha.",
+      'Each game lasts one orbit to start with: once the button has gone all the way round, the next game starts. The table log says when the game changes, and the table shows the game being played.',
+      "The blind games (hold'em, Omaha and Triple Draw) use the table's blinds. The stud games have no blinds: everyone antes, and the lowest up card (the highest in Razz) brings in.",
+      'Only the stud games ante. The ante you set is the stud ante; the blind games are played without it.',
+      'In the Limit games every bet and raise is a fixed size: the small bet on the early rounds and the big bet, twice as much, on the later ones.',
+      'Seats are capped by the smallest game: 8 for HORSE (stud deals up to seven cards each) and 6 for 8-Game (Triple Draw needs cards to draw from).',
+    ],
+    examples: [
+      {
+        title: 'HORSE at $0.25/$0.50',
+        lines: [
+          "Hold'em and Omaha Hi-Lo: blinds of $0.25 and $0.50, then bets of $0.50 before the flop and on the flop, and $1 on the turn and river.",
+          'Razz, Stud and Stud Hi-Lo: everyone antes $0.10, the bring-in is $0.15, and the bets are $0.50 on third and fourth street and $1 from fifth street on.',
+        ],
+      },
+    ],
+    settings: [
+      'Start a cash game: pick HORSE or 8-Game under Mixed games in the Game list.',
+      'At a table: Table settings > Game, then tap HORSE or 8-Game. You can then change how long each game lasts, drop games or add others.',
+      'Table settings > Stakes sets the blinds, the Limit small and big bets, the stud ante and the bring-in.',
+    ],
+    elsewhere: [
+      'Card rooms often switch games every orbit or every 8 hands online; change the lengths to match the game you know.',
+      'Some games play the No-Limit and Pot-Limit rounds of 8-Game at different blinds. Here every game shares the same blinds.',
+    ],
+  },
+  {
     id: 'nit-game',
     name: 'Nit game',
     cashOnly: true,
@@ -502,6 +534,7 @@ export function extrasOn(settings: TableSettings): string[] {
   const blinds = specs.some((g) => g.family !== 'stud');
   const holdem = specs.some((g) => g.family === 'flop' && g.streets.reduce((n, st) => n + st.dealDown + st.dealUp, 0) === 2);
   const on: Record<string, boolean> = {
+    'mixed-games': rot.enabled && rot.steps.length > 1,
     'nit-game': cash && nitSchema.get(settings).enabled,
     'seven-deuce': cash && holdem && bounty72Schema.get(settings).enabled,
     'bomb-pots': cash && bombPotSchema.get(settings).enabled,

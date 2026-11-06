@@ -7,6 +7,7 @@ import { bringInSeat, firstToActSeat, studOddChipOrder } from './stud';
 export * from './types';
 export * from './specs';
 export * from './advice';
+export * from './mixes';
 export * from './evaluators';
 export { awardPortion } from './showdown';
 export { bringInSeat, firstToActSeat, studOddChipOrder } from './stud';
