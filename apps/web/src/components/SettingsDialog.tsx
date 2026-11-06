@@ -72,6 +72,19 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
   const games = draft.game.rotation.enabled && draft.game.rotation.steps.length ? draft.game.rotation.steps.map((s) => s.gameId) : [draft.game.gameId];
   const seatLimit = maxSeatsFor(games);
 
+  // A game with fewer seats than the table: say up front who has to leave, or who moves seats.
+  const tightest = games.map((id) => getVariant(id)).reduce((a, b) => (b.maxPlayers < a.maxPlayers ? b : a));
+  const newSeats = Math.min(draft.table.maxSeats, seatLimit);
+  const tooMany = !tournament && seated > newSeats;
+  const moving = view.seats.flatMap((x, i) => (x && i >= newSeats ? [i + 1] : []));
+  const seatNote = tooMany
+    ? seated > seatLimit
+      ? `${games.length > 1 ? `${tightest.name}, one of the games in the rotation,` : tightest.name} seats at most ${seatLimit} players and ${seated} are sitting down. ${seated - seatLimit} ${seated - seatLimit === 1 ? 'player needs' : 'players need'} to leave the table (or remove ${seated - seatLimit === 1 ? 'a bot' : 'some bots'}) before you can switch.`
+      : `${seated} players are sitting down, so the table needs at least ${seated} seats.`
+    : !tournament && moving.length
+      ? `The table goes down to ${newSeats} seats. ${moving.length === 1 ? 'The player' : 'Players'} in seat${moving.length === 1 ? '' : 's'} ${moving.join(' and ').replace(/ and (?=.* and )/g, ', ')} will move to ${moving.length === 1 ? 'a free seat' : 'free seats'}${handLive ? ' when this hand ends' : ''}.`
+      : '';
+
   const pickGame = (gameId: string) => {
     const spec = getVariant(gameId);
     setDraft((d) => {
@@ -160,6 +173,7 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
                 </div>
                 {!rot.enabled && <BettingNudge gameId={draft.game.gameId} betting={draft.game.betting} onSwitch={(betting) => set('game', { betting })} />}
                 {numberField('Seats', Math.min(draft.table.maxSeats, seatLimit), (v) => set('table', { maxSeats: v }), Math.max(2, seated), seatLimit, `Up to ${seatLimit} for ${games.length > 1 ? 'these games' : 'this game'}.`)}
+                {seatNote && !tooMany && <p className="hint">{seatNote}</p>}
                 {toggle('Rotate games (mixed games)', rot.enabled, (enabled) =>
                   set('game', {
                     rotation: { ...rot, enabled, steps: rot.steps.length ? rot.steps : [{ gameId: draft.game.gameId, betting: draft.game.betting, length: 1, unit: 'orbits' }] },
@@ -422,12 +436,13 @@ export function SettingsDialog({ view, onClose }: { view: TableView; onClose: ()
         )}
       </div>
       {handLive && <p className="muted">Changes to the game, stakes and seats take effect when this hand ends.</p>}
+      {tooMany && <p className="error">{seatNote}</p>}
       {error && <p className="error">{error}</p>}
       <div className="row">
         <button type="button" onClick={onClose}>
           Cancel
         </button>
-        <button className="primary" disabled={busy} onClick={save}>
+        <button className="primary" disabled={busy || tooMany} onClick={save}>
           Save
         </button>
       </div>

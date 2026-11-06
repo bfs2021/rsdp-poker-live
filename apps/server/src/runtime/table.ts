@@ -401,9 +401,9 @@ export class TableRuntime {
       if (!open.length) throw new ActionError('every seat is taken');
       seat = open[this.rng(open.length)];
     }
-    this.checkSeatKept(seat);
     if (this.state.seats[seat]) throw new ActionError('that seat is taken');
     this.checkSeatFree(playerId, seat);
+    this.checkSeatKept(seat, playerId);
     this.checkBuyIn(playerId, stack);
     // A new request replaces your earlier one (which never holds a seat against you).
     this.state.requests = this.state.requests.filter((r) => !(r.playerId === playerId && r.kind === 'seat'));
@@ -438,13 +438,13 @@ export class TableRuntime {
       let target = seat ?? r.seat!;
       if (seat !== undefined) {
         if (!Number.isInteger(seat) || seat < 0 || seat >= this.state.seats.length) throw new ActionError('no such seat');
-        this.checkSeatKept(seat);
         if (this.state.seats[seat]) throw new ActionError('that seat is taken');
         this.checkSeatFree(r.playerId, seat);
-      } else if (target >= this.seatLimit()) {
+        this.checkSeatKept(seat, r.playerId);
+      } else if (target >= this.seatLimit() || (this.movers() > 0 && !this.state.seats[target] && !this.openSeats(r.playerId).includes(target))) {
         // The table is getting smaller and drops the seat they asked for: any open seat will do.
         const open = this.openSeats(r.playerId);
-        if (!open.length) throw new ActionError('that seat is going when the table gets smaller, and every other seat is taken');
+        if (!open.length) throw new ActionError('the table is getting smaller, and every seat it keeps is taken or kept for a player moving into it');
         target = open[this.rng(open.length)];
       } else if (this.state.seats[target]) {
         // Random seating: any open seat will do.
@@ -498,9 +498,22 @@ export class TableRuntime {
     return typeof next === 'number' ? Math.min(next, this.state.seats.length) : this.state.seats.length;
   }
 
-  private checkSeatKept(seat: number) {
+  /** Players sitting in seats a smaller table is about to drop: they move down into free seats when it does. */
+  private movers(): number {
+    const limit = this.seatLimit();
+    return this.state.seats.filter((x, i) => x && i >= limit).length;
+  }
+
+  /** `newcomer`: someone sitting down, who must not take a free seat a mover needs; null for a move. */
+  private checkSeatKept(seat: number, newcomer: PlayerId | null) {
     const limit = this.seatLimit();
     if (seat >= limit) throw new ActionError(`the table is going down to ${limit} seats after this hand; pick seat ${limit} or lower`);
+    if (newcomer !== null && this.movers() > 0 && !this.openSeats(newcomer).includes(seat)) {
+      const open = this.openSeats(newcomer);
+      throw new ActionError(
+        `the table is going down to ${limit} seats after this hand, and that seat is kept for a player moving into it${open.length ? `; seat ${open.map((i) => i + 1).join(', ')} is free` : ''}`,
+      );
+    }
   }
 
   /** Empty seats nobody else is waiting on. */
@@ -510,7 +523,22 @@ export class TableRuntime {
       ...this.state.requests.filter((r) => r.kind === 'seat' && r.playerId !== playerId).map((r) => r.seat!),
     ]);
     const limit = this.seatLimit();
-    return this.state.seats.flatMap((x, i) => (x || held.has(i) || i >= limit ? [] : [i]));
+    const open = this.state.seats.flatMap((x, i) => (x || held.has(i) || i >= limit ? [] : [i]));
+    // Players in the seats a smaller table drops need somewhere to go: the seats they will take
+    // (see moveIntoKeptSeats) aren't open to anyone else.
+    const kept = new Set(this.moverSeats(limit, this.movers()));
+    return open.filter((i) => !kept.has(i));
+  }
+
+  /**
+   * The free seats the players in a smaller table's dropped seats will move into: the highest
+   * seats nobody is waiting on, then held ones if there aren't enough.
+   */
+  private moverSeats(limit: number, count: number): number[] {
+    if (count <= 0) return [];
+    const held = new Set([...this.offers().map((o) => o.seat), ...this.state.requests.filter((r) => r.kind === 'seat').map((r) => r.seat!)]);
+    const free = this.state.seats.slice(0, limit).flatMap((x, i) => (x ? [] : [i])).reverse();
+    return [...free.filter((i) => !held.has(i)), ...free.filter((i) => held.has(i))].slice(0, count);
   }
 
   private queue(): WaitlistEntry[] {
@@ -1155,15 +1183,24 @@ export class TableRuntime {
     // Every amount here, the ledger and everyone's records are in the table's unit, so it stays the one the table was made with.
     if (next.stakes.centsMode !== cur.stakes.centsMode) throw new ActionError(cur.stakes.centsMode ? 'cash games are played in dollars and cents' : 'this table plays in chips; start a new table to play in dollars and cents');
     const games = next.game.rotation.enabled ? next.game.rotation.steps.map((st) => st.gameId) : [next.game.gameId];
-    for (const id of games) {
-      let spec: GameSpec;
+    const seated = this.state.seats.filter(Boolean).length;
+    const specs = games.map((id) => {
       try {
-        spec = variants.get(id).spec;
+        return variants.get(id).spec;
       } catch {
         throw new ActionError(`unknown game ${id}`);
       }
-      if (next.table.maxSeats > spec.maxPlayers) throw new ActionError(`${spec.name} seats at most ${spec.maxPlayers}`);
+    });
+    // The game with the fewest seats sets the size of the whole table, even in a mixed-game rotation.
+    const tightest = specs.reduce((a, b) => (b.maxPlayers < a.maxPlayers ? b : a));
+    if (seated > tightest.maxPlayers) {
+      const extra = seated - tightest.maxPlayers;
+      const which = games.length > 1 ? `${tightest.name}, one of the games in the rotation,` : tightest.name;
+      throw new ActionError(
+        `${which} seats at most ${tightest.maxPlayers} players and ${seated} are sitting down. ${extra} ${extra === 1 ? 'player needs' : 'players need'} to leave the table (or remove ${extra === 1 ? 'a bot' : 'some bots'}) before you can switch.`,
+      );
     }
+    for (const spec of specs) if (next.table.maxSeats > spec.maxPlayers) throw new ActionError(`${spec.name} seats at most ${spec.maxPlayers}`);
     const bombGame = bombPotSchema.get(next).gameId;
     if (bombGame) {
       let spec: GameSpec;
@@ -1174,8 +1211,8 @@ export class TableRuntime {
       }
       if (spec.family !== 'flop' || spec.forcedBets !== 'blinds') throw new ActionError(`bomb pots need a game with a flop, not ${spec.name}`);
     }
-    const lastTaken = this.state.seats.reduce((m, seat, i) => (seat ? i : m), -1);
-    if (next.table.maxSeats <= lastTaken) throw new ActionError(`seat ${lastTaken + 1} is taken; move that player before removing it`);
+    // Fewer seats than people sitting: someone would have to go. Players in the seats that go move into free ones instead.
+    if (next.table.maxSeats < seated) throw new ActionError(`${seated} players are sitting down, so the table needs at least ${seated} seats`);
   }
 
   private applyPendingSettings() {
@@ -1187,6 +1224,7 @@ export class TableRuntime {
     this.trackSeeAll();
     const seats = s.settings.table.maxSeats;
     if (seats !== s.seats.length) {
+      this.moveIntoKeptSeats(seats);
       // Nobody should be left in a dropped seat, but if someone is, they cash out rather than vanish with their chips.
       for (const seat of s.seats.slice(seats)) if (seat) this.removeSeat(seat);
       s.seats = Array.from({ length: seats }, (_, i) => s.seats[i] ?? null);
@@ -1200,6 +1238,33 @@ export class TableRuntime {
     }
     if (JSON.stringify(before.game.rotation) !== JSON.stringify(s.settings.game.rotation)) {
       s.rotation = { step: 0, hands: 0, orbits: 0, anchor: null };
+    }
+  }
+
+  /**
+   * A smaller table (a game with fewer seats, or the host asking for fewer): players in the seats
+   * that go move into free ones. The blinds carry on from where they were (a mover takes the button
+   * or a blind they had with them); a player who moves is forgiven any blinds they had missed.
+   */
+  private moveIntoKeptSeats(limit: number) {
+    const s = this.state;
+    const moving = s.seats.slice(limit).filter((x): x is SeatState => !!x);
+    if (!moving.length) return;
+    const free = this.moverSeats(limit, moving.length).sort((a, b) => a - b);
+    for (const seat of moving) {
+      const to = free.shift();
+      if (to === undefined) return;
+      const from = seat.seat;
+      s.seats[from] = null;
+      seat.seat = to;
+      seat.missedBigBlind = false;
+      seat.missedSmallBlind = false;
+      s.seats[to] = seat;
+      // The button or a blind they had goes with them, so the blinds carry on from where they were.
+      const p = s.positions;
+      if (p) for (const k of ['button', 'smallBlind', 'bigBlind'] as const) if (p[k] === from) p[k] = to;
+      for (const r of s.requests) if (r.playerId === seat.playerId) r.seat = to;
+      this.log(`${seat.name} moved from seat ${from + 1} to seat ${to + 1}: the table now has ${limit} seats`);
     }
   }
 
@@ -1295,7 +1360,7 @@ export class TableRuntime {
     const seat = this.seatOf(playerId);
     if (!seat) throw new ActionError('that player is not seated');
     if (!Number.isInteger(to) || to < 0 || to >= this.state.seats.length) throw new ActionError('no such seat');
-    this.checkSeatKept(to);
+    this.checkSeatKept(to, null);
     if (this.state.seats[to]) throw new ActionError('that seat is taken');
     this.checkSeatFree(playerId, to);
     if (this.inHand(playerId)) throw new ActionError('move them once this hand is over');
@@ -1449,9 +1514,9 @@ export class TableRuntime {
       seat = open[0];
     } else {
       if (!Number.isInteger(seat) || seat < 0 || seat >= this.state.seats.length) throw new ActionError('no such seat');
-      this.checkSeatKept(seat);
       if (this.state.seats[seat]) throw new ActionError('that seat is taken');
       this.checkSeatFree(by, seat);
+      this.checkSeatKept(seat, by);
     }
     const stack = input.stack ?? this.defaultBuyIn();
     const ownerName = cleanDisplayName(input.ownerName ?? '', NAME_MAX) || this.nameOf(by);
