@@ -61,7 +61,9 @@ function useRoom(ref: RefObject<HTMLElement>, on: boolean) {
     const measure = () => {
       const css = getComputedStyle(el);
       const w = parent.clientWidth;
-      const h = Math.round(el.offsetHeight + parseFloat(css.marginTop) + parseFloat(css.marginBottom));
+      // The exact height, not offsetHeight: that one is rounded while the margins (which grow with the table) are not, so
+      // the sum moved by a pixel each time the scale changed, which changed the scale back: the table twitched (#350).
+      const h = Math.round(el.getBoundingClientRect().height + parseFloat(css.marginTop) + parseFloat(css.marginBottom));
       setRoom((r) => (r.w === w && r.h === h ? r : { w, h }));
     };
     measure();
